@@ -1,0 +1,1725 @@
+     1→<!DOCTYPE html>
+     2→<html lang="en" data-theme="dark">
+     3→<head>
+     4→<meta charset="UTF-8" />
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     6→<title>Aether — Display Manager</title>
+     7→
+     8→<link rel="preconnect" href="https://fonts.googleapis.com">
+     9→<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    10→<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+    11→
+    12→<script src="https://unpkg.com/lucide@latest"></script>
+    13→
+    14→<style>
+    15→/* =====================================================================
+    16→   1. DESIGN TOKENS
+    17→   ===================================================================== */
+    18→:root{
+    19→  --accent: #6ad1b3;
+    20→  --accent-soft: rgba(106,209,179,.16);
+    21→  --accent-strong: #8fe3cc;
+    22→  --accent-press: #4cb89a;
+    23→
+    24→  --bg-fallback-1: #0b1016;
+    25→  --bg-fallback-2: #131a22;
+    26→  --surface: rgba(18,24,32,.55);
+    27→  --surface-strong: rgba(20,27,37,.82);
+    28→  --surface-hover: rgba(30,40,52,.62);
+    29→  --surface-input: rgba(10,14,20,.42);
+    30→
+    31→  --text: #eef3f7;
+    32→  --text-soft: rgba(238,243,247,.72);
+    33→  --text-mute: rgba(238,243,247,.48);
+    34→  --text-faint: rgba(238,243,247,.30);
+    35→
+    36→  --hairline: rgba(255,255,255,.10);
+    37→  --hairline-strong: rgba(255,255,255,.18);
+    38→  --ring: rgba(106,209,179,.55);
+    39→
+    40→  --error: #f0857a;
+    41→  --error-soft: rgba(240,133,122,.14);
+    42→  --success: #6ad1b3;
+    43→  --warn: #e8c46a;
+    44→
+    45→  --r-sm: 9px;
+    46→  --r-md: 14px;
+    47→  --r-lg: 20px;
+    48→  --r-pill: 999px;
+    49→  --pad-input: 13px 16px;
+    50→  --blur: 22px;
+    51→  --dur-fast: 130ms;
+    52→  --dur: 220ms;
+    53→  --dur-slow: 420ms;
+    54→  --ease: cubic-bezier(.22,.61,.36,1);
+    55→  --ease-out: cubic-bezier(.16,1,.3,1);
+    56→
+    57→  --shadow-panel: 0 18px 50px -22px rgba(0,0,0,.75), 0 2px 8px -2px rgba(0,0,0,.5);
+    58→  --shadow-float: 0 8px 30px -12px rgba(0,0,0,.6);
+    59→}
+    60→
+    61→[data-theme="light"]{
+    62→  --accent: #0f766e;
+    63→  --accent-soft: rgba(15,118,110,.14);
+    64→  --accent-strong: #0d6b62;
+    65→  --accent-press: #0a544d;
+    66→
+    67→  --bg-fallback-1: #d7dde3;
+    68→  --bg-fallback-2: #e9edf1;
+    69→  --surface: rgba(255,255,255,.62);
+    70→  --surface-strong: rgba(255,255,255,.84);
+    71→  --surface-hover: rgba(255,255,255,.78);
+    72→  --surface-input: rgba(255,255,255,.55);
+    73→
+    74→  --text: #15202a;
+    75→  --text-soft: rgba(21,32,42,.74);
+    76→  --text-mute: rgba(21,32,42,.55);
+    77→  --text-faint: rgba(21,32,42,.34);
+    78→
+    79→  --hairline: rgba(15,32,42,.10);
+    80→  --hairline-strong: rgba(15,32,42,.18);
+    81→  --ring: rgba(15,118,110,.55);
+    82→
+    83→  --error: #c0443a;
+    84→  --error-soft: rgba(192,68,58,.12);
+    85→  --success: #0f766e;
+    86→  --warn: #b67e1a;
+    87→
+    88→  --shadow-panel: 0 18px 50px -24px rgba(15,32,42,.40), 0 2px 8px -2px rgba(15,32,42,.18);
+    89→  --shadow-float: 0 8px 30px -12px rgba(15,32,42,.28);
+    90→}
+    91→
+    92→/* =====================================================================
+    93→   2. RESET & BASE
+    94→   ===================================================================== */
+    95→*{box-sizing:border-box;margin:0;padding:0}
+    96→html,body{height:100%}
+    97→body{
+    98→  font-family:"Inter",system-ui,sans-serif;
+    99→  color:var(--text);
+   100→  background:var(--bg-fallback-1);
+   101→  overflow:hidden;
+   102→  -webkit-font-smoothing:antialiased;
+   103→  text-rendering:optimizeLegibility;
+   104→}
+   105→button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+   106→input{font-family:inherit;color:inherit;border:none;background:none;outline:none}
+   107→::selection{background:var(--accent-soft)}
+   108→
+   109→button:focus-visible,
+   110→.method-tab:focus-visible,
+   111→.indicator:focus-visible,
+   112→.session-indicator:focus-visible,
+   113→.pin-key:focus-visible,
+   114→.vol-toggle:focus-visible,
+   115→.drawer-btn:focus-visible,
+   116→.grid-avatar:focus-visible{
+   117→  outline:2px solid var(--ring);outline-offset:2px;border-radius:6px;
+   118→}
+   119→.field input:focus,.field input:focus-visible{outline:none}
+   120→
+   121→/* =====================================================================
+   122→   3. WALLPAPER & ATMOSPHERE
+   123→   ===================================================================== */
+   124→.wallpaper{
+   125→  position:fixed;inset:0;z-index:0;
+   126→  background:
+   127→    radial-gradient(120% 90% at 12% 8%, rgba(106,209,179,.10), transparent 55%),
+   128→    radial-gradient(120% 100% at 88% 92%, rgba(60,90,140,.18), transparent 60%),
+   129→    linear-gradient(160deg, var(--bg-fallback-1), var(--bg-fallback-2));
+   130→  background-size:cover;
+   131→}
+   132→.wallpaper-img{
+   133→  position:fixed;inset:0;z-index:0;
+   134→  background-image:url("https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80");
+   135→  background-size:cover;
+   136→  background-position:center;
+   137→  opacity:0;
+   138→  transition:opacity var(--dur-slow) var(--ease);
+   139→}
+   140→.wallpaper-img.loaded{opacity:1}
+   141→.veil{
+   142→  position:fixed;inset:0;z-index:1;pointer-events:none;
+   143→  background:
+   144→    linear-gradient(90deg, rgba(6,10,16,.55) 0%, rgba(6,10,16,.18) 38%, rgba(6,10,16,.10) 62%, rgba(6,10,16,.42) 100%),
+   145→    linear-gradient(0deg, rgba(6,10,16,.48) 0%, transparent 32%);
+   146→}
+   147→[data-theme="light"] .veil{
+   148→  background:
+   149→    linear-gradient(90deg, rgba(220,228,236,.42) 0%, rgba(220,228,236,.10) 38%, rgba(220,228,236,.06) 62%, rgba(220,228,236,.32) 100%),
+   150→    linear-gradient(0deg, rgba(220,228,236,.40) 0%, transparent 32%);
+   151→}
+   152→
+   153→/* =====================================================================
+   154→   4. STAGE LAYOUT
+   155→   ===================================================================== */
+   156→.stage{
+   157→  position:relative;z-index:2;
+   158→  width:100%;height:100%;
+   159→  display:flex;align-items:center;justify-content:center;
+   160→  padding: clamp(28px,5vh,64px) clamp(28px,6vw,96px);
+   161→}
+   162→.auth-wrapper{
+   163→  display:flex;flex-direction:column;
+   164→  gap:16px;align-items:stretch;
+   165→  width:max-content;
+   166→  max-width:calc(100% - 32px);
+   167→}
+   168→.auth-container{
+   169→  display:flex;gap:16px;align-items:stretch;
+   170→  width:100%;
+   171→}
+   172→
+   173→/* =====================================================================
+   174→   5. USER BOX (left) — drawer inside, expands
+   175→   ===================================================================== */
+   176→.user-box{
+   177→  position:relative;
+   178→  display:flex;align-items:stretch;
+   179→  flex:0 0 auto;
+   180→  background:var(--surface);
+   181→  -webkit-backdrop-filter:blur(var(--blur)) saturate(120%);
+   182→  backdrop-filter:blur(var(--blur)) saturate(120%);
+   183→  border:1px solid var(--hairline);
+   184→  border-radius:var(--r-lg);
+   185→  box-shadow:var(--shadow-panel);
+   186→  transition:width var(--dur) var(--ease-out);
+   187→}
+   188→.user-box::before{
+   189→  content:"";position:absolute;inset:1px;border-radius:calc(var(--r-lg) - 1px);pointer-events:none;
+   190→  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 18%);
+   191→}
+   192→
+   193→/* drawer panel — embedded inside user-box */
+   194→.drawer-panel{
+   195→  display:none;
+   196→  margin:14px 8px 14px 14px;
+   197→  padding:16px 12px;
+   198→  border-radius:var(--r-md);
+   199→  background:rgba(8,12,18,.5);
+   200→  border:1px solid var(--hairline);
+   201→  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+   202→  flex-direction:column;justify-content:center;align-items:center;
+   203→  gap:14px;flex:0 0 auto;
+   204→}
+   205→.user-box.drawer-open .drawer-panel{
+   206→  display:flex;
+   207→}
+   208→.drawer-label{
+   209→  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+   210→  color:var(--text-faint);font-weight:600;
+   211→}
+   212→
+   213→/* avatar grid — fills by columns */
+   214→.avatar-grid{
+   215→  display:grid;
+   216→  grid-template-rows:repeat(3,1fr);
+   217→  grid-auto-flow:column;
+   218→  gap:10px;justify-items:center;
+   219→}
+   220→.grid-avatar{
+   221→  width:44px;height:44px;border-radius:50%;overflow:hidden;
+   222→  border:2px solid transparent;cursor:pointer;padding:0;background:none;
+   223→  transition:all var(--dur-fast) var(--ease);
+   224→}
+   225→.grid-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+   226→.grid-avatar:hover{border-color:var(--accent);transform:scale(1.08)}
+   227→.grid-avatar.selected{
+   228→  border-color:var(--accent);
+   229→  box-shadow:0 0 0 3px var(--accent-soft);
+   230→}
+   231→
+   232→/* user-box content */
+   233→.user-box-content{
+   234→  width:220px;flex:0 0 220px;
+   235→  display:flex;flex-direction:column;align-items:center;justify-content:center;
+   236→  padding:clamp(24px,4vh,40px) 16px;
+   237→  gap:6px;z-index:1;
+   238→}
+   239→.large-avatar{
+   240→  width:128px;height:128px;border-radius:50%;object-fit:cover;
+   241→  border:3px solid var(--hairline-strong);
+   242→  box-shadow:0 8px 30px -8px rgba(0,0,0,.6);
+   243→  background:var(--surface-input);
+   244→  margin-bottom:10px;
+   245→}
+   246→.user-name{
+   247→  font-family:"Space Grotesk",sans-serif;
+   248→  font-size:22px;font-weight:500;letter-spacing:-.01em;
+   249→  color:var(--text);text-align:center;
+   250→}
+   251→.user-handle{
+   252→  font-size:13px;color:var(--text-mute);font-family:"Space Grotesk";
+   253→}
+   254→
+   255→/* drawer button */
+   256→.drawer-btn{
+   257→  position:absolute;left:-16px;top:50%;transform:translateY(-50%);
+   258→  width:32px;height:32px;border-radius:50%;
+   259→  background:var(--surface-strong);
+   260→  border:1px solid var(--hairline-strong);
+   261→  display:flex;align-items:center;justify-content:center;
+   262→  cursor:pointer;z-index:21;
+   263→  color:var(--text-soft);
+   264→  transition:all var(--dur-fast) var(--ease);
+   265→  box-shadow:var(--shadow-float);
+   266→}
+   267→.drawer-btn:hover{
+   268→  background:var(--accent);color:#08130f;border-color:var(--accent);
+   269→}
+   270→[data-theme="light"] .drawer-btn:hover{color:#fff}
+   271→.drawer-btn svg{
+   272→  width:16px;height:16px;
+   273→  transition:transform var(--dur) var(--ease);
+   274→}
+   275→.user-box.drawer-open .drawer-btn svg{transform:rotate(180deg)}
+   276→
+   277→/* =====================================================================
+   278→   6. AUTH CARD (right)
+   279→   ===================================================================== */
+   280→.auth-card{
+   281→  position:relative;
+   282→  flex:0 0 440px;
+   283→  width:440px;
+   284→  display:flex;flex-direction:column;align-items:center;
+   285→  padding:clamp(22px,3vh,34px) clamp(20px,2.6vw,30px) clamp(20px,2.6vh,28px);
+   286→  background:var(--surface);
+   287→  -webkit-backdrop-filter:blur(var(--blur)) saturate(120%);
+   288→  backdrop-filter:blur(var(--blur)) saturate(120%);
+   289→  border:1px solid var(--hairline);
+   290→  border-radius:var(--r-lg);
+   291→  box-shadow:var(--shadow-panel);
+   292→}
+   293→.auth-card::before{
+   294→  content:"";position:absolute;inset:1px;border-radius:calc(var(--r-lg) - 1px);pointer-events:none;
+   295→  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 18%);
+   296→}
+   297→
+   298→/* method tabs */
+   299→.method-tabs{
+   300→  display:flex;gap:2px;margin-bottom:6px;
+   301→  padding:3px;border-radius:var(--r-pill);
+   302→  background:var(--surface-input);border:1px solid var(--hairline);
+   303→  flex-wrap:nowrap;justify-content:center;
+   304→}
+   305→.method-tab{
+   306→  display:inline-flex;align-items:center;gap:5px;
+   307→  padding:7px 10px;border-radius:var(--r-pill);
+   308→  font-size:11.5px;font-weight:500;color:var(--text-mute);
+   309→  transition:all var(--dur-fast) var(--ease);
+   310→  white-space:nowrap;
+   311→}
+   312→.method-tab svg{width:14px;height:14px}
+   313→.method-tab:hover{color:var(--text)}
+   314→.method-tab.active{background:var(--accent);color:#08130f}
+   315→[data-theme="light"] .method-tab.active{color:#fff}
+   316→
+   317→/* step indicator */
+   318→.step-indicator{
+   319→  display:none;flex-direction:column;align-items:center;gap:8px;
+   320→  margin-bottom:6px;
+   321→}
+   322→.step-indicator.show{display:flex}
+   323→.step-label{
+   324→  font-size:12px;color:var(--text-mute);font-family:"Space Grotesk";
+   325→  letter-spacing:.02em;text-transform:capitalize;
+   326→}
+   327→.step-dots{display:flex;gap:6px}
+   328→.step-dot{
+   329→  width:7px;height:7px;border-radius:50%;
+   330→  background:var(--hairline-strong);
+   331→  transition:all var(--dur) var(--ease);
+   332→}
+   333→.step-dot.active{background:var(--accent);transform:scale(1.3);box-shadow:0 0 6px var(--accent-soft)}
+   334→.step-dot.completed{background:var(--success)}
+   335→
+   336→/* method body */
+   337→.method-body{width:100%;position:relative;margin-top:12px}
+   338→.method-panel{display:none;width:100%}
+   339→.method-panel.active{display:block;animation:fadeUp var(--dur) var(--ease-out)}
+   340→@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+   341→
+   342→/* shared field */
+   343→.field{
+   344→  position:relative;display:flex;align-items:center;
+   345→  background:var(--surface-input);
+   346→  border:1px solid var(--hairline);
+   347→  border-radius:var(--r-md);
+   348→  transition:border-color var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease);
+   349→}
+   350→.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+   351→.field.error{border-color:var(--error);box-shadow:0 0 0 3px var(--error-soft);animation:shake var(--dur) var(--ease)}
+   352→@keyframes shake{
+   353→  0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}
+   354→  40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}
+   355→}
+   356→.field > svg.lead{
+   357→  width:17px;height:17px;color:var(--text-mute);margin-left:15px;flex:none;
+   358→}
+   359→.field input{
+   360→  flex:1;padding:var(--pad-input);font-size:15px;letter-spacing:.02em;min-width:0;
+   361→}
+   362→.field input::placeholder{color:var(--text-faint)}
+   363→
+   364→.field .user-input{display:none}
+   365→.field .user-input.show{
+   366→  display:block;flex:0 0 35%;min-width:0;
+   367→}
+   368→.field .field-sep{display:none}
+   369→.field .field-sep.show{
+   370→  display:block;width:1px;align-self:stretch;margin:9px 0;
+   371→  background:var(--hairline);flex:none;opacity:.6;
+   372→}
+   373→.field .eye{
+   374→  display:flex;align-items:center;justify-content:center;
+   375→  width:38px;height:100%;color:var(--text-mute);
+   376→  transition:color var(--dur-fast) var(--ease);flex:none;
+   377→}
+   378→.field .eye:hover{color:var(--text)}
+   379→.field .eye svg{width:17px;height:17px}
+   380→
+   381→.primary-action{
+   382→  margin-top:12px;width:100%;
+   383→  display:flex;align-items:center;justify-content:center;gap:8px;
+   384→  padding:13px 16px;border-radius:var(--r-md);
+   385→  background:var(--accent);color:#08130f;
+   386→  font-weight:600;font-size:14.5px;letter-spacing:.01em;
+   387→  transition:background var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),opacity var(--dur-fast) var(--ease);
+   388→}
+   389→[data-theme="light"] .primary-action{color:#fff}
+   390→.primary-action:hover{background:var(--accent-strong)}
+   391→.primary-action:active{transform:scale(.985)}
+   392→.primary-action[disabled]{opacity:.55;cursor:not-allowed}
+   393→.primary-action svg{width:17px;height:17px}
+   394→.primary-action.loading .label,.primary-action.loading svg{display:none}
+   395→.primary-action.loading .spinner{display:block}
+   396→.spinner{
+   397→  width:22px;height:22px;border-radius:50%;
+   398→  border:2px solid rgba(8,19,15,.18);border-top-color:#08130f;
+   399→  animation:spin .8s linear infinite;display:none;
+   400→}
+   401→[data-theme="light"] .spinner{border-color:rgba(255,255,255,.3);border-top-color:#fff}
+   402→@keyframes spin{to{transform:rotate(360deg)}}
+   403→
+   404→.field-foot{
+   405→  margin-top:10px;display:flex;align-items:center;justify-content:space-between;min-height:18px;
+   406→}
+   407→.error-msg{
+   408→  font-size:12.5px;color:var(--error);font-weight:500;
+   409→  opacity:0;transform:translateY(-2px);transition:all var(--dur-fast) var(--ease);
+   410→}
+   411→.error-msg.show{opacity:1;transform:none}
+   412→.demo-hint{
+   413→  font-size:11.5px;color:var(--text-faint);font-family:"Space Grotesk";
+   414→  letter-spacing:.01em;text-align:right;
+   415→}
+   416→.demo-hint b{color:var(--text-mute);font-weight:500}
+   417→
+   418→/* PIN */
+   419→.pin-display{display:flex;justify-content:center;gap:14px;margin:6px 0 18px}
+   420→.pin-dot{
+   421→  width:12px;height:12px;border-radius:50%;
+   422→  border:1.5px solid var(--hairline-strong);
+   423→  transition:all var(--dur-fast) var(--ease-out);
+   424→}
+   425→.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.08)}
+   426→.pin-dot.error{border-color:var(--error);background:var(--error-soft)}
+   427→.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+   428→.pin-key{
+   429→  height:50px;border-radius:var(--r-md);
+   430→  background:var(--surface-input);border:1px solid var(--hairline);
+   431→  font-family:"Space Grotesk";font-size:19px;font-weight:400;color:var(--text);
+   432→  transition:all var(--dur-fast) var(--ease);
+   433→}
+   434→.pin-key:hover{background:var(--surface-hover);border-color:var(--hairline-strong)}
+   435→.pin-key:active{transform:scale(.95);background:var(--accent-soft)}
+   436→.pin-key.fn{color:var(--text-mute);font-size:14px}
+   437→.pin-key.fn svg{width:18px;height:18px}
+   438→.pin-key.loading{opacity:.5;pointer-events:none}
+   439→
+   440→/* Pattern */
+   441→.pattern-wrap{display:flex;flex-direction:column;align-items:center}
+   442→.pattern-canvas{position:relative;width:220px;height:220px;margin:6px 0 14px;touch-action:none}
+   443→.pattern-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+   444→.pattern-dot{
+   445→  position:absolute;width:14px;height:14px;border-radius:50%;
+   446→  transform:translate(-50%,-50%);
+   447→  border:2px solid var(--hairline-strong);
+   448→  background:var(--surface-input);
+   449→  transition:all var(--dur-fast) var(--ease-out);
+   450→}
+   451→.pattern-dot.active{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 6px var(--accent-soft)}
+   452→.pattern-dot.error{border-color:var(--error);background:var(--error);box-shadow:0 0 0 6px var(--error-soft)}
+   453→.pattern-hint{font-size:12.5px;color:var(--text-mute);min-height:18px;font-family:"Space Grotesk"}
+   454→
+   455→/* Fingerprint */
+   456→.fp-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 0 4px}
+   457→.fp-btn{
+   458→  width:92px;height:92px;border-radius:50%;
+   459→  display:flex;align-items:center;justify-content:center;
+   460→  border:1.5px solid var(--hairline-strong);
+   461→  background:var(--surface-input);color:var(--text-soft);
+   462→  transition:all var(--dur) var(--ease-out);position:relative;
+   463→}
+   464→.fp-btn svg{width:46px;height:46px;transition:color var(--dur) var(--ease)}
+   465→.fp-btn:hover{color:var(--accent);border-color:var(--accent)}
+   466→.fp-btn.scanning{border-color:var(--accent);color:var(--accent);animation:pulse 1.1s var(--ease) infinite}
+   467→.fp-btn.scanning::after{
+   468→  content:"";position:absolute;inset:-6px;border-radius:50%;
+   469→  border:2px solid var(--accent);opacity:.5;animation:ripple 1.1s var(--ease) infinite;
+   470→}
+   471→@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-soft)}50%{box-shadow:0 0 0 12px transparent}}
+   472→@keyframes ripple{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.25);opacity:0}}
+   473→.fp-btn.success{color:var(--success);border-color:var(--success)}
+   474→.fp-label{margin-top:16px;font-size:13px;color:var(--text-mute);font-family:"Space Grotesk";min-height:18px}
+   475→
+   476→/* Question */
+   477→.question-box{
+   478→  display:flex;align-items:flex-start;gap:10px;
+   479→  padding:12px 14px;margin-bottom:14px;
+   480→  background:var(--accent-soft);
+   481→  border-radius:var(--r-md);border:1px solid var(--hairline);
+   482→}
+   483→.question-box svg{width:18px;height:18px;color:var(--accent);flex-shrink:0;margin-top:1px}
+   484→.question-text{
+   485→  font-size:13.5px;color:var(--text-soft);font-family:"Space Grotesk";
+   486→  line-height:1.45;font-weight:500;
+   487→}
+   488→
+   489→/* =====================================================================
+   490→   7. STATUS BAR — under auth-container, full width
+   491→   ===================================================================== */
+   492→.statusbar{
+   493→  position:relative;z-index:5;
+   494→  display:flex;align-items:center;justify-content:space-between;
+   495→  padding:6px 8px 6px 6px;
+   496→  border-radius:var(--r-pill);
+   497→  background:var(--surface);
+   498→  -webkit-backdrop-filter:blur(var(--blur));
+   499→  backdrop-filter:blur(var(--blur));
+   500→  border:1px solid var(--hairline);
+   501→  box-shadow:var(--shadow-float);
+   502→  min-height:46px;
+   503→  width:100%;
+   504→}
+   505→
+   506→/* session indicator — left side of statusbar */
+   507→.session-indicator{
+   508→  display:inline-flex;align-items:center;gap:8px;
+   509→  padding:7px 14px;border-radius:var(--r-pill);
+   510→  font-size:12.5px;color:var(--text-soft);
+   511→  background:var(--surface-input);
+   512→  border:1px solid var(--hairline);
+   513→  transition:all var(--dur-fast) var(--ease);
+   514→  white-space:nowrap;
+   515→}
+   516→.session-indicator:hover{background:var(--surface-hover);color:var(--text)}
+   517→.session-indicator svg{width:16px;height:16px;color:var(--text-mute)}
+   518→.session-indicator .session-label{color:var(--text-mute);font-weight:500}
+   519→.session-indicator .session-val{color:var(--text);font-weight:500}
+   520→.session-indicator .chev{width:14px;height:14px;color:var(--text-faint);transition:transform var(--dur-fast) var(--ease)}
+   521→.session-indicator.active .chev{transform:rotate(180deg)}
+   522→
+   523→/* system indicators — right side */
+   524→.system-indicators{
+   525→  display:flex;align-items:center;gap:4px;
+   526→}
+   527→.indicator{
+   528→  position:relative;display:inline-flex;align-items:center;justify-content:center;
+   529→  height:34px;min-width:34px;padding:0 9px;
+   530→  border-radius:var(--r-pill);gap:6px;color:var(--text-soft);
+   531→  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+   532→}
+   533→.indicator:hover{background:var(--surface-hover);color:var(--text)}
+   534→.indicator svg{width:17px;height:17px}
+   535→.indicator .lvl-text{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+   536→.indicator .pill{
+   537→  display:inline-flex;align-items:center;gap:5px;padding:0 10px 0 8px;
+   538→  border-radius:var(--r-pill);border:1px solid var(--hairline);
+   539→}
+   540→.bat-case{width:23px;height:13px;border:1.5px solid currentColor;border-radius:3px;position:relative;opacity:.9}
+   541→.bat-case::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:currentColor;border-radius:0 1.5px 1.5px 0}
+   542→.bat-fill{position:absolute;left:1px;top:1px;bottom:1px;background:currentColor;border-radius:1.5px}
+   543→.tip{
+   544→  position:absolute;bottom:calc(100% + 10px);left:50%;
+   545→  transform:translateX(-50%) translateY(4px);
+   546→  padding:6px 10px;border-radius:var(--r-sm);
+   547→  background:var(--surface-strong);border:1px solid var(--hairline);
+   548→  font-size:11.5px;color:var(--text-soft);white-space:nowrap;
+   549→  opacity:0;pointer-events:none;transition:all var(--dur-fast) var(--ease);
+   550→  box-shadow:var(--shadow-float);
+   551→}
+   552→.indicator:hover .tip{opacity:1;transform:translateX(-50%) translateY(0)}
+   553→
+   554→/* =====================================================================
+   555→   8. POPOVER PANELS
+   556→   ===================================================================== */
+   557→.popover{
+   558→  position:fixed;z-index:30;min-width:240px;padding:8px;
+   559→  background:var(--surface-strong);
+   560→  -webkit-backdrop-filter:blur(var(--blur)) saturate(130%);
+   561→  backdrop-filter:blur(var(--blur)) saturate(130%);
+   562→  border:1px solid var(--hairline-strong);
+   563→  border-radius:var(--r-md);box-shadow:var(--shadow-panel);
+   564→  opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;
+   565→  transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out);
+   566→  pointer-events:none;
+   567→}
+   568→.popover.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+   569→.popover.origin-tl{transform-origin:top left}
+   570→.popover.origin-bl{transform-origin:bottom left}
+   571→
+   572→.pop-section{padding:6px 4px}
+   573→.pop-section + .pop-section{border-top:1px solid var(--hairline)}
+   574→.pop-label{
+   575→  font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+   576→  color:var(--text-faint);font-weight:600;padding:4px 10px 6px;
+   577→}
+   578→.pop-item{
+   579→  display:flex;align-items:center;gap:11px;width:100%;
+   580→  padding:9px 10px;border-radius:var(--r-sm);
+   581→  font-size:13.5px;color:var(--text-soft);text-align:left;
+   582→  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+   583→}
+   584→.pop-item:hover{background:var(--surface-hover);color:var(--text)}
+   585→.pop-item svg{width:17px;height:17px;color:var(--text-mute);flex:none}
+   586→.pop-item .meta{margin-left:auto;font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+   587→.pop-item.danger{color:var(--error)}
+   588→.pop-item.danger svg{color:var(--error)}
+   589→.pop-item.danger:hover{background:var(--error-soft)}
+   590→.pop-item.selected{color:var(--text)}
+   591→.pop-item.selected .pop-check{color:var(--accent)}
+   592→.pop-check{margin-left:auto;width:16px;height:16px;color:var(--accent)}
+   593→
+   594→.session-logo{width:18px;height:18px;flex:none;display:flex;align-items:center;justify-content:center}
+   595→.session-logo svg{width:18px;height:18px}
+   596→.session-desc{display:block;font-size:11.5px;color:var(--text-faint);margin-top:1px;font-weight:400}
+   597→
+   598→/* network read-only */
+   599→.net-info-row{display:flex;align-items:center;gap:12px;padding:6px 10px}
+   600→.net-info-icon{
+   601→  width:36px;height:36px;border-radius:50%;
+   602→  background:var(--accent-soft);color:var(--accent);
+   603→  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+   604→}
+   605→.net-info-icon svg{width:18px;height:18px}
+   606→.net-info-text{flex:1}
+   607→.net-info-name{font-size:14px;font-weight:500;color:var(--text)}
+   608→.net-info-detail{font-size:12px;color:var(--text-mute);margin-top:1px}
+   609→.net-stat{
+   610→  display:flex;justify-content:space-between;align-items:center;
+   611→  padding:5px 10px;font-size:12.5px;color:var(--text-mute);
+   612→}
+   613→.net-stat-val{color:var(--text-soft);font-variant-numeric:tabular-nums;font-family:"Space Grotesk"}
+   614→
+   615→/* volume */
+   616→.vol-row{display:flex;align-items:center;gap:12px;padding:8px 12px 4px}
+   617→.vol-toggle{
+   618→  width:36px;height:36px;border-radius:50%;
+   619→  display:flex;align-items:center;justify-content:center;
+   620→  color:var(--text-soft);transition:all var(--dur-fast) var(--ease);flex-shrink:0;
+   621→}
+   622→.vol-toggle:hover{background:var(--surface-hover);color:var(--text)}
+   623→.vol-toggle.muted{color:var(--error)}
+   624→.vol-toggle svg{width:18px;height:18px}
+   625→.vol-slider{flex:1;accent-color:var(--accent);height:4px;cursor:pointer;min-width:0}
+   626→.vol-value{
+   627→  font-size:12px;color:var(--text-mute);font-variant-numeric:tabular-nums;
+   628→  min-width:40px;text-align:right;font-family:"Space Grotesk";
+   629→}
+   630→
+   631→/* =====================================================================
+   632→   9. DIALOG / OVERLAY
+   633→   ===================================================================== */
+   634→.scrim{
+   635→  position:fixed;inset:0;z-index:40;
+   636→  background:rgba(4,8,12,.5);
+   637→  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+   638→  opacity:0;pointer-events:none;transition:opacity var(--dur) var(--ease);
+   639→}
+   640→.scrim.open{opacity:1;pointer-events:auto}
+   641→.dialog{
+   642→  position:fixed;z-index:41;top:50%;left:50%;transform:translate(-50%,-46%) scale(.96);
+   643→  width:min(380px,90vw);padding:24px 24px 18px;
+   644→  background:var(--surface-strong);
+   645→  -webkit-backdrop-filter:blur(var(--blur)) saturate(130%);
+   646→  backdrop-filter:blur(var(--blur)) saturate(130%);
+   647→  border:1px solid var(--hairline-strong);border-radius:var(--r-lg);
+   648→  box-shadow:var(--shadow-panel);
+   649→  opacity:0;pointer-events:none;
+   650→  transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out);
+   651→}
+   652→.dialog.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+   653→.dialog-icon{
+   654→  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+   655→  background:var(--error-soft);color:var(--error);margin-bottom:14px;
+   656→}
+   657→.dialog-icon svg{width:23px;height:23px}
+   658→.dialog h3{font-family:"Space Grotesk";font-size:18px;font-weight:500;letter-spacing:-.01em}
+   659→.dialog p{font-size:13.5px;color:var(--text-soft);margin-top:6px;line-height:1.5}
+   660→.dialog-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+   661→.btn{padding:9px 16px;border-radius:var(--r-sm);font-size:13.5px;font-weight:500;transition:all var(--dur-fast) var(--ease)}
+   662→.btn-ghost{color:var(--text-soft)}
+   663→.btn-ghost:hover{background:var(--surface-hover);color:var(--text)}
+   664→.btn-danger{background:var(--error);color:#1a0805}
+   665→.btn-danger:hover{filter:brightness(1.08)}
+   666→.btn-primary{background:var(--accent);color:#08130f}
+   667→[data-theme="light"] .btn-primary{color:#fff}
+   668→.btn-primary:hover{background:var(--accent-strong)}
+   669→
+   670→/* success / power overlays */
+   671→.overlay-screen{
+   672→  position:fixed;inset:0;z-index:60;
+   673→  display:flex;flex-direction:column;align-items:center;justify-content:center;
+   674→  background:rgba(5,9,14,.0);opacity:0;pointer-events:none;
+   675→  transition:background var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease);
+   676→  text-align:center;
+   677→}
+   678→.overlay-screen.show{opacity:1;pointer-events:auto;background:rgba(5,9,14,.55)}
+   679→.overlay-screen.power{background:rgba(2,4,7,.92)}
+   680→.overlay-icon{
+   681→  width:64px;height:64px;border-radius:50%;
+   682→  display:flex;align-items:center;justify-content:center;
+   683→  background:var(--accent);color:#06120d;
+   684→  transform:scale(.6);opacity:0;transition:all var(--dur-slow) var(--ease-out);
+   685→}
+   686→[data-theme="light"] .overlay-icon{color:#fff}
+   687→.overlay-screen.show .overlay-icon{transform:scale(1);opacity:1}
+   688→.overlay-icon svg{width:30px;height:30px}
+   689→.overlay-title{
+   690→  font-family:"Space Grotesk";font-size:30px;font-weight:400;letter-spacing:-.01em;
+   691→  margin-top:22px;color:#fff;opacity:0;transform:translateY(8px);
+   692→  transition:all var(--dur-slow) var(--ease-out) .08s;
+   693→}
+   694→.overlay-screen.show .overlay-title{opacity:1;transform:none}
+   695→.overlay-sub{
+   696→  font-size:13.5px;color:rgba(255,255,255,.6);margin-top:8px;font-family:"Space Grotesk";
+   697→  opacity:0;transition:all var(--dur-slow) var(--ease-out) .16s;
+   698→}
+   699→.overlay-screen.show .overlay-sub{opacity:1}
+   700→.overlay-back{
+   701→  margin-top:28px;padding:9px 18px;border-radius:var(--r-pill);
+   702→  border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.8);
+   703→  font-size:13px;opacity:0;
+   704→  transition:all var(--dur-slow) var(--ease-out) .24s,background var(--dur-fast) var(--ease);
+   705→}
+   706→.overlay-screen.show .overlay-back{opacity:1}
+   707→.overlay-back:hover{background:rgba(255,255,255,.08);color:#fff}
+   708→
+   709→/* =====================================================================
+   710→   10. RESPONSIVE
+   711→   ===================================================================== */
+   712→@media (max-width:980px){
+   713→  .stage{padding:clamp(20px,5vh,40px) clamp(20px,5vw,36px)}
+   714→  .auth-wrapper{width:100%;max-width:440px}
+   715→  .auth-container{flex-direction:column;gap:12px;width:100%}
+   716→  .user-box{width:100%}
+   717→  .user-box-content{width:100%;flex-direction:row;justify-content:center;padding:20px}
+   718→  .large-avatar{width:72px;height:72px;margin-bottom:0;margin-right:16px}
+   719→  .user-box-content .user-name{font-size:20px}
+   720→  .drawer-panel{
+   721→    margin:12px;
+   722→    border-radius:var(--r-md);
+   723→    padding:16px;flex-direction:row;justify-content:center;
+   724→    width:auto;flex:1 1 auto;
+   725→  }
+   726→  .avatar-grid{grid-template-rows:repeat(2,1fr);grid-auto-flow:column}
+   727→  .drawer-btn{left:50%;top:auto;bottom:-16px;transform:translateX(-50%)}
+   728→  .user-box.drawer-open .drawer-btn svg{transform:rotate(90deg)}
+   729→  .auth-card{width:100%;flex:1 1 auto}
+   730→  .statusbar{flex-wrap:wrap;gap:8px;justify-content:center}
+   731→}
+   732→@media (max-width:620px){
+   733→  .method-tab{padding:6px 8px;font-size:11px}
+   734→  .session-indicator{padding:6px 10px;font-size:11.5px}
+   735→  .indicator .pill{padding:0 8px 0 6px}
+   736→}
+   737→
+   738→/* =====================================================================
+   739→   11. REDUCED MOTION
+   740→   ===================================================================== */
+   741→@media (prefers-reduced-motion:reduce){
+   742→  *,*::before,*::after{
+   743→    animation-duration:.001ms !important;animation-iteration-count:1 !important;
+   744→    transition-duration:.001ms !important;
+   745→  }
+   746→}
+   747→</style>
+   748→</head>
+   749→
+   750→<body>
+   751→<div class="wallpaper"></div>
+   752→<div class="wallpaper-img" id="wallImg"></div>
+   753→<div class="veil"></div>
+   754→
+   755→<main class="stage" id="stage">
+   756→  <div class="auth-wrapper">
+   757→    
+   758→    <div class="auth-container">
+   759→      
+   760→      <!-- ===== USER BOX (left) ===== -->
+   761→      <div class="user-box" id="userBox">
+   762→        <button class="drawer-btn" id="drawerBtn" aria-label="Switch user">
+   763→          <i data-lucide="chevron-right"></i>
+   764→        </button>
+   765→        
+   766→        <div class="drawer-panel" id="drawerPanel">
+   767→          <div class="drawer-label">Switch User</div>
+   768→          <div class="avatar-grid" id="avatarGrid"></div>
+   769→        </div>
+   770→        
+   771→        <div class="user-box-content">
+   772→          <img class="large-avatar" id="avatar" alt="" />
+   773→          <div>
+   774→            <div class="user-name" id="userName">Aria Voss</div>
+   775→            <div class="user-handle" id="userHandle">@aria</div>
+   776→          </div>
+   777→        </div>
+   778→      </div>
+   779→      
+   780→      <!-- ===== AUTH CARD (right) ===== -->
+   781→      <div class="auth-card" id="authCard">
+   782→        <div class="method-tabs" role="tablist" aria-label="Authentication method">
+   783→          <button class="method-tab active" data-method="password" title="Password" role="tab"><i data-lucide="key-round"></i>Password</button>
+   784→          <button class="method-tab" data-method="pin" title="PIN" role="tab"><i data-lucide="grid-2x2"></i>PIN</button>
+   785→          <button class="method-tab" data-method="pattern" title="Pattern" role="tab"><i data-lucide="git-fork"></i>Pattern</button>
+   786→          <button class="method-tab" data-method="fingerprint" title="Fingerprint" role="tab"><i data-lucide="fingerprint"></i>Finger</button>
+   787→          <button class="method-tab" data-method="question" title="Security Question" role="tab"><i data-lucide="help-circle"></i>Question</button>
+   788→        </div>
+   789→
+   790→        <div class="step-indicator" id="stepIndicator">
+   791→          <div class="step-label" id="stepLabel">Step 1 of 2 · Password</div>
+   792→          <div class="step-dots" id="stepDots"></div>
+   793→        </div>
+   794→
+   795→        <div class="method-body">
+   796→          <div class="method-panel active" data-panel="password">
+   797→            <form id="pwForm" autocomplete="off">
+   798→              <div class="field" id="pwField">
+   799→                <i data-lucide="lock" class="lead"></i>
+   800→                <input type="text" id="userInput" class="user-input" placeholder="Username" aria-label="Username" autocomplete="off" />
+   801→                <span class="field-sep" id="fieldSep"></span>
+   802→                <input type="password" id="pwInput" placeholder="Password" aria-label="Password" autocomplete="off" />
+   803→                <button type="button" class="eye" id="pwEye" aria-label="Show password" tabindex="-1">
+   804→                  <i data-lucide="eye"></i>
+   805→                </button>
+   806→              </div>
+   807→              <button type="submit" class="primary-action" id="pwSubmit">
+   808→                <span class="label">Sign in</span>
+   809→                <i data-lucide="arrow-right"></i>
+   810→                <span class="spinner"></span>
+   811→              </button>
+   812→              <div class="field-foot">
+   813→                <span class="error-msg" id="pwError">Incorrect password. Try again.</span>
+   814→                <span class="demo-hint" id="pwHint"></span>
+   815→              </div>
+   816→            </form>
+   817→          </div>
+   818→
+   819→          <div class="method-panel" data-panel="pin">
+   820→            <div class="pin-display" id="pinDisplay">
+   821→              <span class="pin-dot"></span><span class="pin-dot"></span>
+   822→              <span class="pin-dot"></span><span class="pin-dot"></span>
+   823→            </div>
+   824→            <div class="pin-pad" id="pinPad">
+   825→              <button class="pin-key" data-k="1">1</button>
+   826→              <button class="pin-key" data-k="2">2</button>
+   827→              <button class="pin-key" data-k="3">3</button>
+   828→              <button class="pin-key" data-k="4">4</button>
+   829→              <button class="pin-key" data-k="5">5</button>
+   830→              <button class="pin-key" data-k="6">6</button>
+   831→              <button class="pin-key" data-k="7">7</button>
+   832→              <button class="pin-key" data-k="8">8</button>
+   833→              <button class="pin-key" data-k="9">9</button>
+   834→              <button class="pin-key fn" data-k="clear" aria-label="Clear"><i data-lucide="delete"></i></button>
+   835→              <button class="pin-key" data-k="0">0</button>
+   836→              <button class="pin-key fn" data-k="enter" aria-label="Submit" id="pinEnter"><i data-lucide="corner-down-left"></i></button>
+   837→            </div>
+   838→            <div class="field-foot">
+   839→              <span class="error-msg" id="pinError">Incorrect PIN.</span>
+   840→              <span class="demo-hint" id="pinHint"></span>
+   841→            </div>
+   842→          </div>
+   843→
+   844→          <div class="method-panel" data-panel="pattern">
+   845→            <div class="pattern-wrap">
+   846→              <div class="pattern-canvas" id="patternCanvas">
+   847→                <svg class="pattern-svg" id="patternSvg"></svg>
+   848→              </div>
+   849→              <div class="pattern-hint" id="patternHint">Draw a pattern of 4 or more points</div>
+   850→              <div class="field-foot" style="width:100%;justify-content:space-between;margin-top:8px">
+   851→                <span class="error-msg" id="patternError">Pattern too short.</span>
+   852→                <span class="demo-hint" id="patternHintDemo"></span>
+   853→              </div>
+   854→            </div>
+   855→          </div>
+   856→
+   857→          <div class="method-panel" data-panel="fingerprint">
+   858→            <div class="fp-wrap">
+   859→              <button class="fp-btn" id="fpBtn" aria-label="Scan fingerprint">
+   860→                <i data-lucide="fingerprint"></i>
+   861→              </button>
+   862→              <div class="fp-label" id="fpLabel">Touch the sensor to scan</div>
+   863→              <div class="field-foot" style="margin-top:10px">
+   864→                <span class="error-msg" id="fpError">Scan failed. Try again.</span>
+   865→                <span class="demo-hint" id="fpHint"></span>
+   866→              </div>
+   867→            </div>
+   868→          </div>
+   869→
+   870→          <div class="method-panel" data-panel="question">
+   871→            <div class="question-box">
+   872→              <i data-lucide="help-circle"></i>
+   873→              <div class="question-text" id="questionText">What is the name of your first pet?</div>
+   874→            </div>
+   875→            <div class="field" id="qField">
+   876→              <i data-lucide="message-circle" class="lead"></i>
+   877→              <input type="text" id="qInput" placeholder="Your answer" aria-label="Security answer" autocomplete="off" />
+   878→            </div>
+   879→            <button type="button" class="primary-action" id="qSubmit">
+   880→              <span class="label">Verify answer</span>
+   881→              <i data-lucide="check"></i>
+   882→              <span class="spinner"></span>
+   883→            </button>
+   884→            <div class="field-foot">
+   885→              <span class="error-msg" id="qError">Incorrect answer.</span>
+   886→              <span class="demo-hint" id="qHint"></span>
+   887→            </div>
+   888→          </div>
+   889→        </div>
+   890→      </div>
+   891→      
+   892→    </div>
+   893→    
+   894→    <!-- ===== STATUS BAR (under boxes, full width) ===== -->
+   895→    <nav class="statusbar" aria-label="System status">
+   896→      <button class="session-indicator" id="sessionBtn" data-pop="session" aria-label="Select session">
+   897→        <i data-lucide="layout-grid"></i>
+   898→        <span class="session-label">Session</span>
+   899→        <span class="session-val" id="sessionVal">Hyprland</span>
+   900→        <i data-lucide="chevron-down" class="chev"></i>
+   901→      </button>
+   902→      
+   903→      <div class="system-indicators">
+   904→        <button class="indicator" id="netBtn" data-pop="network" aria-label="Network">
+   905→          <i data-lucide="wifi"></i>
+   906→          <span class="pill"><span class="lvl-text" id="netText">Aether-5G</span></span>
+   907→          <span class="tip">Connected · Aether-5G</span>
+   908→        </button>
+   909→        <button class="indicator" id="volBtn" data-pop="volume" aria-label="Volume">
+   910→          <i data-lucide="volume-2"></i>
+   911→          <span class="pill"><span class="lvl-text" id="volText">45%</span></span>
+   912→          <span class="tip" id="volTip">Volume 45%</span>
+   913→        </button>
+   914→        <button class="indicator" id="batBtn" aria-label="Battery">
+   915→          <span class="bat-case"><span class="bat-fill" id="batFill" style="width:78%"></span></span>
+   916→          <span class="lvl-text" id="batText">78%</span>
+   917→          <span class="tip" id="batTip">78% remaining</span>
+   918→        </button>
+   919→        <button class="indicator" id="themeBtn" aria-label="Toggle theme">
+   920→          <i data-lucide="sun-moon"></i>
+   921→          <span class="tip">Switch theme</span>
+   922→        </button>
+   923→        <button class="indicator" id="powerBtn" data-pop="power" aria-label="Power and system options">
+   924→          <i data-lucide="power"></i>
+   925→          <span class="tip">Power options</span>
+   926→        </button>
+   927→      </div>
+   928→    </nav>
+   929→    
+   930→  </div>
+   931→</main>
+   932→
+   933→<!-- Popovers -->
+   934→<div class="popover" id="pop-session" role="menu" aria-label="Select session">
+   935→  <div class="pop-label">Desktop Session</div>
+   936→  <div id="sessionList"></div>
+   937→</div>
+   938→
+   939→<div class="popover" id="pop-network" role="menu" aria-label="Network status" style="min-width:260px">
+   940→  <div class="pop-section">
+   941→    <div class="pop-label">Connection</div>
+   942→    <div class="net-info-row">
+   943→      <div class="net-info-icon"><i data-lucide="wifi"></i></div>
+   944→      <div class="net-info-text">
+   945→        <div class="net-info-name">Aether-5G</div>
+   946→        <div class="net-info-detail">Connected · Secured · 5 GHz</div>
+   947→      </div>
+   948→    </div>
+   949→  </div>
+   950→  <div class="pop-section">
+   951→    <div class="pop-label">Details</div>
+   952→    <div class="net-stat"><span>Interface</span><span class="net-stat-val">wlan0</span></div>
+   953→    <div class="net-stat"><span>Signal strength</span><span class="net-stat-val">Excellent</span></div>
+   954→    <div class="net-stat"><span>IP address</span><span class="net-stat-val">192.168.1.42</span></div>
+   955→    <div class="net-stat"><span>Gateway</span><span class="net-stat-val">192.168.1.1</span></div>
+   956→  </div>
+   957→</div>
+   958→
+   959→<div class="popover" id="pop-volume" role="menu" aria-label="Volume" style="min-width:260px">
+   960→  <div class="pop-section">
+   961→    <div class="pop-label">Output volume</div>
+   962→    <div class="vol-row">
+   963→      <button class="vol-toggle" id="volToggle" aria-label="Toggle mute">
+   964→        <i data-lucide="volume-2"></i>
+   965→      </button>
+   966→      <input type="range" id="volSlider" min="0" max="100" value="45" class="vol-slider" aria-label="Volume level" />
+   967→      <span class="vol-value" id="volValue">45%</span>
+   968→    </div>
+   969→  </div>
+   970→</div>
+   971→
+   972→<div class="popover origin-bl" id="pop-power" role="menu" aria-label="Power options">
+   973→  <div class="pop-section">
+   974→    <button class="pop-item" data-power="suspend"><i data-lucide="moon"></i><span>Suspend</span></button>
+   975→    <button class="pop-item" data-power="restart"><i data-lucide="rotate-cw"></i><span>Restart</span></button>
+   976→    <button class="pop-item danger" data-power="shutdown"><i data-lucide="power"></i><span>Shut down</span></button>
+   977→  </div>
+   978→  <div class="pop-section">
+   979→    <button class="pop-item" id="lockBtn"><i data-lucide="lock-keyhole"></i><span>Lock screen</span></button>
+   980→    <button class="pop-item" id="aboutBtn"><i data-lucide="info"></i><span>About this system</span></button>
+   981→  </div>
+   982→</div>
+   983→
+   984→<div class="scrim" id="scrim"></div>
+   985→<div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+   986→  <div class="dialog-icon" id="dlgIcon"><i data-lucide="triangle-alert"></i></div>
+   987→  <h3 id="dlgTitle">Shut down?</h3>
+   988→  <p id="dlgBody">This will close all running sessions and power off the device. Any unsaved work will be lost.</p>
+   989→  <div class="dialog-actions">
+   990→    <button class="btn btn-ghost" id="dlgCancel">Cancel</button>
+   991→    <button class="btn btn-danger" id="dlgConfirm">Shut down</button>
+   992→  </div>
+   993→</div>
+   994→
+   995→<div class="overlay-screen" id="successOverlay">
+   996→  <div class="overlay-icon" id="successIcon"><i data-lucide="check"></i></div>
+   997→  <div class="overlay-title" id="successTitle">Welcome back, Aria</div>
+   998→  <div class="overlay-sub" id="successSub">Starting Hyprland session…</div>
+   999→  <button class="overlay-back" id="successBack">Return to greeter</button>
+  1000→</div>
+  1001→
+  1002→<div class="overlay-screen power" id="powerOverlay">
+  1003→  <div class="overlay-icon" id="powerIcon"><i data-lucide="power"></i></div>
+  1004→  <div class="overlay-title" id="powerTitle">Shutting down</div>
+  1005→  <div class="overlay-sub" id="powerSub">It is now safe to power off the device.</div>
+  1006→  <button class="overlay-back" id="powerBack">Return to greeter</button>
+  1007→</div>
+  1008→
+  1009→<script>
+  1010→(function(){
+  1011→  "use strict";
+  1012→
+  1013→  const WALLPAPER_URL = "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80";
+  1014→  const DEMO = { password:"demo", pin:"1234", patternMinLen:4 };
+  1015→
+  1016→  const SESSIONS = [
+  1017→    { id:"hyprland", name:"Hyprland", desc:"Dynamic tiling Wayland compositor",
+  1018→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18M7 3v18M14 3v18"/></svg>` },
+  1019→    { id:"kde", name:"KDE Plasma", desc:"Flexible desktop by KDE",
+  1020→      logo:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.6 3.2c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6 0-.9-.7-1.6-1.6-1.6-.9 0-1.6.7-1.6 1.6zM8.8 6.4c.5 0 1 .1 1.4.4.4.2.7.2 1.1.1.7-.2 1.4-.2 2.1 0 .4.1.7.1 1.1-.1.4-.3.9-.4 1.4-.4 1.2 0 2.1.9 2.1 2.1 0 .8-.4 1.5-.9 2.2-.4.5-.5 1.1-.4 1.7.1.5.2 1 .2 1.5 0 1.5-1.2 2.7-2.7 2.7-.5 0-1-.1-1.4-.4-.4-.2-.9-.3-1.4-.3-.5 0-1 .1-1.4.3-.4.3-.9.4-1.4.4-1.5 0-2.7-1.2-2.7-2.7 0-.5.1-1 .2-1.5.1-.6 0-1.2-.4-1.7-.5-.7-.9-1.4-.9-2.2 0-1.2.9-2.1 2.1-2.1z"/></svg>` },
+  1021→    { id:"gnome", name:"GNOME", desc:"Clean, focused Wayland desktop",
+  1022→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3.2"/><path d="M12 5.5v-2M12 20.5v-2M5.5 12h-2M20.5 12h-2M7 7 5.5 5.5M18.5 18.5 17 17M17 7l1.5-1.5M5.5 18.5 7 17"/></svg>` },
+  1023→    { id:"sway", name:"Sway", desc:"i3-compatible Wayland tiler",
+  1024→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h7v12H4zM13 6h7v6h-7zM13 14h7v4h-7z"/></svg>` },
+  1025→    { id:"xfce", name:"Xfce", desc:"Lightweight, stable desktop",
+  1026→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 14 4-9 3 5 2-3 7 11"/><path d="M4 14h16"/></svg>` },
+  1027→    { id:"custom", name:"Custom Wayland", desc:"User-defined session script",
+  1028→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M17.7 6.3l-2.1 2.1M8.4 15.6l-2.1 2.1"/><circle cx="12" cy="12" r="3"/></svg>` }
+  1029→  ];
+  1030→
+  1031→  const USERS = [
+  1032→    { name:"Aria Voss",   handle:"aria",   img:"https://i.pravatar.cc/160?img=5",  auth:"password", pw:"demo",
+  1033→      question:"What city were you born in?", answer:"cairo" },
+  1034→    { name:"Kenji Sato",  handle:"kenji",   img:"https://i.pravatar.cc/160?img=11", auth:"password", pw:"demo", requiresUsername:true,
+  1035→      question:"What is your favorite book?", answer:"dune" },
+  1036→    { name:"Mira Sol",   handle:"mira",    img:"https://i.pravatar.cc/160?img=47", auth:"pin",
+  1037→      question:"What is your mother's maiden name?", answer:"rivera" },
+  1038→    { name:"Devon Hart", handle:"devon",   img:"https://i.pravatar.cc/160?img=33", auth:"pattern",
+  1039→      question:"What was the name of your first school?", answer:"maplewood" },
+  1040→    { name:"Yuki Tanaka",handle:"yuki",    img:"https://i.pravatar.cc/160?img=20", auth:"question",
+  1041→      question:"What is the name of your first pet?", answer:"mochi" },
+  1042→    { name:"Sage Lin",   handle:"sage",    img:"https://i.pravatar.cc/160?img=16", auth:"multi-step",
+  1043→      steps:[ { type:"password", pw:"demo" }, { type:"pattern" } ],
+  1044→      question:"What is your favorite color?", answer:"teal" }
+  1045→  ];
+  1046→
+  1047→  const state = {
+  1048→    userIndex: 0,
+  1049→    method: "password",
+  1050→    authStatus: "idle",
+  1051→    multiStep: { active:false, current:0, total:0 },
+  1052→    session: "hyprland",
+  1053→    theme: "dark",
+  1054→    openPop: null,
+  1055→    drawerOpen: false,
+  1056→    powerAction: null,
+  1057→    net: { name:"Aether-5G", online:true },
+  1058→    battery: { level:78, charging:false },
+  1059→    volume: { level:45, muted:false },
+  1060→    pin: "",
+  1061→    pattern: [],
+  1062→    patternDrawing: false
+  1063→  };
+  1064→
+  1065→  const $  = (s, r=document) => r.querySelector(s);
+  1066→  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  1067→  const user = () => USERS[state.userIndex];
+  1068→  const session = () => SESSIONS.find(s => s.id === state.session);
+  1069→
+  1070→  function refreshIcons(){ if (window.lucide && lucide.createIcons) lucide.createIcons(); }
+  1071→
+  1072→  function swapIcon(el, iconName) {
+  1073→    if (typeof el === "string") el = $(el);
+  1074→    if (!el) return;
+  1075→    const old = el.querySelector("svg, [data-lucide]") || el;
+  1076→    const newI = document.createElement("i");
+  1077→    newI.setAttribute("data-lucide", iconName);
+  1078→    let cls = old.className;
+  1079→    if (typeof cls === "object" && cls.baseVal !== undefined) cls = cls.baseVal;
+  1080→    const keep = cls.split(/\s+/).filter(c => c && !c.startsWith("lucide"));
+  1081→    newI.className = keep.join(" ");
+  1082→    old.replaceWith(newI);
+  1083→    refreshIcons();
+  1084→  }
+  1085→
+  1086→  function renderIdentity(){
+  1087→    const u = user();
+  1088→    const av = $("#avatar");
+  1089→    av.src = u.img;
+  1090→    av.onerror = () => { av.style.background = "linear-gradient(135deg,var(--accent),var(--accent-press))"; av.removeAttribute("src"); };
+  1091→    $("#userName").textContent = u.name;
+  1092→    $("#userHandle").textContent = "@" + u.handle;
+  1093→  }
+  1094→
+  1095→  function renderSession(){
+  1096→    const s = session();
+  1097→    $("#sessionVal").textContent = s.name;
+  1098→    $$("#sessionList .pop-item").forEach(b => {
+  1099→      const on = b.dataset.session === state.session;
+  1100→      b.classList.toggle("selected", on);
+  1101→      const chk = b.querySelector(".pop-check");
+  1102→      if (chk) chk.style.opacity = on ? "1" : "0";
+  1103→    });
+  1104→  }
+  1105→
+  1106→  function renderVolume(){
+  1107→    const muted = state.volume.muted || state.volume.level === 0;
+  1108→    const volIcon = muted ? "volume-x" : state.volume.level < 35 ? "volume-1" : "volume-2";
+  1109→    $("#volText").textContent = muted ? "Muted" : state.volume.level + "%";
+  1110→    $("#volTip").textContent = muted ? "Muted" : `Volume ${state.volume.level}%`;
+  1111→    swapIcon("#volBtn", volIcon);
+  1112→    const volToggle = $("#volToggle");
+  1113→    if (volToggle){
+  1114→      swapIcon("#volToggle", volIcon);
+  1115→      volToggle.classList.toggle("muted", muted);
+  1116→    }
+  1117→    if ($("#volSlider")) $("#volSlider").value = state.volume.level;
+  1118→    if ($("#volValue")) $("#volValue").textContent = muted ? "Muted" : state.volume.level + "%";
+  1119→  }
+  1120→
+  1121→  function renderBattery(){
+  1122→    const lvl = state.battery.level;
+  1123→    $("#batFill").style.width = Math.max(0, Math.min(100, lvl)) + "%";
+  1124→    $("#batText").textContent = lvl + "%";
+  1125→    $("#batTip").textContent = state.battery.charging ? `Charging · ${lvl}%` : `${lvl}% remaining`;
+  1126→  }
+  1127→
+  1128→  function renderNetwork(){ $("#netText").textContent = state.net.name; }
+  1129→
+  1130→  function renderAll(){
+  1131→    renderIdentity();
+  1132→    renderSession();
+  1133→    renderVolume();
+  1134→    renderBattery();
+  1135→    renderNetwork();
+  1136→  }
+  1137→
+  1138→  function updateAuthChrome(){
+  1139→    const u = user();
+  1140→    const isMulti = u.auth === "multi-step";
+  1141→    state.multiStep.active = isMulti;
+  1142→    state.multiStep.current = 0;
+  1143→    state.multiStep.total = isMulti ? u.steps.length : 0;
+  1144→    $(".method-tabs").style.display = isMulti ? "none" : "flex";
+  1145→    $("#stepIndicator").classList.toggle("show", isMulti);
+  1146→    const showUser = !!u.requiresUsername && !isMulti;
+  1147→    $("#userInput").classList.toggle("show", showUser);
+  1148→    $("#fieldSep").classList.toggle("show", showUser);
+  1149→    swapIcon("#pwField .lead", showUser ? "user-round" : "lock");
+  1150→    if (isMulti) renderStep();
+  1151→    else setMethod(u.auth);
+  1152→    updateDemoHints();
+  1153→  }
+  1154→
+  1155→  function setMethod(m){
+  1156→    state.method = m;
+  1157→    $$(".method-tab").forEach(t => t.classList.toggle("active", t.dataset.method === m));
+  1158→    $$(".method-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === m));
+  1159→    clearErrors();
+  1160→    if (m === "pattern") setTimeout(buildPattern, 50);
+  1161→  }
+  1162→
+  1163→  function clearErrors(){
+  1164→    $("#pwField").classList.remove("error");
+  1165→    $("#pwError").classList.remove("show");
+  1166→    $("#pinError").classList.remove("show");
+  1167→    $("#patternError").classList.remove("show");
+  1168→    $("#qField").classList.remove("error");
+  1169→    $("#qError").classList.remove("show");
+  1170→    $("#fpError").classList.remove("show");
+  1171→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.remove("error"));
+  1172→  }
+  1173→
+  1174→  function stepLabel(type){
+  1175→    return { password:"Password", pin:"PIN", pattern:"Pattern", fingerprint:"Fingerprint", question:"Security Question" }[type] || type;
+  1176→  }
+  1177→  function renderStep(){
+  1178→    if (!state.multiStep.active) return;
+  1179→    const u = user();
+  1180→    const step = u.steps[state.multiStep.current];
+  1181→    $("#stepLabel").textContent = `Step ${state.multiStep.current+1} of ${state.multiStep.total} · ${stepLabel(step.type)}`;
+  1182→    const dotsEl = $("#stepDots");
+  1183→    dotsEl.innerHTML = "";
+  1184→    u.steps.forEach((_, i) => {
+  1185→      const dot = document.createElement("span");
+  1186→      dot.className = "step-dot";
+  1187→      if (i === state.multiStep.current) dot.classList.add("active");
+  1188→      if (i < state.multiStep.current) dot.classList.add("completed");
+  1189→      dotsEl.appendChild(dot);
+  1190→    });
+  1191→    setMethod(step.type);
+  1192→    updateDemoHints();
+  1193→  }
+  1194→  function advanceStep(){
+  1195→    const u = user();
+  1196→    const stepType = u.steps[state.multiStep.current].type;
+  1197→    if (stepType === "password") $("#pwInput").value = "";
+  1198→    if (stepType === "pin") { state.pin = ""; renderPin(); }
+  1199→    if (stepType === "pattern") clearPattern();
+  1200→    if (stepType === "question") $("#qInput").value = "";
+  1201→    state.multiStep.current++;
+  1202→    renderStep();
+  1203→  }
+  1204→  function onAuthSuccess(){
+  1205→    if (state.multiStep.active && state.multiStep.current < state.multiStep.total - 1){
+  1206→      state.authStatus = "idle";
+  1207→      setTimeout(advanceStep, 450);
+  1208→    } else {
+  1209→      showSuccess();
+  1210→    }
+  1211→  }
+  1212→
+  1213→  function updateDemoHints(){
+  1214→    const u = user();
+  1215→    if (u.requiresUsername && !state.multiStep.active){
+  1216→      $("#pwHint").innerHTML = `<b>demo:</b> any user · pass = <b>demo</b>`;
+  1217→    } else {
+  1218→      $("#pwHint").innerHTML = `<b>demo:</b> password = <b>demo</b>`;
+  1219→    }
+  1220→    $("#pinHint").innerHTML = `<b>demo:</b> PIN = <b>1234</b>`;
+  1221→    $("#patternHintDemo").innerHTML = `<b>demo:</b> any 4+ dots`;
+  1222→    $("#fpHint").innerHTML = `<b>demo:</b> tap to scan`;
+  1223→    if (u.question){
+  1224→      $("#qHint").innerHTML = `<b>demo:</b> answer = <b>${u.answer}</b>`;
+  1225→      $("#questionText").textContent = u.question;
+  1226→    } else {
+  1227→      $("#qHint").innerHTML = `<b>demo:</b> no question set`;
+  1228→      $("#questionText").textContent = "No security question configured for this user.";
+  1229→    }
+  1230→  }
+  1231→
+  1232→  function setBtnLoading(btn, on){
+  1233→    btn.classList.toggle("loading", on);
+  1234→    btn.disabled = on;
+  1235→    state.authStatus = on ? "loading" : "idle";
+  1236→  }
+  1237→  function showSuccess(){
+  1238→    const u = user();
+  1239→    $("#successTitle").textContent = `Welcome back, ${u.name.split(" ")[0]}`;
+  1240→    $("#successSub").textContent = `Starting ${session().name} session…`;
+  1241→    $("#successIcon").innerHTML = `<i data-lucide="check"></i>`;
+  1242→    refreshIcons();
+  1243→    $("#successOverlay").classList.add("show");
+  1244→    state.authStatus = "success";
+  1245→  }
+  1246→  function returnToGreeter(){
+  1247→    $("#successOverlay").classList.remove("show");
+  1248→    $("#powerOverlay").classList.remove("show");
+  1249→    state.authStatus = "idle";
+  1250→    state.multiStep.current = 0;
+  1251→    if (state.multiStep.active) renderStep();
+  1252→    $("#pwInput").value = "";
+  1253→    $("#userInput").value = "";
+  1254→    $("#qInput").value = "";
+  1255→    state.pin = ""; renderPin();
+  1256→    clearPattern();
+  1257→    clearErrors();
+  1258→  }
+  1259→  function flashError(fieldEl, msgEl, msg){
+  1260→    fieldEl && fieldEl.classList.add("error");
+  1261→    if (msg){ msgEl.textContent = msg; msgEl.classList.add("show"); }
+  1262→    setTimeout(()=>{ fieldEl && fieldEl.classList.remove("error"); }, 420);
+  1263→  }
+  1264→
+  1265→  function submitPassword(e){
+  1266→    e.preventDefault();
+  1267→    if (state.authStatus === "loading") return;
+  1268→    const u = user();
+  1269→    const pwVal = $("#pwInput").value;
+  1270→    const userVal = u.requiresUsername ? $("#userInput").value.trim() : "";
+  1271→    if (u.requiresUsername && !userVal){
+  1272→      flashError($("#pwField"), $("#pwError"), "Enter username.");
+  1273→      $("#userInput").focus(); return;
+  1274→    }
+  1275→    if (!pwVal){
+  1276→      flashError($("#pwField"), $("#pwError"), "Enter password.");
+  1277→      $("#pwInput").focus(); return;
+  1278→    }
+  1279→    setBtnLoading($("#pwSubmit"), true);
+  1280→    setTimeout(()=>{
+  1281→      setBtnLoading($("#pwSubmit"), false);
+  1282→      const expectedPw = state.multiStep.active
+  1283→        ? (u.steps[state.multiStep.current].pw || DEMO.password)
+  1284→        : (u.pw || DEMO.password);
+  1285→      if (pwVal === expectedPw) onAuthSuccess();
+  1286→      else flashError($("#pwField"), $("#pwError"), "Incorrect credentials. Try again.");
+  1287→    }, 850);
+  1288→  }
+  1289→
+  1290→  function renderPin(){
+  1291→    const dots = $$("#pinDisplay .pin-dot");
+  1292→    dots.forEach((d,i)=>{ d.classList.toggle("filled", i < state.pin.length); d.classList.remove("error"); });
+  1293→  }
+  1294→  function pinError(msg){
+  1295→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.add("error"));
+  1296→    $("#pinError").textContent = msg || "Incorrect PIN.";
+  1297→    $("#pinError").classList.add("show");
+  1298→    setTimeout(()=>{ $("#pinError").classList.remove("show"); renderPin(); }, 700);
+  1299→  }
+  1300→  function pinPress(k){
+  1301→    if (state.authStatus === "loading") return;
+  1302→    if (k === "clear"){ state.pin = ""; renderPin(); $("#pinError").classList.remove("show"); return; }
+  1303→    if (k === "enter"){ submitPin(); return; }
+  1304→    if (state.pin.length >= 4) return;
+  1305→    state.pin += k; renderPin();
+  1306→    $("#pinError").classList.remove("show");
+  1307→    if (state.pin.length === 4) setTimeout(submitPin, 160);
+  1308→  }
+  1309→  function submitPin(){
+  1310→    if (state.authStatus === "loading") return;
+  1311→    const enterBtn = $("#pinEnter");
+  1312→    enterBtn.classList.add("loading"); enterBtn.disabled = true; state.authStatus = "loading";
+  1313→    setTimeout(()=>{
+  1314→      enterBtn.classList.remove("loading"); enterBtn.disabled = false; state.authStatus = "idle";
+  1315→      if (state.pin === DEMO.pin){ state.pin = ""; renderPin(); onAuthSuccess(); }
+  1316→      else pinError("Incorrect PIN.");
+  1317→    }, 700);
+  1318→  }
+  1319→
+  1320→  const PAT_SIZE = 3;
+  1321→  const patCanvas = $("#patternCanvas");
+  1322→  const patSvg = $("#patternSvg");
+  1323→  let patDots = [];
+  1324→  function buildPattern(){
+  1325→    patCanvas.querySelectorAll(".pattern-dot").forEach(d=>d.remove());
+  1326→    patSvg.innerHTML = ""; patDots = [];
+  1327→    const cs = patCanvas.getBoundingClientRect();
+  1328→    if (cs.width === 0) return;
+  1329→    const n = PAT_SIZE, pad = 24;
+  1330→    for (let r=0;r<n;r++){
+  1331→      for (let c=0;c<n;c++){
+  1332→        const x = pad + (cs.width-2*pad) * (c/(n-1));
+  1333→        const y = pad + (cs.height-2*pad) * (r/(n-1));
+  1334→        const el = document.createElement("div");
+  1335→        el.className = "pattern-dot";
+  1336→        el.style.left = x+"px"; el.style.top = y+"px";
+  1337→        el.dataset.idx = r*n+c;
+  1338→        patCanvas.appendChild(el); patDots.push(el);
+  1339→      }
+  1340→    }
+  1341→  }
+  1342→  function clearPattern(){
+  1343→    state.pattern = []; state.patternDrawing=false;
+  1344→    patDots.forEach(d=>d.classList.remove("active","error"));
+  1345→    patSvg.innerHTML = "";
+  1346→    $("#patternError").classList.remove("show");
+  1347→    $("#patternHint").textContent = "Draw a pattern of 4 or more points";
+  1348→  }
+  1349→  function addPatternDot(idx){
+  1350→    if (state.pattern.includes(idx)) return;
+  1351→    state.pattern.push(idx);
+  1352→    patDots[idx].classList.add("active");
+  1353→    drawPatternLines();
+  1354→    $("#patternHint").textContent = `${state.pattern.length} point${state.pattern.length>1?"s":""} selected`;
+  1355→  }
+  1356→  function drawPatternLines(){
+  1357→    if (state.pattern.length < 2) return;
+  1358→    const cs = patCanvas.getBoundingClientRect();
+  1359→    patSvg.setAttribute("viewBox", `0 0 ${cs.width} ${cs.height}`);
+  1360→    let d = "";
+  1361→    state.pattern.forEach((idx,i)=>{
+  1362→      const dot = patDots[idx];
+  1363→      const x = parseFloat(dot.style.left), y = parseFloat(dot.style.top);
+  1364→      d += (i===0?"M":"L") + x + " " + y + " ";
+  1365→    });
+  1366→    patSvg.innerHTML = `<path d="${d}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>`;
+  1367→  }
+  1368→  function dotAt(x,y){
+  1369→    for (let i=0;i<patDots.length;i++){
+  1370→      const r = patDots[i].getBoundingClientRect();
+  1371→      if (x >= r.left-14 && x <= r.right+14 && y >= r.top-14 && y <= r.bottom+14) return i;
+  1372→    }
+  1373→    return -1;
+  1374→  }
+  1375→  function submitPattern(){
+  1376→    if (state.pattern.length >= DEMO.patternMinLen){
+  1377→      $("#patternHint").textContent = "Verifying…";
+  1378→      setTimeout(()=>{
+  1379→        if (state.pattern.length >= DEMO.patternMinLen) onAuthSuccess();
+  1380→        else patternFail();
+  1381→      }, 500);
+  1382→    } else patternFail();
+  1383→  }
+  1384→  function patternFail(){
+  1385→    patDots.forEach(d=>d.classList.add("error"));
+  1386→    const path = patSvg.querySelector("path");
+  1387→    if (path) path.setAttribute("stroke","var(--error)");
+  1388→    $("#patternError").classList.add("show");
+  1389→    $("#patternHint").textContent = "Pattern too short";
+  1390→    setTimeout(clearPattern, 800);
+  1391→  }
+  1392→
+  1393→  function scanFingerprint(){
+  1394→    const btn = $("#fpBtn");
+  1395→    if (btn.classList.contains("scanning")) return;
+  1396→    btn.classList.add("scanning");
+  1397→    $("#fpLabel").textContent = "Scanning…";
+  1398→    $("#fpError").classList.remove("show");
+  1399→    setTimeout(()=>{
+  1400→      btn.classList.remove("scanning");
+  1401→      btn.classList.add("success");
+  1402→      $("#fpLabel").textContent = "Identity verified";
+  1403→      setTimeout(()=>{ btn.classList.remove("success"); onAuthSuccess(); }, 480);
+  1404→    }, 1200);
+  1405→  }
+  1406→
+  1407→  function submitQuestion(){
+  1408→    if (state.authStatus === "loading") return;
+  1409→    const u = user();
+  1410→    const val = $("#qInput").value.trim().toLowerCase();
+  1411→    if (!val){ flashError($("#qField"), $("#qError"), "Enter an answer."); return; }
+  1412→    setBtnLoading($("#qSubmit"), true);
+  1413→    setTimeout(()=>{
+  1414→      setBtnLoading($("#qSubmit"), false);
+  1415→      if (val === (u.answer || "").toLowerCase()) onAuthSuccess();
+  1416→      else flashError($("#qField"), $("#qError"), "Incorrect answer.");
+  1417→    }, 850);
+  1418→  }
+  1419→
+  1420→  function closeAllPops(){
+  1421→    $$(".popover.open").forEach(p => p.classList.remove("open"));
+  1422→    $("#sessionBtn").classList.remove("active");
+  1423→    state.openPop = null;
+  1424→  }
+  1425→  function openPop(name, anchorEl){
+  1426→    closeAllPops();
+  1427→    const pop = $("#pop-" + name);
+  1428→    if (!pop) return;
+  1429→    state.openPop = name;
+  1430→    if (name === "session") $("#sessionBtn").classList.add("active");
+  1431→    pop.style.visibility = "hidden";
+  1432→    pop.classList.add("open");
+  1433→    requestAnimationFrame(()=>{
+  1434→      const pr = pop.getBoundingClientRect();
+  1435→      const ar = anchorEl.getBoundingClientRect();
+  1436→      let left, top;
+  1437→      if (name === "power"){
+  1438→        left = ar.right - pr.width;
+  1439→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+  1440→        top = ar.top - pr.height - 12;
+  1441→        if (top < 12) top = ar.bottom + 12;
+  1442→      } else {
+  1443→        left = ar.left;
+  1444→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+  1445→        top = ar.top - pr.height - 12;
+  1446→        if (top < 12) top = ar.bottom + 12;
+  1447→      }
+  1448→      pop.style.left = left + "px";
+  1449→      pop.style.top = top + "px";
+  1450→      pop.style.visibility = "visible";
+  1451→    });
+  1452→  }
+  1453→  function togglePop(name, anchorEl){
+  1454→    if (state.openPop === name) closeAllPops();
+  1455→    else openPop(name, anchorEl);
+  1456→  }
+  1457→
+  1458→  function buildAvatarGrid(){
+  1459→    const grid = $("#avatarGrid");
+  1460→    grid.innerHTML = "";
+  1461→    USERS.forEach((u, i) => {
+  1462→      const btn = document.createElement("button");
+  1463→      btn.className = "grid-avatar" + (i === state.userIndex ? " selected" : "");
+  1464→      btn.setAttribute("aria-label", u.name);
+  1465→      btn.innerHTML = `<img src="${u.img}" alt="${u.name}" onerror="this.style.background='linear-gradient(135deg,var(--accent),var(--accent-press))';this.removeAttribute('src')"/>`;
+  1466→      btn.addEventListener("click", () => {
+  1467→        selectUser(i);
+  1468→        closeDrawer();
+  1469→      });
+  1470→      grid.appendChild(btn);
+  1471→    });
+  1472→  }
+  1473→  function openDrawer(){
+  1474→    state.drawerOpen = true;
+  1475→    $("#userBox").classList.add("drawer-open");
+  1476→  }
+  1477→  function closeDrawer(){
+  1478→    state.drawerOpen = false;
+  1479→    $("#userBox").classList.remove("drawer-open");
+  1480→  }
+  1481→  function toggleDrawer(){
+  1482→    if (state.drawerOpen) closeDrawer();
+  1483→    else openDrawer();
+  1484→  }
+  1485→
+  1486→  function selectUser(index){
+  1487→    state.userIndex = index;
+  1488→    state.pin = "";
+  1489→    state.pattern = [];
+  1490→    state.authStatus = "idle";
+  1491→    $("#pwInput").value = "";
+  1492→    $("#userInput").value = "";
+  1493→    $("#qInput").value = "";
+  1494→    clearErrors();
+  1495→    renderIdentity();
+  1496→    updateAuthChrome();
+  1497→    buildAvatarGrid();
+  1498→    closeAllPops();
+  1499→    setTimeout(()=>{
+  1500→      if (state.method === "password") $("#pwInput").focus();
+  1501→      else if (state.method === "question") $("#qInput").focus();
+  1502→    }, 200);
+  1503→  }
+  1504→
+  1505→  function buildSessionList(){
+  1506→    const wrap = $("#sessionList");
+  1507→    wrap.innerHTML = "";
+  1508→    SESSIONS.forEach(s=>{
+  1509→      const b = document.createElement("button");
+  1510→      b.className = "pop-item" + (s.id === state.session ? " selected" : "");
+  1511→      b.dataset.session = s.id;
+  1512→      b.innerHTML = `
+  1513→        <span class="session-logo">${s.logo}</span>
+  1514→        <span><span>${s.name}</span><span class="session-desc">${s.desc}</span></span>
+  1515→        <i data-lucide="check" class="pop-check" style="opacity:${s.id===state.session?1:0}"></i>`;
+  1516→      b.addEventListener("click", ()=>{
+  1517→        state.session = s.id;
+  1518→        renderSession();
+  1519→        closeAllPops();
+  1520→      });
+  1521→      wrap.appendChild(b);
+  1522→    });
+  1523→    refreshIcons();
+  1524→  }
+  1525→
+  1526→  const dialog = $("#dialog"), scrim = $("#scrim");
+  1527→  function openDialog(action){
+  1528→    const titles = {
+  1529→      shutdown:["Shut down?","This will close all running sessions and power off the device. Any unsaved work will be lost.","Shut down","power"],
+  1530→      restart:  ["Restart?","The system will reboot. Any unsaved work will be lost.","Restart","rotate-cw"],
+  1531→      suspend:  ["Suspend?","The system will enter sleep mode and can be resumed with a key press.","Suspend","moon"]
+  1532→    };
+  1533→    const [title,body,confirm,icon] = titles[action] || titles.shutdown;
+  1534→    $("#dlgTitle").textContent = title;
+  1535→    $("#dlgBody").textContent = body;
+  1536→    $("#dlgConfirm").textContent = confirm;
+  1537→    state.powerAction = action;
+  1538→    const di = $("#dlgIcon");
+  1539→    di.innerHTML = `<i data-lucide="${icon}"></i>`;
+  1540→    refreshIcons();
+  1541→    di.style.background = action === "shutdown" ? "var(--error-soft)" : "var(--accent-soft)";
+  1542→    di.style.color = action === "shutdown" ? "var(--error)" : "var(--accent)";
+  1543→    const conf = $("#dlgConfirm");
+  1544→    conf.className = "btn " + (action === "shutdown" ? "btn-danger" : "btn-primary");
+  1545→    closeAllPops();
+  1546→    scrim.classList.add("open");
+  1547→    dialog.classList.add("open");
+  1548→  }
+  1549→  function closeDialog(){
+  1550→    scrim.classList.remove("open");
+  1551→    dialog.classList.remove("open");
+  1552→    state.powerAction = null;
+  1553→  }
+  1554→  function confirmPower(){
+  1555→    const action = state.powerAction || "shutdown";
+  1556→    closeDialog();
+  1557→    const titles = { shutdown:"Shutting down", restart:"Restarting", suspend:"Suspending" };
+  1558→    const subs = {
+  1559→      shutdown:"It is now safe to power off the device.",
+  1560→      restart:"The system is restarting…",
+  1561→      suspend:"System suspended. Press any key to resume."
+  1562→    };
+  1563→    $("#powerTitle").textContent = titles[action];
+  1564→    $("#powerSub").textContent = subs[action];
+  1565→    $("#powerIcon").innerHTML = `<i data-lucide="${action==='suspend'?'moon':action==='restart'?'rotate-cw':'power'}"></i>`;
+  1566→    refreshIcons();
+  1567→    $("#powerOverlay").classList.add("show");
+  1568→  }
+  1569→
+  1570→  function setTheme(t){
+  1571→    state.theme = t;
+  1572→    document.documentElement.setAttribute("data-theme", t);
+  1573→    swapIcon("#themeBtn", t === "dark" ? "sun-moon" : "sun");
+  1574→  }
+  1575→
+  1576→  function wire(){
+  1577→    const img = new Image();
+  1578→    img.onload = ()=>{ $("#wallImg").classList.add("loaded"); };
+  1579→    img.onerror = ()=>{};
+  1580→    img.src = WALLPAPER_URL;
+  1581→
+  1582→    $("#themeBtn").addEventListener("click", ()=> setTheme(state.theme === "dark" ? "light" : "dark"));
+  1583→
+  1584→    $("#drawerBtn").addEventListener("click", e=>{
+  1585→      e.stopPropagation();
+  1586→      toggleDrawer();
+  1587→    });
+  1588→
+  1589→    $$(".method-tab").forEach(t => t.addEventListener("click", ()=> {
+  1590→      if (!state.multiStep.active) setMethod(t.dataset.method);
+  1591→    }));
+  1592→
+  1593→    $("#pwForm").addEventListener("submit", submitPassword);
+  1594→    let pwShown = false;
+  1595→    $("#pwEye").addEventListener("click", ()=>{
+  1596→      pwShown = !pwShown;
+  1597→      $("#pwInput").type = pwShown ? "text" : "password";
+  1598→      swapIcon("#pwEye", pwShown ? "eye-off" : "eye");
+  1599→    });
+  1600→    $("#pwInput").addEventListener("input", ()=>{
+  1601→      $("#pwField").classList.remove("error");
+  1602→      $("#pwError").classList.remove("show");
+  1603→    });
+  1604→    $("#userInput").addEventListener("input", ()=>{
+  1605→      $("#pwField").classList.remove("error");
+  1606→      $("#pwError").classList.remove("show");
+  1607→    });
+  1608→    $("#userInput").addEventListener("keydown", e=>{
+  1609→      if (e.key === "Enter"){ e.preventDefault(); $("#pwInput").focus(); }
+  1610→    });
+  1611→
+  1612→    $$("#pinPad .pin-key").forEach(k => k.addEventListener("click", ()=> pinPress(k.dataset.k)));
+  1613→
+  1614→    patCanvas.addEventListener("pointerdown", e=>{
+  1615→      if (state.authStatus==="loading") return;
+  1616→      clearPattern();
+  1617→      state.patternDrawing = true;
+  1618→      patCanvas.setPointerCapture(e.pointerId);
+  1619→      const i = dotAt(e.clientX, e.clientY);
+  1620→      if (i>=0) addPatternDot(i);
+  1621→    });
+  1622→    patCanvas.addEventListener("pointermove", e=>{
+  1623→      if (!state.patternDrawing) return;
+  1624→      const i = dotAt(e.clientX, e.clientY);
+  1625→      if (i>=0) addPatternDot(i);
+  1626→    });
+  1627→    function endPattern(){
+  1628→      if (!state.patternDrawing) return;
+  1629→      state.patternDrawing = false;
+  1630→      submitPattern();
+  1631→    }
+  1632→    patCanvas.addEventListener("pointerup", endPattern);
+  1633→    patCanvas.addEventListener("pointercancel", endPattern);
+  1634→
+  1635→    $("#fpBtn").addEventListener("click", scanFingerprint);
+  1636→
+  1637→    $("#qSubmit").addEventListener("click", submitQuestion);
+  1638→    $("#qInput").addEventListener("keydown", e=>{
+  1639→      if (e.key === "Enter"){ e.preventDefault(); submitQuestion(); }
+  1640→    });
+  1641→    $("#qInput").addEventListener("input", ()=>{
+  1642→      $("#qField").classList.remove("error");
+  1643→      $("#qError").classList.remove("show");
+  1644→    });
+  1645→
+  1646→    $("#sessionBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("session", $("#sessionBtn")); });
+  1647→    $("#netBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("network", $("#netBtn")); });
+  1648→    $("#volBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("volume", $("#volBtn")); });
+  1649→    $("#powerBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("power", $("#powerBtn")); });
+  1650→
+  1651→    $("#volToggle").addEventListener("click", ()=>{
+  1652→      state.volume.muted = !state.volume.muted;
+  1653→      renderVolume();
+  1654→    });
+  1655→    $("#volSlider").addEventListener("input", e=>{
+  1656→      state.volume.level = parseInt(e.target.value, 10);
+  1657→      if (state.volume.level > 0) state.volume.muted = false;
+  1658→      renderVolume();
+  1659→    });
+  1660→
+  1661→    $$("#pop-power [data-power]").forEach(b => b.addEventListener("click", ()=> openDialog(b.dataset.power)));
+  1662→    $("#lockBtn").addEventListener("click", ()=>{
+  1663→      closeAllPops();
+  1664→      $("#powerTitle").textContent = "Locking";
+  1665→      $("#powerSub").textContent = "Screen locked.";
+  1666→      $("#powerIcon").innerHTML = `<i data-lucide="lock-keyhole"></i>`;
+  1667→      refreshIcons();
+  1668→      $("#powerOverlay").classList.add("show");
+  1669→    });
+  1670→    $("#aboutBtn").addEventListener("click", ()=>{
+  1671→      closeAllPops();
+  1672→      $("#successTitle").textContent = "Aether Greeter";
+  1673→      $("#successSub").textContent = "Custom Wayland display manager · v1.7 · mock environment";
+  1674→      $("#successIcon").innerHTML = `<i data-lucide="info"></i>`;
+  1675→      refreshIcons();
+  1676→      $("#successOverlay").classList.add("show");
+  1677→    });
+  1678→
+  1679→    $("#dlgCancel").addEventListener("click", closeDialog);
+  1680→    $("#dlgConfirm").addEventListener("click", confirmPower);
+  1681→    scrim.addEventListener("click", closeDialog);
+  1682→
+  1683→    $("#successBack").addEventListener("click", returnToGreeter);
+  1684→    $("#powerBack").addEventListener("click", returnToGreeter);
+  1685→
+  1686→    document.addEventListener("click", e=>{
+  1687→      const t = e.target;
+  1688→      if (state.drawerOpen && !t.closest(".drawer-panel") && !t.closest(".drawer-btn")){
+  1689→        closeDrawer();
+  1690→      }
+  1691→      if (!state.openPop) return;
+  1692→      if (t.closest(".popover") || t.closest("[data-pop]")) return;
+  1693→      closeAllPops();
+  1694→    });
+  1695→
+  1696→    document.addEventListener("keydown", e=>{
+  1697→      if (e.key === "Escape"){
+  1698→        if (dialog.classList.contains("open")){ closeDialog(); return; }
+  1699→        if (state.drawerOpen){ closeDrawer(); return; }
+  1700→        if (state.openPop){ closeAllPops(); return; }
+  1701→      }
+  1702→    });
+  1703→
+  1704→    window.addEventListener("resize", ()=>{
+  1705→      if (state.openPop) closeAllPops();
+  1706→      if (state.drawerOpen) closeDrawer();
+  1707→      if (state.method === "pattern") buildPattern();
+  1708→    });
+  1709→  }
+  1710→
+  1711→  function init(){
+  1712→    refreshIcons();
+  1713→    renderAll();
+  1714→    buildAvatarGrid();
+  1715→    buildSessionList();
+  1716→    updateAuthChrome();
+  1717→    wire();
+  1718→    setTimeout(()=>{ $("#pwInput").focus(); }, 400);
+  1719→  }
+  1720→
+  1721→  document.addEventListener("DOMContentLoaded", init);
+  1722→})();
+  1723→</script>
+  1724→</body>
+  1725→</html>

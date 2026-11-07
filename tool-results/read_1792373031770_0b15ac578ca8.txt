@@ -1,0 +1,722 @@
+   540→```js
+   541→(function(){
+   542→  "use strict";
+   543→
+   544→  const WALLPAPER_URL = "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80";
+   545→  const DEMO = { password:"demo", pin:"1234", patternMinLen:4 };
+   546→
+   547→  const SESSIONS = [
+   548→    { id:"hyprland", name:"Hyprland", desc:"Dynamic tiling Wayland compositor",
+   549→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18M7 3v18M14 3v18"/></svg>` },
+   550→    { id:"kde", name:"KDE Plasma", desc:"Flexible desktop by KDE",
+   551→      logo:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.6 3.2c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6 0-.9-.7-1.6-1.6-1.6-.9 0-1.6.7-1.6 1.6zM8.8 6.4c.5 0 1 .1 1.4.4.4.2.7.2 1.1.1.7-.2 1.4-.2 2.1 0 .4.1.7.1 1.1-.1.4-.3.9-.4 1.4-.4 1.2 0 2.1.9 2.1 2.1 0 .8-.4 1.5-.9 2.2-.4.5-.5 1.1-.4 1.7.1.5.2 1 .2 1.5 0 1.5-1.2 2.7-2.7 2.7-.5 0-1-.1-1.4-.4-.4-.2-.9-.3-1.4-.3-.5 0-1 .1-1.4.3-.4.3-.9.4-1.4.4-1.5 0-2.7-1.2-2.7-2.7 0-.5.1-1 .2-1.5.1-.6 0-1.2-.4-1.7-.5-.7-.9-1.4-.9-2.2 0-1.2.9-2.1 2.1-2.1z"/></svg>` },
+   552→    { id:"gnome", name:"GNOME", desc:"Clean, focused Wayland desktop",
+   553→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3.2"/><path d="M12 5.5v-2M12 20.5v-2M5.5 12h-2M20.5 12h-2M7 7 5.5 5.5M18.5 18.5 17 17M17 7l1.5-1.5M5.5 18.5 7 17"/></svg>` },
+   554→    { id:"sway", name:"Sway", desc:"i3-compatible Wayland tiler",
+   555→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h7v12H4zM13 6h7v6h-7zM13 14h7v4h-7z"/></svg>` },
+   556→    { id:"xfce", name:"Xfce", desc:"Lightweight, stable desktop",
+   557→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 14 4-9 3 5 2-3 7 11"/><path d="M4 14h16"/></svg>` },
+   558→    { id:"custom", name:"Custom Wayland", desc:"User-defined session script",
+   559→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M17.7 6.3l-2.1 2.1M8.4 15.6l-2.1 2.1"/><circle cx="12" cy="12" r="3"/></svg>` }
+   560→  ];
+   561→
+   562→  const USERS = [
+   563→    { name:"Aria Voss",   handle:"aria",   img:"https://i.pravatar.cc/160?img=5",  auth:"password", pw:"demo",
+   564→      question:"What city were you born in?", answer:"cairo" },
+   565→    { name:"Kenji Sato",  handle:"kenji",   img:"https://i.pravatar.cc/160?img=11", auth:"password", pw:"demo", requiresUsername:true,
+   566→      question:"What is your favorite book?", answer:"dune" },
+   567→    { name:"Mira Sol",   handle:"mira",    img:"https://i.pravatar.cc/160?img=47", auth:"pin",
+   568→      question:"What is your mother's maiden name?", answer:"rivera" },
+   569→    { name:"Devon Hart", handle:"devon",   img:"https://i.pravatar.cc/160?img=33", auth:"pattern",
+   570→      question:"What was the name of your first school?", answer:"maplewood" },
+   571→    { name:"Yuki Tanaka",handle:"yuki",    img:"https://i.pravatar.cc/160?img=20", auth:"question",
+   572→      question:"What is the name of your first pet?", answer:"mochi" },
+   573→    { name:"Sage Lin",   handle:"sage",    img:"https://i.pravatar.cc/160?img=16", auth:"multi-step",
+   574→      steps:[ { type:"password", pw:"demo" }, { type:"pattern" } ],
+   575→      question:"What is your favorite color?", answer:"teal" }
+   576→  ];
+   577→
+   578→  const state = {
+   579→    userIndex: 0,
+   580→    method: "password",
+   581→    authStatus: "idle",
+   582→    multiStep: { active:false, current:0, total:0 },
+   583→    session: "hyprland",
+   584→    theme: "dark",
+   585→    openPop: null,
+   586→    drawerOpen: false,
+   587→    powerAction: null,
+   588→    net: { name:"Aether-5G", online:true },
+   589→    battery: { level:78, charging:false },
+   590→    volume: { level:45, muted:false },
+   591→    pin: "",
+   592→    pattern: [],
+   593→    patternDrawing: false
+   594→  };
+   595→
+   596→  const $  = (s, r=document) => r.querySelector(s);
+   597→  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+   598→  const user = () => USERS[state.userIndex];
+   599→  const session = () => SESSIONS.find(s => s.id === state.session);
+   600→
+   601→  function refreshIcons(){ if (window.lucide && lucide.createIcons) lucide.createIcons(); }
+   602→
+   603→  function swapIcon(el, iconName) {
+   604→    if (typeof el === "string") el = $(el);
+   605→    if (!el) return;
+   606→    const old = el.querySelector("svg, [data-lucide]") || el;
+   607→    const newI = document.createElement("i");
+   608→    newI.setAttribute("data-lucide", iconName);
+   609→    let cls = old.className;
+   610→    if (typeof cls === "object" && cls.baseVal !== undefined) cls = cls.baseVal;
+   611→    const keep = cls.split(/\s+/).filter(c => c && !c.startsWith("lucide"));
+   612→    newI.className = keep.join(" ");
+   613→    old.replaceWith(newI);
+   614→    refreshIcons();
+   615→  }
+   616→
+   617→  function renderIdentity(){
+   618→    const u = user();
+   619→    const av = $("#avatar");
+   620→    av.src = u.img;
+   621→    av.onerror = () => { av.style.background = "linear-gradient(135deg,var(--accent),var(--accent-press))"; av.removeAttribute("src"); };
+   622→    $("#userName").textContent = u.name;
+   623→    $("#userHandle").textContent = "@" + u.handle;
+   624→  }
+   625→
+   626→  function renderSession(){
+   627→    const s = session();
+   628→    $("#sessionVal").textContent = s.name;
+   629→    $$("#sessionList .pop-item").forEach(b => {
+   630→      const on = b.dataset.session === state.session;
+   631→      b.classList.toggle("selected", on);
+   632→      const chk = b.querySelector(".pop-check");
+   633→      if (chk) chk.style.opacity = on ? "1" : "0";
+   634→    });
+   635→  }
+   636→
+   637→  function renderVolume(){
+   638→    const muted = state.volume.muted || state.volume.level === 0;
+   639→    const volIcon = muted ? "volume-x" : state.volume.level < 35 ? "volume-1" : "volume-2";
+   640→    $("#volText").textContent = muted ? "Muted" : state.volume.level + "%";
+   641→    $("#volTip").textContent = muted ? "Muted" : `Volume ${state.volume.level}%`;
+   642→    swapIcon("#volBtn", volIcon);
+   643→    const volToggle = $("#volToggle");
+   644→    if (volToggle){
+   645→      swapIcon("#volToggle", volIcon);
+   646→      volToggle.classList.toggle("muted", muted);
+   647→    }
+   648→    if ($("#volSlider")) $("#volSlider").value = state.volume.level;
+   649→    if ($("#volValue")) $("#volValue").textContent = muted ? "Muted" : state.volume.level + "%";
+   650→  }
+   651→
+   652→  function renderBattery(){
+   653→    const lvl = state.battery.level;
+   654→    $("#batFill").style.width = Math.max(0, Math.min(100, lvl)) + "%";
+   655→    $("#batText").textContent = lvl + "%";
+   656→    $("#batTip").textContent = state.battery.charging ? `Charging · ${lvl}%` : `${lvl}% remaining`;
+   657→  }
+   658→
+   659→  function renderNetwork(){ $("#netText").textContent = state.net.name; }
+   660→
+   661→  function renderAll(){
+   662→    renderIdentity();
+   663→    renderSession();
+   664→    renderVolume();
+   665→    renderBattery();
+   666→    renderNetwork();
+   667→  }
+   668→
+   669→  function updateAuthChrome(){
+   670→    const u = user();
+   671→    const isMulti = u.auth === "multi-step";
+   672→    state.multiStep.active = isMulti;
+   673→    state.multiStep.current = 0;
+   674→    state.multiStep.total = isMulti ? u.steps.length : 0;
+   675→    $(".method-tabs").style.display = isMulti ? "none" : "flex";
+   676→    $("#stepIndicator").classList.toggle("show", isMulti);
+   677→    const showUser = !!u.requiresUsername && !isMulti;
+   678→    $("#userInput").classList.toggle("show", showUser);
+   679→    $("#fieldSep").classList.toggle("show", showUser);
+   680→    swapIcon("#pwField .lead", showUser ? "user-round" : "lock");
+   681→    if (isMulti) renderStep();
+   682→    else setMethod(u.auth);
+   683→    updateDemoHints();
+   684→  }
+   685→
+   686→  function setMethod(m){
+   687→    state.method = m;
+   688→    $$(".method-tab").forEach(t => t.classList.toggle("active", t.dataset.method === m));
+   689→    $$(".method-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === m));
+   690→    clearErrors();
+   691→    if (m === "pattern") setTimeout(buildPattern, 50);
+   692→  }
+   693→
+   694→  function clearErrors(){
+   695→    $("#pwField").classList.remove("error");
+   696→    $("#pwError").classList.remove("show");
+   697→    $("#pinError").classList.remove("show");
+   698→    $("#patternError").classList.remove("show");
+   699→    $("#qField").classList.remove("error");
+   700→    $("#qError").classList.remove("show");
+   701→    $("#fpError").classList.remove("show");
+   702→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.remove("error"));
+   703→  }
+   704→
+   705→  function stepLabel(type){
+   706→    return { password:"Password", pin:"PIN", pattern:"Pattern", fingerprint:"Fingerprint", question:"Security Question" }[type] || type;
+   707→  }
+   708→  function renderStep(){
+   709→    if (!state.multiStep.active) return;
+   710→    const u = user();
+   711→    const step = u.steps[state.multiStep.current];
+   712→    $("#stepLabel").textContent = `Step ${state.multiStep.current+1} of ${state.multiStep.total} · ${stepLabel(step.type)}`;
+   713→    const dotsEl = $("#stepDots");
+   714→    dotsEl.innerHTML = "";
+   715→    u.steps.forEach((_, i) => {
+   716→      const dot = document.createElement("span");
+   717→      dot.className = "step-dot";
+   718→      if (i === state.multiStep.current) dot.classList.add("active");
+   719→      if (i < state.multiStep.current) dot.classList.add("completed");
+   720→      dotsEl.appendChild(dot);
+   721→    });
+   722→    setMethod(step.type);
+   723→    updateDemoHints();
+   724→  }
+   725→  function advanceStep(){
+   726→    const u = user();
+   727→    const stepType = u.steps[state.multiStep.current].type;
+   728→    if (stepType === "password") $("#pwInput").value = "";
+   729→    if (stepType === "pin") { state.pin = ""; renderPin(); }
+   730→    if (stepType === "pattern") clearPattern();
+   731→    if (stepType === "question") $("#qInput").value = "";
+   732→    state.multiStep.current++;
+   733→    renderStep();
+   734→  }
+   735→  function onAuthSuccess(){
+   736→    if (state.multiStep.active && state.multiStep.current < state.multiStep.total - 1){
+   737→      state.authStatus = "idle";
+   738→      setTimeout(advanceStep, 450);
+   739→    } else {
+   740→      showSuccess();
+   741→    }
+   742→  }
+   743→
+   744→  function updateDemoHints(){
+   745→    const u = user();
+   746→    if (u.requiresUsername && !state.multiStep.active){
+   747→      $("#pwHint").innerHTML = `<b>demo:</b> any user · pass = <b>demo</b>`;
+   748→    } else {
+   749→      $("#pwHint").innerHTML = `<b>demo:</b> password = <b>demo</b>`;
+   750→    }
+   751→    $("#pinHint").innerHTML = `<b>demo:</b> PIN = <b>1234</b>`;
+   752→    $("#patternHintDemo").innerHTML = `<b>demo:</b> any 4+ dots`;
+   753→    $("#fpHint").innerHTML = `<b>demo:</b> tap to scan`;
+   754→    if (u.question){
+   755→      $("#qHint").innerHTML = `<b>demo:</b> answer = <b>${u.answer}</b>`;
+   756→      $("#questionText").textContent = u.question;
+   757→    } else {
+   758→      $("#qHint").innerHTML = `<b>demo:</b> no question set`;
+   759→      $("#questionText").textContent = "No security question configured for this user.";
+   760→    }
+   761→  }
+   762→
+   763→  function setBtnLoading(btn, on){
+   764→    btn.classList.toggle("loading", on);
+   765→    btn.disabled = on;
+   766→    state.authStatus = on ? "loading" : "idle";
+   767→  }
+   768→  function showSuccess(){
+   769→    const u = user();
+   770→    $("#successTitle").textContent = `Welcome back, ${u.name.split(" ")[0]}`;
+   771→    $("#successSub").textContent = `Starting ${session().name} session…`;
+   772→    $("#successIcon").innerHTML = `<i data-lucide="check"></i>`;
+   773→    refreshIcons();
+   774→    $("#successOverlay").classList.add("show");
+   775→    state.authStatus = "success";
+   776→  }
+   777→  function returnToGreeter(){
+   778→    $("#successOverlay").classList.remove("show");
+   779→    $("#powerOverlay").classList.remove("show");
+   780→    state.authStatus = "idle";
+   781→    state.multiStep.current = 0;
+   782→    if (state.multiStep.active) renderStep();
+   783→    $("#pwInput").value = "";
+   784→    $("#userInput").value = "";
+   785→    $("#qInput").value = "";
+   786→    state.pin = ""; renderPin();
+   787→    clearPattern();
+   788→    clearErrors();
+   789→  }
+   790→  function flashError(fieldEl, msgEl, msg){
+   791→    fieldEl && fieldEl.classList.add("error");
+   792→    if (msg){ msgEl.textContent = msg; msgEl.classList.add("show"); }
+   793→    setTimeout(()=>{ fieldEl && fieldEl.classList.remove("error"); }, 420);
+   794→  }
+   795→
+   796→  function submitPassword(e){
+   797→    e.preventDefault();
+   798→    if (state.authStatus === "loading") return;
+   799→    const u = user();
+   800→    const pwVal = $("#pwInput").value;
+   801→    const userVal = u.requiresUsername ? $("#userInput").value.trim() : "";
+   802→    if (u.requiresUsername && !userVal){
+   803→      flashError($("#pwField"), $("#pwError"), "Enter username.");
+   804→      $("#userInput").focus(); return;
+   805→    }
+   806→    if (!pwVal){
+   807→      flashError($("#pwField"), $("#pwError"), "Enter password.");
+   808→      $("#pwInput").focus(); return;
+   809→    }
+   810→    setBtnLoading($("#pwSubmit"), true);
+   811→    setTimeout(()=>{
+   812→      setBtnLoading($("#pwSubmit"), false);
+   813→      const expectedPw = state.multiStep.active
+   814→        ? (u.steps[state.multiStep.current].pw || DEMO.password)
+   815→        : (u.pw || DEMO.password);
+   816→      if (pwVal === expectedPw) onAuthSuccess();
+   817→      else flashError($("#pwField"), $("#pwError"), "Incorrect credentials. Try again.");
+   818→    }, 850);
+   819→  }
+   820→
+   821→  function renderPin(){
+   822→    const dots = $$("#pinDisplay .pin-dot");
+   823→    dots.forEach((d,i)=>{ d.classList.toggle("filled", i < state.pin.length); d.classList.remove("error"); });
+   824→  }
+   825→  function pinError(msg){
+   826→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.add("error"));
+   827→    $("#pinError").textContent = msg || "Incorrect PIN.";
+   828→    $("#pinError").classList.add("show");
+   829→    setTimeout(()=>{ $("#pinError").classList.remove("show"); renderPin(); }, 700);
+   830→  }
+   831→  function pinPress(k){
+   832→    if (state.authStatus === "loading") return;
+   833→    if (k === "clear"){ state.pin = ""; renderPin(); $("#pinError").classList.remove("show"); return; }
+   834→    if (k === "enter"){ submitPin(); return; }
+   835→    if (state.pin.length >= 4) return;
+   836→    state.pin += k; renderPin();
+   837→    $("#pinError").classList.remove("show");
+   838→    if (state.pin.length === 4) setTimeout(submitPin, 160);
+   839→  }
+   840→  function submitPin(){
+   841→    if (state.authStatus === "loading") return;
+   842→    const enterBtn = $("#pinEnter");
+   843→    enterBtn.classList.add("loading"); enterBtn.disabled = true; state.authStatus = "loading";
+   844→    setTimeout(()=>{
+   845→      enterBtn.classList.remove("loading"); enterBtn.disabled = false; state.authStatus = "idle";
+   846→      if (state.pin === DEMO.pin){ state.pin = ""; renderPin(); onAuthSuccess(); }
+   847→      else pinError("Incorrect PIN.");
+   848→    }, 700);
+   849→  }
+   850→
+   851→  const PAT_SIZE = 3;
+   852→  const patCanvas = $("#patternCanvas");
+   853→  const patSvg = $("#patternSvg");
+   854→  let patDots = [];
+   855→  function buildPattern(){
+   856→    patCanvas.querySelectorAll(".pattern-dot").forEach(d=>d.remove());
+   857→    patSvg.innerHTML = ""; patDots = [];
+   858→    const cs = patCanvas.getBoundingClientRect();
+   859→    if (cs.width === 0) return;
+   860→    const n = PAT_SIZE, pad = 24;
+   861→    for (let r=0;r<n;r++){
+   862→      for (let c=0;c<n;c++){
+   863→        const x = pad + (cs.width-2*pad) * (c/(n-1));
+   864→        const y = pad + (cs.height-2*pad) * (r/(n-1));
+   865→        const el = document.createElement("div");
+   866→        el.className = "pattern-dot";
+   867→        el.style.left = x+"px"; el.style.top = y+"px";
+   868→        el.dataset.idx = r*n+c;
+   869→        patCanvas.appendChild(el); patDots.push(el);
+   870→      }
+   871→    }
+   872→  }
+   873→  function clearPattern(){
+   874→    state.pattern = []; state.patternDrawing=false;
+   875→    patDots.forEach(d=>d.classList.remove("active","error"));
+   876→    patSvg.innerHTML = "";
+   877→    $("#patternError").classList.remove("show");
+   878→    $("#patternHint").textContent = "Draw a pattern of 4 or more points";
+   879→  }
+   880→  function addPatternDot(idx){
+   881→    if (state.pattern.includes(idx)) return;
+   882→    state.pattern.push(idx);
+   883→    patDots[idx].classList.add("active");
+   884→    drawPatternLines();
+   885→    $("#patternHint").textContent = `${state.pattern.length} point${state.pattern.length>1?"s":""} selected`;
+   886→  }
+   887→  function drawPatternLines(){
+   888→    if (state.pattern.length < 2) return;
+   889→    const cs = patCanvas.getBoundingClientRect();
+   890→    patSvg.setAttribute("viewBox", `0 0 ${cs.width} ${cs.height}`);
+   891→    let d = "";
+   892→    state.pattern.forEach((idx,i)=>{
+   893→      const dot = patDots[idx];
+   894→      const x = parseFloat(dot.style.left), y = parseFloat(dot.style.top);
+   895→      d += (i===0?"M":"L") + x + " " + y + " ";
+   896→    });
+   897→    patSvg.innerHTML = `<path d="${d}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>`;
+   898→  }
+   899→  function dotAt(x,y){
+   900→    for (let i=0;i<patDots.length;i++){
+   901→      const r = patDots[i].getBoundingClientRect();
+   902→      if (x >= r.left-14 && x <= r.right+14 && y >= r.top-14 && y <= r.bottom+14) return i;
+   903→    }
+   904→    return -1;
+   905→  }
+   906→  function submitPattern(){
+   907→    if (state.pattern.length >= DEMO.patternMinLen){
+   908→      $("#patternHint").textContent = "Verifying…";
+   909→      setTimeout(()=>{
+   910→        if (state.pattern.length >= DEMO.patternMinLen) onAuthSuccess();
+   911→        else patternFail();
+   912→      }, 500);
+   913→    } else patternFail();
+   914→  }
+   915→  function patternFail(){
+   916→    patDots.forEach(d=>d.classList.add("error"));
+   917→    const path = patSvg.querySelector("path");
+   918→    if (path) path.setAttribute("stroke","var(--error)");
+   919→    $("#patternError").classList.add("show");
+   920→    $("#patternHint").textContent = "Pattern too short";
+   921→    setTimeout(clearPattern, 800);
+   922→  }
+   923→
+   924→  function scanFingerprint(){
+   925→    const btn = $("#fpBtn");
+   926→    if (btn.classList.contains("scanning")) return;
+   927→    btn.classList.add("scanning");
+   928→    $("#fpLabel").textContent = "Scanning…";
+   929→    $("#fpError").classList.remove("show");
+   930→    setTimeout(()=>{
+   931→      btn.classList.remove("scanning");
+   932→      btn.classList.add("success");
+   933→      $("#fpLabel").textContent = "Identity verified";
+   934→      setTimeout(()=>{ btn.classList.remove("success"); onAuthSuccess(); }, 480);
+   935→    }, 1200);
+   936→  }
+   937→
+   938→  function submitQuestion(){
+   939→    if (state.authStatus === "loading") return;
+   940→    const u = user();
+   941→    const val = $("#qInput").value.trim().toLowerCase();
+   942→    if (!val){ flashError($("#qField"), $("#qError"), "Enter an answer."); return; }
+   943→    setBtnLoading($("#qSubmit"), true);
+   944→    setTimeout(()=>{
+   945→      setBtnLoading($("#qSubmit"), false);
+   946→      if (val === (u.answer || "").toLowerCase()) onAuthSuccess();
+   947→      else flashError($("#qField"), $("#qError"), "Incorrect answer.");
+   948→    }, 850);
+   949→  }
+   950→
+   951→  function closeAllPops(){
+   952→    $$(".popover.open").forEach(p => p.classList.remove("open"));
+   953→    $("#sessionBtn").classList.remove("active");
+   954→    state.openPop = null;
+   955→  }
+   956→  function openPop(name, anchorEl){
+   957→    closeAllPops();
+   958→    const pop = $("#pop-" + name);
+   959→    if (!pop) return;
+   960→    state.openPop = name;
+   961→    if (name === "session") $("#sessionBtn").classList.add("active");
+   962→    pop.style.visibility = "hidden";
+   963→    pop.classList.add("open");
+   964→    requestAnimationFrame(()=>{
+   965→      const pr = pop.getBoundingClientRect();
+   966→      const ar = anchorEl.getBoundingClientRect();
+   967→      let left, top;
+   968→      if (name === "power"){
+   969→        left = ar.right - pr.width;
+   970→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+   971→        top = ar.top - pr.height - 12;
+   972→        if (top < 12) top = ar.bottom + 12;
+   973→      } else {
+   974→        left = ar.left;
+   975→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+   976→        top = ar.top - pr.height - 12;
+   977→        if (top < 12) top = ar.bottom + 12;
+   978→      }
+   979→      pop.style.left = left + "px";
+   980→      pop.style.top = top + "px";
+   981→      pop.style.visibility = "visible";
+   982→    });
+   983→  }
+   984→  function togglePop(name, anchorEl){
+   985→    if (state.openPop === name) closeAllPops();
+   986→    else openPop(name, anchorEl);
+   987→  }
+   988→
+   989→  function buildAvatarGrid(){
+   990→    const grid = $("#avatarGrid");
+   991→    grid.innerHTML = "";
+   992→    USERS.forEach((u, i) => {
+   993→      const btn = document.createElement("button");
+   994→      btn.className = "grid-avatar" + (i === state.userIndex ? " selected" : "");
+   995→      btn.setAttribute("aria-label", u.name);
+   996→      btn.innerHTML = `<img src="${u.img}" alt="${u.name}" onerror="this.style.background='linear-gradient(135deg,var(--accent),var(--accent-press))';this.removeAttribute('src')"/>`;
+   997→      btn.addEventListener("click", () => {
+   998→        selectUser(i);
+   999→        closeDrawer();
+  1000→      });
+  1001→      grid.appendChild(btn);
+  1002→    });
+  1003→  }
+  1004→  function openDrawer(){
+  1005→    state.drawerOpen = true;
+  1006→    $("#userBox").classList.add("drawer-open");
+  1007→  }
+  1008→  function closeDrawer(){
+  1009→    state.drawerOpen = false;
+  1010→    $("#userBox").classList.remove("drawer-open");
+  1011→  }
+  1012→  function toggleDrawer(){
+  1013→    if (state.drawerOpen) closeDrawer();
+  1014→    else openDrawer();
+  1015→  }
+  1016→
+  1017→  function selectUser(index){
+  1018→    state.userIndex = index;
+  1019→    state.pin = "";
+  1020→    state.pattern = [];
+  1021→    state.authStatus = "idle";
+  1022→    $("#pwInput").value = "";
+  1023→    $("#userInput").value = "";
+  1024→    $("#qInput").value = "";
+  1025→    clearErrors();
+  1026→    renderIdentity();
+  1027→    updateAuthChrome();
+  1028→    buildAvatarGrid();
+  1029→    closeAllPops();
+  1030→    setTimeout(()=>{
+  1031→      if (state.method === "password") $("#pwInput").focus();
+  1032→      else if (state.method === "question") $("#qInput").focus();
+  1033→    }, 200);
+  1034→  }
+  1035→
+  1036→  function buildSessionList(){
+  1037→    const wrap = $("#sessionList");
+  1038→    wrap.innerHTML = "";
+  1039→    SESSIONS.forEach(s=>{
+  1040→      const b = document.createElement("button");
+  1041→      b.className = "pop-item" + (s.id === state.session ? " selected" : "");
+  1042→      b.dataset.session = s.id;
+  1043→      b.innerHTML = `
+  1044→        <span class="session-logo">${s.logo}</span>
+  1045→        <span><span>${s.name}</span><span class="session-desc">${s.desc}</span></span>
+  1046→        <i data-lucide="check" class="pop-check" style="opacity:${s.id===state.session?1:0}"></i>`;
+  1047→      b.addEventListener("click", ()=>{
+  1048→        state.session = s.id;
+  1049→        renderSession();
+  1050→        closeAllPops();
+  1051→      });
+  1052→      wrap.appendChild(b);
+  1053→    });
+  1054→    refreshIcons();
+  1055→  }
+  1056→
+  1057→  const dialog = $("#dialog"), scrim = $("#scrim");
+  1058→  function openDialog(action){
+  1059→    const titles = {
+  1060→      shutdown:["Shut down?","This will close all running sessions and power off the device. Any unsaved work will be lost.","Shut down","power"],
+  1061→      restart:  ["Restart?","The system will reboot. Any unsaved work will be lost.","Restart","rotate-cw"],
+  1062→      suspend:  ["Suspend?","The system will enter sleep mode and can be resumed with a key press.","Suspend","moon"]
+  1063→    };
+  1064→    const [title,body,confirm,icon] = titles[action] || titles.shutdown;
+  1065→    $("#dlgTitle").textContent = title;
+  1066→    $("#dlgBody").textContent = body;
+  1067→    $("#dlgConfirm").textContent = confirm;
+  1068→    state.powerAction = action;
+  1069→    const di = $("#dlgIcon");
+  1070→    di.innerHTML = `<i data-lucide="${icon}"></i>`;
+  1071→    refreshIcons();
+  1072→    di.style.background = action === "shutdown" ? "var(--error-soft)" : "var(--accent-soft)";
+  1073→    di.style.color = action === "shutdown" ? "var(--error)" : "var(--accent)";
+  1074→    const conf = $("#dlgConfirm");
+  1075→    conf.className = "btn " + (action === "shutdown" ? "btn-danger" : "btn-primary");
+  1076→    closeAllPops();
+  1077→    scrim.classList.add("open");
+  1078→    dialog.classList.add("open");
+  1079→  }
+  1080→  function closeDialog(){
+  1081→    scrim.classList.remove("open");
+  1082→    dialog.classList.remove("open");
+  1083→    state.powerAction = null;
+  1084→  }
+  1085→  function confirmPower(){
+  1086→    const action = state.powerAction || "shutdown";
+  1087→    closeDialog();
+  1088→    const titles = { shutdown:"Shutting down", restart:"Restarting", suspend:"Suspending" };
+  1089→    const subs = {
+  1090→      shutdown:"It is now safe to power off the device.",
+  1091→      restart:"The system is restarting…",
+  1092→      suspend:"System suspended. Press any key to resume."
+  1093→    };
+  1094→    $("#powerTitle").textContent = titles[action];
+  1095→    $("#powerSub").textContent = subs[action];
+  1096→    $("#powerIcon").innerHTML = `<i data-lucide="${action==='suspend'?'moon':action==='restart'?'rotate-cw':'power'}"></i>`;
+  1097→    refreshIcons();
+  1098→    $("#powerOverlay").classList.add("show");
+  1099→  }
+  1100→
+  1101→  function setTheme(t){
+  1102→    state.theme = t;
+  1103→    document.documentElement.setAttribute("data-theme", t);
+  1104→    swapIcon("#themeBtn", t === "dark" ? "sun-moon" : "sun");
+  1105→  }
+  1106→
+  1107→  function wire(){
+  1108→    const img = new Image();
+  1109→    img.onload = ()=>{ $("#wallImg").classList.add("loaded"); };
+  1110→    img.onerror = ()=>{};
+  1111→    img.src = WALLPAPER_URL;
+  1112→
+  1113→    $("#themeBtn").addEventListener("click", ()=> setTheme(state.theme === "dark" ? "light" : "dark"));
+  1114→
+  1115→    $("#drawerBtn").addEventListener("click", e=>{
+  1116→      e.stopPropagation();
+  1117→      toggleDrawer();
+  1118→    });
+  1119→
+  1120→    $$(".method-tab").forEach(t => t.addEventListener("click", ()=> {
+  1121→      if (!state.multiStep.active) setMethod(t.dataset.method);
+  1122→    }));
+  1123→
+  1124→    $("#pwForm").addEventListener("submit", submitPassword);
+  1125→    let pwShown = false;
+  1126→    $("#pwEye").addEventListener("click", ()=>{
+  1127→      pwShown = !pwShown;
+  1128→      $("#pwInput").type = pwShown ? "text" : "password";
+  1129→      swapIcon("#pwEye", pwShown ? "eye-off" : "eye");
+  1130→    });
+  1131→    $("#pwInput").addEventListener("input", ()=>{
+  1132→      $("#pwField").classList.remove("error");
+  1133→      $("#pwError").classList.remove("show");
+  1134→    });
+  1135→    $("#userInput").addEventListener("input", ()=>{
+  1136→      $("#pwField").classList.remove("error");
+  1137→      $("#pwError").classList.remove("show");
+  1138→    });
+  1139→    $("#userInput").addEventListener("keydown", e=>{
+  1140→      if (e.key === "Enter"){ e.preventDefault(); $("#pwInput").focus(); }
+  1141→    });
+  1142→
+  1143→    $$("#pinPad .pin-key").forEach(k => k.addEventListener("click", ()=> pinPress(k.dataset.k)));
+  1144→
+  1145→    patCanvas.addEventListener("pointerdown", e=>{
+  1146→      if (state.authStatus==="loading") return;
+  1147→      clearPattern();
+  1148→      state.patternDrawing = true;
+  1149→      patCanvas.setPointerCapture(e.pointerId);
+  1150→      const i = dotAt(e.clientX, e.clientY);
+  1151→      if (i>=0) addPatternDot(i);
+  1152→    });
+  1153→    patCanvas.addEventListener("pointermove", e=>{
+  1154→      if (!state.patternDrawing) return;
+  1155→      const i = dotAt(e.clientX, e.clientY);
+  1156→      if (i>=0) addPatternDot(i);
+  1157→    });
+  1158→    function endPattern(){
+  1159→      if (!state.patternDrawing) return;
+  1160→      state.patternDrawing = false;
+  1161→      submitPattern();
+  1162→    }
+  1163→    patCanvas.addEventListener("pointerup", endPattern);
+  1164→    patCanvas.addEventListener("pointercancel", endPattern);
+  1165→
+  1166→    $("#fpBtn").addEventListener("click", scanFingerprint);
+  1167→
+  1168→    $("#qSubmit").addEventListener("click", submitQuestion);
+  1169→    $("#qInput").addEventListener("keydown", e=>{
+  1170→      if (e.key === "Enter"){ e.preventDefault(); submitQuestion(); }
+  1171→    });
+  1172→    $("#qInput").addEventListener("input", ()=>{
+  1173→      $("#qField").classList.remove("error");
+  1174→      $("#qError").classList.remove("show");
+  1175→    });
+  1176→
+  1177→    $("#sessionBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("session", $("#sessionBtn")); });
+  1178→    $("#netBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("network", $("#netBtn")); });
+  1179→    $("#volBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("volume", $("#volBtn")); });
+  1180→    $("#powerBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("power", $("#powerBtn")); });
+  1181→
+  1182→    $("#volToggle").addEventListener("click", ()=>{
+  1183→      state.volume.muted = !state.volume.muted;
+  1184→      renderVolume();
+  1185→    });
+  1186→    $("#volSlider").addEventListener("input", e=>{
+  1187→      state.volume.level = parseInt(e.target.value, 10);
+  1188→      if (state.volume.level > 0) state.volume.muted = false;
+  1189→      renderVolume();
+  1190→    });
+  1191→
+  1192→    $$("#pop-power [data-power]").forEach(b => b.addEventListener("click", ()=> openDialog(b.dataset.power)));
+  1193→    $("#lockBtn").addEventListener("click", ()=>{
+  1194→      closeAllPops();
+  1195→      $("#powerTitle").textContent = "Locking";
+  1196→      $("#powerSub").textContent = "Screen locked.";
+  1197→      $("#powerIcon").innerHTML = `<i data-lucide="lock-keyhole"></i>`;
+  1198→      refreshIcons();
+  1199→      $("#powerOverlay").classList.add("show");
+  1200→    });
+  1201→    $("#aboutBtn").addEventListener("click", ()=>{
+  1202→      closeAllPops();
+  1203→      $("#successTitle").textContent = "Aether Greeter";
+  1204→      $("#successSub").textContent = "Custom Wayland display manager · v1.7 · mock environment";
+  1205→      $("#successIcon").innerHTML = `<i data-lucide="info"></i>`;
+  1206→      refreshIcons();
+  1207→      $("#successOverlay").classList.add("show");
+  1208→    });
+  1209→
+  1210→    $("#dlgCancel").addEventListener("click", closeDialog);
+  1211→    $("#dlgConfirm").addEventListener("click", confirmPower);
+  1212→    scrim.addEventListener("click", closeDialog);
+  1213→
+  1214→    $("#successBack").addEventListener("click", returnToGreeter);
+  1215→    $("#powerBack").addEventListener("click", returnToGreeter);
+  1216→
+  1217→    document.addEventListener("click", e=>{
+  1218→      const t = e.target;
+  1219→      if (state.drawerOpen && !t.closest(".drawer-panel") && !t.closest(".drawer-btn")){
+  1220→        closeDrawer();
+  1221→      }
+  1222→      if (!state.openPop) return;
+  1223→      if (t.closest(".popover") || t.closest("[data-pop]")) return;
+  1224→      closeAllPops();
+  1225→    });
+  1226→
+  1227→    document.addEventListener("keydown", e=>{
+  1228→      if (e.key === "Escape"){
+  1229→        if (dialog.classList.contains("open")){ closeDialog(); return; }
+  1230→        if (state.drawerOpen){ closeDrawer(); return; }
+  1231→        if (state.openPop){ closeAllPops(); return; }
+  1232→      }
+  1233→    });
+  1234→
+  1235→    window.addEventListener("resize", ()=>{
+  1236→      if (state.openPop) closeAllPops();
+  1237→      if (state.drawerOpen) closeDrawer();
+  1238→      if (state.method === "pattern") buildPattern();
+  1239→    });
+  1240→  }
+  1241→
+  1242→  function init(){
+  1243→    refreshIcons();
+  1244→    renderAll();
+  1245→    buildAvatarGrid();
+  1246→    buildSessionList();
+  1247→    updateAuthChrome();
+  1248→    wire();
+  1249→    setTimeout(()=>{ $("#pwInput").focus(); }, 400);
+  1250→  }
+  1251→
+  1252→  document.addEventListener("DOMContentLoaded", init);
+  1253→})();
+  1254→```
+  1255→
+  1256→### Bullet summary
+  1257→
+  1258→**Constants / data**
+  1259→- `WALLPAPER_URL` — Unsplash photo URL (also referenced in the `.wallpaper-img` CSS); preloaded by an `Image()` so the `.loaded` class can fade it in.
+
+[showing lines 540-1259 of 1360; use offset=1260 with limit to continue reading]

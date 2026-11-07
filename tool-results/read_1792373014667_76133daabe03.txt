@@ -1,0 +1,733 @@
+     1→/* =====================================================================
+     2→   1. DESIGN TOKENS
+     3→   ===================================================================== */
+     4→:root{
+     5→  --accent: #6ad1b3;
+     6→  --accent-soft: rgba(106,209,179,.16);
+     7→  --accent-strong: #8fe3cc;
+     8→  --accent-press: #4cb89a;
+     9→
+    10→  --bg-fallback-1: #0b1016;
+    11→  --bg-fallback-2: #131a22;
+    12→  --surface: rgba(18,24,32,.55);
+    13→  --surface-strong: rgba(20,27,37,.82);
+    14→  --surface-hover: rgba(30,40,52,.62);
+    15→  --surface-input: rgba(10,14,20,.42);
+    16→
+    17→  --text: #eef3f7;
+    18→  --text-soft: rgba(238,243,247,.72);
+    19→  --text-mute: rgba(238,243,247,.48);
+    20→  --text-faint: rgba(238,243,247,.30);
+    21→
+    22→  --hairline: rgba(255,255,255,.10);
+    23→  --hairline-strong: rgba(255,255,255,.18);
+    24→  --ring: rgba(106,209,179,.55);
+    25→
+    26→  --error: #f0857a;
+    27→  --error-soft: rgba(240,133,122,.14);
+    28→  --success: #6ad1b3;
+    29→  --warn: #e8c46a;
+    30→
+    31→  --r-sm: 9px;
+    32→  --r-md: 14px;
+    33→  --r-lg: 20px;
+    34→  --r-pill: 999px;
+    35→  --pad-input: 13px 16px;
+    36→  --blur: 22px;
+    37→  --dur-fast: 130ms;
+    38→  --dur: 220ms;
+    39→  --dur-slow: 420ms;
+    40→  --ease: cubic-bezier(.22,.61,.36,1);
+    41→  --ease-out: cubic-bezier(.16,1,.3,1);
+    42→
+    43→  --shadow-panel: 0 18px 50px -22px rgba(0,0,0,.75), 0 2px 8px -2px rgba(0,0,0,.5);
+    44→  --shadow-float: 0 8px 30px -12px rgba(0,0,0,.6);
+    45→}
+    46→
+    47→[data-theme="light"]{
+    48→  --accent: #0f766e;
+    49→  --accent-soft: rgba(15,118,110,.14);
+    50→  --accent-strong: #0d6b62;
+    51→  --accent-press: #0a544d;
+    52→
+    53→  --bg-fallback-1: #d7dde3;
+    54→  --bg-fallback-2: #e9edf1;
+    55→  --surface: rgba(255,255,255,.62);
+    56→  --surface-strong: rgba(255,255,255,.84);
+    57→  --surface-hover: rgba(255,255,255,.78);
+    58→  --surface-input: rgba(255,255,255,.55);
+    59→
+    60→  --text: #15202a;
+    61→  --text-soft: rgba(21,32,42,.74);
+    62→  --text-mute: rgba(21,32,42,.55);
+    63→  --text-faint: rgba(21,32,42,.34);
+    64→
+    65→  --hairline: rgba(15,32,42,.10);
+    66→  --hairline-strong: rgba(15,32,42,.18);
+    67→  --ring: rgba(15,118,110,.55);
+    68→
+    69→  --error: #c0443a;
+    70→  --error-soft: rgba(192,68,58,.12);
+    71→  --success: #0f766e;
+    72→  --warn: #b67e1a;
+    73→
+    74→  --shadow-panel: 0 18px 50px -24px rgba(15,32,42,.40), 0 2px 8px -2px rgba(15,32,42,.18);
+    75→  --shadow-float: 0 8px 30px -12px rgba(15,32,42,.28);
+    76→}
+    77→
+    78→/* =====================================================================
+    79→   2. RESET & BASE
+    80→   ===================================================================== */
+    81→*{box-sizing:border-box;margin:0;padding:0}
+    82→html,body{height:100%}
+    83→body{
+    84→  font-family:"Inter",system-ui,sans-serif;
+    85→  color:var(--text);
+    86→  background:var(--bg-fallback-1);
+    87→  overflow:hidden;
+    88→  -webkit-font-smoothing:antialiased;
+    89→  text-rendering:optimizeLegibility;
+    90→}
+    91→button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+    92→input{font-family:inherit;color:inherit;border:none;background:none;outline:none}
+    93→::selection{background:var(--accent-soft)}
+    94→
+    95→button:focus-visible,
+    96→.method-tab:focus-visible,
+    97→.indicator:focus-visible,
+    98→.session-indicator:focus-visible,
+    99→.pin-key:focus-visible,
+   100→.vol-toggle:focus-visible,
+   101→.drawer-btn:focus-visible,
+   102→.grid-avatar:focus-visible{
+   103→  outline:2px solid var(--ring);outline-offset:2px;border-radius:6px;
+   104→}
+   105→.field input:focus,.field input:focus-visible{outline:none}
+   106→
+   107→/* =====================================================================
+   108→   3. WALLPAPER & ATMOSPHERE
+   109→   ===================================================================== */
+   110→.wallpaper{
+   111→  position:fixed;inset:0;z-index:0;
+   112→  background:
+   113→    radial-gradient(120% 90% at 12% 8%, rgba(106,209,179,.10), transparent 55%),
+   114→    radial-gradient(120% 100% at 88% 92%, rgba(60,90,140,.18), transparent 60%),
+   115→    linear-gradient(160deg, var(--bg-fallback-1), var(--bg-fallback-2));
+   116→  background-size:cover;
+   117→}
+   118→.wallpaper-img{
+   119→  position:fixed;inset:0;z-index:0;
+   120→  background-image:url("https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80");
+   121→  background-size:cover;
+   122→  background-position:center;
+   123→  opacity:0;
+   124→  transition:opacity var(--dur-slow) var(--ease);
+   125→}
+   126→.wallpaper-img.loaded{opacity:1}
+   127→.veil{
+   128→  position:fixed;inset:0;z-index:1;pointer-events:none;
+   129→  background:
+   130→    linear-gradient(90deg, rgba(6,10,16,.55) 0%, rgba(6,10,16,.18) 38%, rgba(6,10,16,.10) 62%, rgba(6,10,16,.42) 100%),
+   131→    linear-gradient(0deg, rgba(6,10,16,.48) 0%, transparent 32%);
+   132→}
+   133→[data-theme="light"] .veil{
+   134→  background:
+   135→    linear-gradient(90deg, rgba(220,228,236,.42) 0%, rgba(220,228,236,.10) 38%, rgba(220,228,236,.06) 62%, rgba(220,228,236,.32) 100%),
+   136→    linear-gradient(0deg, rgba(220,228,236,.40) 0%, transparent 32%);
+   137→}
+   138→
+   139→/* =====================================================================
+   140→   4. STAGE LAYOUT
+   141→   ===================================================================== */
+   142→.stage{
+   143→  position:relative;z-index:2;
+   144→  width:100%;height:100%;
+   145→  display:flex;align-items:center;justify-content:center;
+   146→  padding: clamp(28px,5vh,64px) clamp(28px,6vw,96px);
+   147→}
+   148→.auth-wrapper{
+   149→  display:flex;flex-direction:column;
+   150→  gap:16px;align-items:stretch;
+   151→  width:max-content;
+   152→  max-width:calc(100% - 32px);
+   153→}
+   154→.auth-container{
+   155→  display:flex;gap:16px;align-items:stretch;
+   156→  width:100%;
+   157→}
+   158→
+   159→/* =====================================================================
+   160→   5. USER BOX (left) — drawer inside, expands
+   161→   ===================================================================== */
+   162→.user-box{
+   163→  position:relative;
+   164→  display:flex;align-items:stretch;
+   165→  flex:0 0 auto;
+   166→  background:var(--surface);
+   167→  -webkit-backdrop-filter:blur(var(--blur)) saturate(120%);
+   168→  backdrop-filter:blur(var(--blur)) saturate(120%);
+   169→  border:1px solid var(--hairline);
+   170→  border-radius:var(--r-lg);
+   171→  box-shadow:var(--shadow-panel);
+   172→  transition:width var(--dur) var(--ease-out);
+   173→}
+   174→.user-box::before{
+   175→  content:"";position:absolute;inset:1px;border-radius:calc(var(--r-lg) - 1px);pointer-events:none;
+   176→  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 18%);
+   177→}
+   178→
+   179→/* drawer panel — embedded inside user-box */
+   180→.drawer-panel{
+   181→  display:none;
+   182→  margin:14px 8px 14px 14px;
+   183→  padding:16px 12px;
+   184→  border-radius:var(--r-md);
+   185→  background:rgba(8,12,18,.5);
+   186→  border:1px solid var(--hairline);
+   187→  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+   188→  flex-direction:column;justify-content:center;align-items:center;
+   189→  gap:14px;flex:0 0 auto;
+   190→}
+   191→.user-box.drawer-open .drawer-panel{
+   192→  display:flex;
+   193→}
+   194→.drawer-label{
+   195→  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+   196→  color:var(--text-faint);font-weight:600;
+   197→}
+   198→
+   199→/* avatar grid — fills by columns */
+   200→.avatar-grid{
+   201→  display:grid;
+   202→  grid-template-rows:repeat(3,1fr);
+   203→  grid-auto-flow:column;
+   204→  gap:10px;justify-items:center;
+   205→}
+   206→.grid-avatar{
+   207→  width:44px;height:44px;border-radius:50%;overflow:hidden;
+   208→  border:2px solid transparent;cursor:pointer;padding:0;background:none;
+   209→  transition:all var(--dur-fast) var(--ease);
+   210→}
+   211→.grid-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+   212→.grid-avatar:hover{border-color:var(--accent);transform:scale(1.08)}
+   213→.grid-avatar.selected{
+   214→  border-color:var(--accent);
+   215→  box-shadow:0 0 0 3px var(--accent-soft);
+   216→}
+   217→
+   218→/* user-box content */
+   219→.user-box-content{
+   220→  width:220px;flex:0 0 220px;
+   221→  display:flex;flex-direction:column;align-items:center;justify-content:center;
+   222→  padding:clamp(24px,4vh,40px) 16px;
+   223→  gap:6px;z-index:1;
+   224→}
+   225→.large-avatar{
+   226→  width:128px;height:128px;border-radius:50%;object-fit:cover;
+   227→  border:3px solid var(--hairline-strong);
+   228→  box-shadow:0 8px 30px -8px rgba(0,0,0,.6);
+   229→  background:var(--surface-input);
+   230→  margin-bottom:10px;
+   231→}
+   232→.user-name{
+   233→  font-family:"Space Grotesk",sans-serif;
+   234→  font-size:22px;font-weight:500;letter-spacing:-.01em;
+   235→  color:var(--text);text-align:center;
+   236→}
+   237→.user-handle{
+   238→  font-size:13px;color:var(--text-mute);font-family:"Space Grotesk";
+   239→}
+   240→
+   241→/* drawer button */
+   242→.drawer-btn{
+   243→  position:absolute;left:-16px;top:50%;transform:translateY(-50%);
+   244→  width:32px;height:32px;border-radius:50%;
+   245→  background:var(--surface-strong);
+   246→  border:1px solid var(--hairline-strong);
+   247→  display:flex;align-items:center;justify-content:center;
+   248→  cursor:pointer;z-index:21;
+   249→  color:var(--text-soft);
+   250→  transition:all var(--dur-fast) var(--ease);
+   251→  box-shadow:var(--shadow-float);
+   252→}
+   253→.drawer-btn:hover{
+   254→  background:var(--accent);color:#08130f;border-color:var(--accent);
+   255→}
+   256→[data-theme="light"] .drawer-btn:hover{color:#fff}
+   257→.drawer-btn svg{
+   258→  width:16px;height:16px;
+   259→  transition:transform var(--dur) var(--ease);
+   260→}
+   261→.user-box.drawer-open .drawer-btn svg{transform:rotate(180deg)}
+   262→
+   263→/* =====================================================================
+   264→   6. AUTH CARD (right)
+   265→   ===================================================================== */
+   266→.auth-card{
+   267→  position:relative;
+   268→  flex:0 0 440px;
+   269→  width:440px;
+   270→  display:flex;flex-direction:column;align-items:center;
+   271→  padding:clamp(22px,3vh,34px) clamp(20px,2.6vw,30px) clamp(20px,2.6vh,28px);
+   272→  background:var(--surface);
+   273→  -webkit-backdrop-filter:blur(var(--blur)) saturate(120%);
+   274→  backdrop-filter:blur(var(--blur)) saturate(120%);
+   275→  border:1px solid var(--hairline);
+   276→  border-radius:var(--r-lg);
+   277→  box-shadow:var(--shadow-panel);
+   278→}
+   279→.auth-card::before{
+   280→  content:"";position:absolute;inset:1px;border-radius:calc(var(--r-lg) - 1px);pointer-events:none;
+   281→  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 18%);
+   282→}
+   283→
+   284→/* method tabs */
+   285→.method-tabs{
+   286→  display:flex;gap:2px;margin-bottom:6px;
+   287→  padding:3px;border-radius:var(--r-pill);
+   288→  background:var(--surface-input);border:1px solid var(--hairline);
+   289→  flex-wrap:nowrap;justify-content:center;
+   290→}
+   291→.method-tab{
+   292→  display:inline-flex;align-items:center;gap:5px;
+   293→  padding:7px 10px;border-radius:var(--r-pill);
+   294→  font-size:11.5px;font-weight:500;color:var(--text-mute);
+   295→  transition:all var(--dur-fast) var(--ease);
+   296→  white-space:nowrap;
+   297→}
+   298→.method-tab svg{width:14px;height:14px}
+   299→.method-tab:hover{color:var(--text)}
+   300→.method-tab.active{background:var(--accent);color:#08130f}
+   301→[data-theme="light"] .method-tab.active{color:#fff}
+   302→
+   303→/* step indicator */
+   304→.step-indicator{
+   305→  display:none;flex-direction:column;align-items:center;gap:8px;
+   306→  margin-bottom:6px;
+   307→}
+   308→.step-indicator.show{display:flex}
+   309→.step-label{
+   310→  font-size:12px;color:var(--text-mute);font-family:"Space Grotesk";
+   311→  letter-spacing:.02em;text-transform:capitalize;
+   312→}
+   313→.step-dots{display:flex;gap:6px}
+   314→.step-dot{
+   315→  width:7px;height:7px;border-radius:50%;
+   316→  background:var(--hairline-strong);
+   317→  transition:all var(--dur) var(--ease);
+   318→}
+   319→.step-dot.active{background:var(--accent);transform:scale(1.3);box-shadow:0 0 6px var(--accent-soft)}
+   320→.step-dot.completed{background:var(--success)}
+   321→
+   322→/* method body */
+   323→.method-body{width:100%;position:relative;margin-top:12px}
+   324→.method-panel{display:none;width:100%}
+   325→.method-panel.active{display:block;animation:fadeUp var(--dur) var(--ease-out)}
+   326→@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+   327→
+   328→/* shared field */
+   329→.field{
+   330→  position:relative;display:flex;align-items:center;
+   331→  background:var(--surface-input);
+   332→  border:1px solid var(--hairline);
+   333→  border-radius:var(--r-md);
+   334→  transition:border-color var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease);
+   335→}
+   336→.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+   337→.field.error{border-color:var(--error);box-shadow:0 0 0 3px var(--error-soft);animation:shake var(--dur) var(--ease)}
+   338→@keyframes shake{
+   339→  0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}
+   340→  40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}
+   341→}
+   342→.field > svg.lead{
+   343→  width:17px;height:17px;color:var(--text-mute);margin-left:15px;flex:none;
+   344→}
+   345→.field input{
+   346→  flex:1;padding:var(--pad-input);font-size:15px;letter-spacing:.02em;min-width:0;
+   347→}
+   348→.field input::placeholder{color:var(--text-faint)}
+   349→
+   350→.field .user-input{display:none}
+   351→.field .user-input.show{
+   352→  display:block;flex:0 0 35%;min-width:0;
+   353→}
+   354→.field .field-sep{display:none}
+   355→.field .field-sep.show{
+   356→  display:block;width:1px;align-self:stretch;margin:9px 0;
+   357→  background:var(--hairline);flex:none;opacity:.6;
+   358→}
+   359→.field .eye{
+   360→  display:flex;align-items:center;justify-content:center;
+   361→  width:38px;height:100%;color:var(--text-mute);
+   362→  transition:color var(--dur-fast) var(--ease);flex:none;
+   363→}
+   364→.field .eye:hover{color:var(--text)}
+   365→.field .eye svg{width:17px;height:17px}
+   366→
+   367→.primary-action{
+   368→  margin-top:12px;width:100%;
+   369→  display:flex;align-items:center;justify-content:center;gap:8px;
+   370→  padding:13px 16px;border-radius:var(--r-md);
+   371→  background:var(--accent);color:#08130f;
+   372→  font-weight:600;font-size:14.5px;letter-spacing:.01em;
+   373→  transition:background var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),opacity var(--dur-fast) var(--ease);
+   374→}
+   375→[data-theme="light"] .primary-action{color:#fff}
+   376→.primary-action:hover{background:var(--accent-strong)}
+   377→.primary-action:active{transform:scale(.985)}
+   378→.primary-action[disabled]{opacity:.55;cursor:not-allowed}
+   379→.primary-action svg{width:17px;height:17px}
+   380→.primary-action.loading .label,.primary-action.loading svg{display:none}
+   381→.primary-action.loading .spinner{display:block}
+   382→.spinner{
+   383→  width:22px;height:22px;border-radius:50%;
+   384→  border:2px solid rgba(8,19,15,.18);border-top-color:#08130f;
+   385→  animation:spin .8s linear infinite;display:none;
+   386→}
+   387→[data-theme="light"] .spinner{border-color:rgba(255,255,255,.3);border-top-color:#fff}
+   388→@keyframes spin{to{transform:rotate(360deg)}}
+   389→
+   390→.field-foot{
+   391→  margin-top:10px;display:flex;align-items:center;justify-content:space-between;min-height:18px;
+   392→}
+   393→.error-msg{
+   394→  font-size:12.5px;color:var(--error);font-weight:500;
+   395→  opacity:0;transform:translateY(-2px);transition:all var(--dur-fast) var(--ease);
+   396→}
+   397→.error-msg.show{opacity:1;transform:none}
+   398→.demo-hint{
+   399→  font-size:11.5px;color:var(--text-faint);font-family:"Space Grotesk";
+   400→  letter-spacing:.01em;text-align:right;
+   401→}
+   402→.demo-hint b{color:var(--text-mute);font-weight:500}
+   403→
+   404→/* PIN */
+   405→.pin-display{display:flex;justify-content:center;gap:14px;margin:6px 0 18px}
+   406→.pin-dot{
+   407→  width:12px;height:12px;border-radius:50%;
+   408→  border:1.5px solid var(--hairline-strong);
+   409→  transition:all var(--dur-fast) var(--ease-out);
+   410→}
+   411→.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.08)}
+   412→.pin-dot.error{border-color:var(--error);background:var(--error-soft)}
+   413→.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+   414→.pin-key{
+   415→  height:50px;border-radius:var(--r-md);
+   416→  background:var(--surface-input);border:1px solid var(--hairline);
+   417→  font-family:"Space Grotesk";font-size:19px;font-weight:400;color:var(--text);
+   418→  transition:all var(--dur-fast) var(--ease);
+   419→}
+   420→.pin-key:hover{background:var(--surface-hover);border-color:var(--hairline-strong)}
+   421→.pin-key:active{transform:scale(.95);background:var(--accent-soft)}
+   422→.pin-key.fn{color:var(--text-mute);font-size:14px}
+   423→.pin-key.fn svg{width:18px;height:18px}
+   424→.pin-key.loading{opacity:.5;pointer-events:none}
+   425→
+   426→/* Pattern */
+   427→.pattern-wrap{display:flex;flex-direction:column;align-items:center}
+   428→.pattern-canvas{position:relative;width:220px;height:220px;margin:6px 0 14px;touch-action:none}
+   429→.pattern-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+   430→.pattern-dot{
+   431→  position:absolute;width:14px;height:14px;border-radius:50%;
+   432→  transform:translate(-50%,-50%);
+   433→  border:2px solid var(--hairline-strong);
+   434→  background:var(--surface-input);
+   435→  transition:all var(--dur-fast) var(--ease-out);
+   436→}
+   437→.pattern-dot.active{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 6px var(--accent-soft)}
+   438→.pattern-dot.error{border-color:var(--error);background:var(--error);box-shadow:0 0 0 6px var(--error-soft)}
+   439→.pattern-hint{font-size:12.5px;color:var(--text-mute);min-height:18px;font-family:"Space Grotesk"}
+   440→
+   441→/* Fingerprint */
+   442→.fp-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 0 4px}
+   443→.fp-btn{
+   444→  width:92px;height:92px;border-radius:50%;
+   445→  display:flex;align-items:center;justify-content:center;
+   446→  border:1.5px solid var(--hairline-strong);
+   447→  background:var(--surface-input);color:var(--text-soft);
+   448→  transition:all var(--dur) var(--ease-out);position:relative;
+   449→}
+   450→.fp-btn svg{width:46px;height:46px;transition:color var(--dur) var(--ease)}
+   451→.fp-btn:hover{color:var(--accent);border-color:var(--accent)}
+   452→.fp-btn.scanning{border-color:var(--accent);color:var(--accent);animation:pulse 1.1s var(--ease) infinite}
+   453→.fp-btn.scanning::after{
+   454→  content:"";position:absolute;inset:-6px;border-radius:50%;
+   455→  border:2px solid var(--accent);opacity:.5;animation:ripple 1.1s var(--ease) infinite;
+   456→}
+   457→@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-soft)}50%{box-shadow:0 0 0 12px transparent}}
+   458→@keyframes ripple{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.25);opacity:0}}
+   459→.fp-btn.success{color:var(--success);border-color:var(--success)}
+   460→.fp-label{margin-top:16px;font-size:13px;color:var(--text-mute);font-family:"Space Grotesk";min-height:18px}
+   461→
+   462→/* Question */
+   463→.question-box{
+   464→  display:flex;align-items:flex-start;gap:10px;
+   465→  padding:12px 14px;margin-bottom:14px;
+   466→  background:var(--accent-soft);
+   467→  border-radius:var(--r-md);border:1px solid var(--hairline);
+   468→}
+   469→.question-box svg{width:18px;height:18px;color:var(--accent);flex-shrink:0;margin-top:1px}
+   470→.question-text{
+   471→  font-size:13.5px;color:var(--text-soft);font-family:"Space Grotesk";
+   472→  line-height:1.45;font-weight:500;
+   473→}
+   474→
+   475→/* =====================================================================
+   476→   7. STATUS BAR — under auth-container, full width
+   477→   ===================================================================== */
+   478→.statusbar{
+   479→  position:relative;z-index:5;
+   480→  display:flex;align-items:center;justify-content:space-between;
+   481→  padding:6px 8px 6px 6px;
+   482→  border-radius:var(--r-pill);
+   483→  background:var(--surface);
+   484→  -webkit-backdrop-filter:blur(var(--blur));
+   485→  backdrop-filter:blur(var(--blur));
+   486→  border:1px solid var(--hairline);
+   487→  box-shadow:var(--shadow-float);
+   488→  min-height:46px;
+   489→  width:100%;
+   490→}
+   491→
+   492→/* session indicator — left side of statusbar */
+   493→.session-indicator{
+   494→  display:inline-flex;align-items:center;gap:8px;
+   495→  padding:7px 14px;border-radius:var(--r-pill);
+   496→  font-size:12.5px;color:var(--text-soft);
+   497→  background:var(--surface-input);
+   498→  border:1px solid var(--hairline);
+   499→  transition:all var(--dur-fast) var(--ease);
+   500→  white-space:nowrap;
+   501→}
+   502→.session-indicator:hover{background:var(--surface-hover);color:var(--text)}
+   503→.session-indicator svg{width:16px;height:16px;color:var(--text-mute)}
+   504→.session-indicator .session-label{color:var(--text-mute);font-weight:500}
+   505→.session-indicator .session-val{color:var(--text);font-weight:500}
+   506→.session-indicator .chev{width:14px;height:14px;color:var(--text-faint);transition:transform var(--dur-fast) var(--ease)}
+   507→.session-indicator.active .chev{transform:rotate(180deg)}
+   508→
+   509→/* system indicators — right side */
+   510→.system-indicators{
+   511→  display:flex;align-items:center;gap:4px;
+   512→}
+   513→.indicator{
+   514→  position:relative;display:inline-flex;align-items:center;justify-content:center;
+   515→  height:34px;min-width:34px;padding:0 9px;
+   516→  border-radius:var(--r-pill);gap:6px;color:var(--text-soft);
+   517→  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+   518→}
+   519→.indicator:hover{background:var(--surface-hover);color:var(--text)}
+   520→.indicator svg{width:17px;height:17px}
+   521→.indicator .lvl-text{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+   522→.indicator .pill{
+   523→  display:inline-flex;align-items:center;gap:5px;padding:0 10px 0 8px;
+   524→  border-radius:var(--r-pill);border:1px solid var(--hairline);
+   525→}
+   526→.bat-case{width:23px;height:13px;border:1.5px solid currentColor;border-radius:3px;position:relative;opacity:.9}
+   527→.bat-case::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:currentColor;border-radius:0 1.5px 1.5px 0}
+   528→.bat-fill{position:absolute;left:1px;top:1px;bottom:1px;background:currentColor;border-radius:1.5px}
+   529→.tip{
+   530→  position:absolute;bottom:calc(100% + 10px);left:50%;
+   531→  transform:translateX(-50%) translateY(4px);
+   532→  padding:6px 10px;border-radius:var(--r-sm);
+   533→  background:var(--surface-strong);border:1px solid var(--hairline);
+   534→  font-size:11.5px;color:var(--text-soft);white-space:nowrap;
+   535→  opacity:0;pointer-events:none;transition:all var(--dur-fast) var(--ease);
+   536→  box-shadow:var(--shadow-float);
+   537→}
+   538→.indicator:hover .tip{opacity:1;transform:translateX(-50%) translateY(0)}
+   539→
+   540→/* =====================================================================
+   541→   8. POPOVER PANELS
+   542→   ===================================================================== */
+   543→.popover{
+   544→  position:fixed;z-index:30;min-width:240px;padding:8px;
+   545→  background:var(--surface-strong);
+   546→  -webkit-backdrop-filter:blur(var(--blur)) saturate(130%);
+   547→  backdrop-filter:blur(var(--blur)) saturate(130%);
+   548→  border:1px solid var(--hairline-strong);
+   549→  border-radius:var(--r-md);box-shadow:var(--shadow-panel);
+   550→  opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;
+   551→  transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out);
+   552→  pointer-events:none;
+   553→}
+   554→.popover.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+   555→.popover.origin-tl{transform-origin:top left}
+   556→.popover.origin-bl{transform-origin:bottom left}
+   557→
+   558→.pop-section{padding:6px 4px}
+   559→.pop-section + .pop-section{border-top:1px solid var(--hairline)}
+   560→.pop-label{
+   561→  font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+   562→  color:var(--text-faint);font-weight:600;padding:4px 10px 6px;
+   563→}
+   564→.pop-item{
+   565→  display:flex;align-items:center;gap:11px;width:100%;
+   566→  padding:9px 10px;border-radius:var(--r-sm);
+   567→  font-size:13.5px;color:var(--text-soft);text-align:left;
+   568→  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+   569→}
+   570→.pop-item:hover{background:var(--surface-hover);color:var(--text)}
+   571→.pop-item svg{width:17px;height:17px;color:var(--text-mute);flex:none}
+   572→.pop-item .meta{margin-left:auto;font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+   573→.pop-item.danger{color:var(--error)}
+   574→.pop-item.danger svg{color:var(--error)}
+   575→.pop-item.danger:hover{background:var(--error-soft)}
+   576→.pop-item.selected{color:var(--text)}
+   577→.pop-item.selected .pop-check{color:var(--accent)}
+   578→.pop-check{margin-left:auto;width:16px;height:16px;color:var(--accent)}
+   579→
+   580→.session-logo{width:18px;height:18px;flex:none;display:flex;align-items:center;justify-content:center}
+   581→.session-logo svg{width:18px;height:18px}
+   582→.session-desc{display:block;font-size:11.5px;color:var(--text-faint);margin-top:1px;font-weight:400}
+   583→
+   584→/* network read-only */
+   585→.net-info-row{display:flex;align-items:center;gap:12px;padding:6px 10px}
+   586→.net-info-icon{
+   587→  width:36px;height:36px;border-radius:50%;
+   588→  background:var(--accent-soft);color:var(--accent);
+   589→  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+   590→}
+   591→.net-info-icon svg{width:18px;height:18px}
+   592→.net-info-text{flex:1}
+   593→.net-info-name{font-size:14px;font-weight:500;color:var(--text)}
+   594→.net-info-detail{font-size:12px;color:var(--text-mute);margin-top:1px}
+   595→.net-stat{
+   596→  display:flex;justify-content:space-between;align-items:center;
+   597→  padding:5px 10px;font-size:12.5px;color:var(--text-mute);
+   598→}
+   599→.net-stat-val{color:var(--text-soft);font-variant-numeric:tabular-nums;font-family:"Space Grotesk"}
+   600→
+   601→/* volume */
+   602→.vol-row{display:flex;align-items:center;gap:12px;padding:8px 12px 4px}
+   603→.vol-toggle{
+   604→  width:36px;height:36px;border-radius:50%;
+   605→  display:flex;align-items:center;justify-content:center;
+   606→  color:var(--text-soft);transition:all var(--dur-fast) var(--ease);flex-shrink:0;
+   607→}
+   608→.vol-toggle:hover{background:var(--surface-hover);color:var(--text)}
+   609→.vol-toggle.muted{color:var(--error)}
+   610→.vol-toggle svg{width:18px;height:18px}
+   611→.vol-slider{flex:1;accent-color:var(--accent);height:4px;cursor:pointer;min-width:0}
+   612→.vol-value{
+   613→  font-size:12px;color:var(--text-mute);font-variant-numeric:tabular-nums;
+   614→  min-width:40px;text-align:right;font-family:"Space Grotesk";
+   615→}
+   616→
+   617→/* =====================================================================
+   618→   9. DIALOG / OVERLAY
+   619→   ===================================================================== */
+   620→.scrim{
+   621→  position:fixed;inset:0;z-index:40;
+   622→  background:rgba(4,8,12,.5);
+   623→  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+   624→  opacity:0;pointer-events:none;transition:opacity var(--dur) var(--ease);
+   625→}
+   626→.scrim.open{opacity:1;pointer-events:auto}
+   627→.dialog{
+   628→  position:fixed;z-index:41;top:50%;left:50%;transform:translate(-50%,-46%) scale(.96);
+   629→  width:min(380px,90vw);padding:24px 24px 18px;
+   630→  background:var(--surface-strong);
+   631→  -webkit-backdrop-filter:blur(var(--blur)) saturate(130%);
+   632→  backdrop-filter:blur(var(--blur)) saturate(130%);
+   633→  border:1px solid var(--hairline-strong);border-radius:var(--r-lg);
+   634→  box-shadow:var(--shadow-panel);
+   635→  opacity:0;pointer-events:none;
+   636→  transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out);
+   637→}
+   638→.dialog.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+   639→.dialog-icon{
+   640→  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+   641→  background:var(--error-soft);color:var(--error);margin-bottom:14px;
+   642→}
+   643→.dialog-icon svg{width:23px;height:23px}
+   644→.dialog h3{font-family:"Space Grotesk";font-size:18px;font-weight:500;letter-spacing:-.01em}
+   645→.dialog p{font-size:13.5px;color:var(--text-soft);margin-top:6px;line-height:1.5}
+   646→.dialog-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+   647→.btn{padding:9px 16px;border-radius:var(--r-sm);font-size:13.5px;font-weight:500;transition:all var(--dur-fast) var(--ease)}
+   648→.btn-ghost{color:var(--text-soft)}
+   649→.btn-ghost:hover{background:var(--surface-hover);color:var(--text)}
+   650→.btn-danger{background:var(--error);color:#1a0805}
+   651→.btn-danger:hover{filter:brightness(1.08)}
+   652→.btn-primary{background:var(--accent);color:#08130f}
+   653→[data-theme="light"] .btn-primary{color:#fff}
+   654→.btn-primary:hover{background:var(--accent-strong)}
+   655→
+   656→/* success / power overlays */
+   657→.overlay-screen{
+   658→  position:fixed;inset:0;z-index:60;
+   659→  display:flex;flex-direction:column;align-items:center;justify-content:center;
+   660→  background:rgba(5,9,14,.0);opacity:0;pointer-events:none;
+   661→  transition:background var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease);
+   662→  text-align:center;
+   663→}
+   664→.overlay-screen.show{opacity:1;pointer-events:auto;background:rgba(5,9,14,.55)}
+   665→.overlay-screen.power{background:rgba(2,4,7,.92)}
+   666→.overlay-icon{
+   667→  width:64px;height:64px;border-radius:50%;
+   668→  display:flex;align-items:center;justify-content:center;
+   669→  background:var(--accent);color:#06120d;
+   670→  transform:scale(.6);opacity:0;transition:all var(--dur-slow) var(--ease-out);
+   671→}
+   672→[data-theme="light"] .overlay-icon{color:#fff}
+   673→.overlay-screen.show .overlay-icon{transform:scale(1);opacity:1}
+   674→.overlay-icon svg{width:30px;height:30px}
+   675→.overlay-title{
+   676→  font-family:"Space Grotesk";font-size:30px;font-weight:400;letter-spacing:-.01em;
+   677→  margin-top:22px;color:#fff;opacity:0;transform:translateY(8px);
+   678→  transition:all var(--dur-slow) var(--ease-out) .08s;
+   679→}
+   680→.overlay-screen.show .overlay-title{opacity:1;transform:none}
+   681→.overlay-sub{
+   682→  font-size:13.5px;color:rgba(255,255,255,.6);margin-top:8px;font-family:"Space Grotesk";
+   683→  opacity:0;transition:all var(--dur-slow) var(--ease-out) .16s;
+   684→}
+   685→.overlay-screen.show .overlay-sub{opacity:1}
+   686→.overlay-back{
+   687→  margin-top:28px;padding:9px 18px;border-radius:var(--r-pill);
+   688→  border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.8);
+   689→  font-size:13px;opacity:0;
+   690→  transition:all var(--dur-slow) var(--ease-out) .24s,background var(--dur-fast) var(--ease);
+   691→}
+   692→.overlay-screen.show .overlay-back{opacity:1}
+   693→.overlay-back:hover{background:rgba(255,255,255,.08);color:#fff}
+   694→
+   695→/* =====================================================================
+   696→   10. RESPONSIVE
+   697→   ===================================================================== */
+   698→@media (max-width:980px){
+   699→  .stage{padding:clamp(20px,5vh,40px) clamp(20px,5vw,36px)}
+   700→  .auth-wrapper{width:100%;max-width:440px}
+   701→  .auth-container{flex-direction:column;gap:12px;width:100%}
+   702→  .user-box{width:100%}
+   703→  .user-box-content{width:100%;flex-direction:row;justify-content:center;padding:20px}
+   704→  .large-avatar{width:72px;height:72px;margin-bottom:0;margin-right:16px}
+   705→  .user-box-content .user-name{font-size:20px}
+   706→  .drawer-panel{
+   707→    margin:12px;
+   708→    border-radius:var(--r-md);
+   709→    padding:16px;flex-direction:row;justify-content:center;
+   710→    width:auto;flex:1 1 auto;
+   711→  }
+   712→  .avatar-grid{grid-template-rows:repeat(2,1fr);grid-auto-flow:column}
+   713→  .drawer-btn{left:50%;top:auto;bottom:-16px;transform:translateX(-50%)}
+   714→  .user-box.drawer-open .drawer-btn svg{transform:rotate(90deg)}
+   715→  .auth-card{width:100%;flex:1 1 auto}
+   716→  .statusbar{flex-wrap:wrap;gap:8px;justify-content:center}
+   717→}
+   718→@media (max-width:620px){
+   719→  .method-tab{padding:6px 8px;font-size:11px}
+   720→  .session-indicator{padding:6px 10px;font-size:11.5px}
+   721→  .indicator .pill{padding:0 8px 0 6px}
+   722→}
+   723→
+   724→/* =====================================================================
+   725→   11. REDUCED MOTION
+   726→   ===================================================================== */
+   727→@media (prefers-reduced-motion:reduce){
+   728→  *,*::before,*::after{
+   729→    animation-duration:.001ms !important;animation-iteration-count:1 !important;
+   730→    transition-duration:.001ms !important;
+   731→  }
+   732→}
+   733→

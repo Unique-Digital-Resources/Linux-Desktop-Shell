@@ -1,0 +1,727 @@
+     1→  1000→</div>
+     2→  1001→
+     3→  1002→<div class="overlay-screen power" id="powerOverlay">
+     4→  1003→  <div class="overlay-icon" id="powerIcon"><i data-lucide="power"></i></div>
+     5→  1004→  <div class="overlay-title" id="powerTitle">Shutting down</div>
+     6→  1005→  <div class="overlay-sub" id="powerSub">It is now safe to power off the device.</div>
+     7→  1006→  <button class="overlay-back" id="powerBack">Return to greeter</button>
+     8→  1007→</div>
+     9→  1008→
+    10→  1009→<script>
+    11→  1010→(function(){
+    12→  1011→  "use strict";
+    13→  1012→
+    14→  1013→  const WALLPAPER_URL = "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80";
+    15→  1014→  const DEMO = { password:"demo", pin:"1234", patternMinLen:4 };
+    16→  1015→
+    17→  1016→  const SESSIONS = [
+    18→  1017→    { id:"hyprland", name:"Hyprland", desc:"Dynamic tiling Wayland compositor",
+    19→  1018→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18M7 3v18M14 3v18"/></svg>` },
+    20→  1019→    { id:"kde", name:"KDE Plasma", desc:"Flexible desktop by KDE",
+    21→  1020→      logo:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.6 3.2c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6 0-.9-.7-1.6-1.6-1.6-.9 0-1.6.7-1.6 1.6zM8.8 6.4c.5 0 1 .1 1.4.4.4.2.7.2 1.1.1.7-.2 1.4-.2 2.1 0 .4.1.7.1 1.1-.1.4-.3.9-.4 1.4-.4 1.2 0 2.1.9 2.1 2.1 0 .8-.4 1.5-.9 2.2-.4.5-.5 1.1-.4 1.7.1.5.2 1 .2 1.5 0 1.5-1.2 2.7-2.7 2.7-.5 0-1-.1-1.4-.4-.4-.2-.9-.3-1.4-.3-.5 0-1 .1-1.4.3-.4.3-.9.4-1.4.4-1.5 0-2.7-1.2-2.7-2.7 0-.5.1-1 .2-1.5.1-.6 0-1.2-.4-1.7-.5-.7-.9-1.4-.9-2.2 0-1.2.9-2.1 2.1-2.1z"/></svg>` },
+    22→  1021→    { id:"gnome", name:"GNOME", desc:"Clean, focused Wayland desktop",
+    23→  1022→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3.2"/><path d="M12 5.5v-2M12 20.5v-2M5.5 12h-2M20.5 12h-2M7 7 5.5 5.5M18.5 18.5 17 17M17 7l1.5-1.5M5.5 18.5 7 17"/></svg>` },
+    24→  1023→    { id:"sway", name:"Sway", desc:"i3-compatible Wayland tiler",
+    25→  1024→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h7v12H4zM13 6h7v6h-7zM13 14h7v4h-7z"/></svg>` },
+    26→  1025→    { id:"xfce", name:"Xfce", desc:"Lightweight, stable desktop",
+    27→  1026→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 14 4-9 3 5 2-3 7 11"/><path d="M4 14h16"/></svg>` },
+    28→  1027→    { id:"custom", name:"Custom Wayland", desc:"User-defined session script",
+    29→  1028→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M17.7 6.3l-2.1 2.1M8.4 15.6l-2.1 2.1"/><circle cx="12" cy="12" r="3"/></svg>` }
+    30→  1029→  ];
+    31→  1030→
+    32→  1031→  const USERS = [
+    33→  1032→    { name:"Aria Voss",   handle:"aria",   img:"https://i.pravatar.cc/160?img=5",  auth:"password", pw:"demo",
+    34→  1033→      question:"What city were you born in?", answer:"cairo" },
+    35→  1034→    { name:"Kenji Sato",  handle:"kenji",   img:"https://i.pravatar.cc/160?img=11", auth:"password", pw:"demo", requiresUsername:true,
+    36→  1035→      question:"What is your favorite book?", answer:"dune" },
+    37→  1036→    { name:"Mira Sol",   handle:"mira",    img:"https://i.pravatar.cc/160?img=47", auth:"pin",
+    38→  1037→      question:"What is your mother's maiden name?", answer:"rivera" },
+    39→  1038→    { name:"Devon Hart", handle:"devon",   img:"https://i.pravatar.cc/160?img=33", auth:"pattern",
+    40→  1039→      question:"What was the name of your first school?", answer:"maplewood" },
+    41→  1040→    { name:"Yuki Tanaka",handle:"yuki",    img:"https://i.pravatar.cc/160?img=20", auth:"question",
+    42→  1041→      question:"What is the name of your first pet?", answer:"mochi" },
+    43→  1042→    { name:"Sage Lin",   handle:"sage",    img:"https://i.pravatar.cc/160?img=16", auth:"multi-step",
+    44→  1043→      steps:[ { type:"password", pw:"demo" }, { type:"pattern" } ],
+    45→  1044→      question:"What is your favorite color?", answer:"teal" }
+    46→  1045→  ];
+    47→  1046→
+    48→  1047→  const state = {
+    49→  1048→    userIndex: 0,
+    50→  1049→    method: "password",
+    51→  1050→    authStatus: "idle",
+    52→  1051→    multiStep: { active:false, current:0, total:0 },
+    53→  1052→    session: "hyprland",
+    54→  1053→    theme: "dark",
+    55→  1054→    openPop: null,
+    56→  1055→    drawerOpen: false,
+    57→  1056→    powerAction: null,
+    58→  1057→    net: { name:"Aether-5G", online:true },
+    59→  1058→    battery: { level:78, charging:false },
+    60→  1059→    volume: { level:45, muted:false },
+    61→  1060→    pin: "",
+    62→  1061→    pattern: [],
+    63→  1062→    patternDrawing: false
+    64→  1063→  };
+    65→  1064→
+    66→  1065→  const $  = (s, r=document) => r.querySelector(s);
+    67→  1066→  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+    68→  1067→  const user = () => USERS[state.userIndex];
+    69→  1068→  const session = () => SESSIONS.find(s => s.id === state.session);
+    70→  1069→
+    71→  1070→  function refreshIcons(){ if (window.lucide && lucide.createIcons) lucide.createIcons(); }
+    72→  1071→
+    73→  1072→  function swapIcon(el, iconName) {
+    74→  1073→    if (typeof el === "string") el = $(el);
+    75→  1074→    if (!el) return;
+    76→  1075→    const old = el.querySelector("svg, [data-lucide]") || el;
+    77→  1076→    const newI = document.createElement("i");
+    78→  1077→    newI.setAttribute("data-lucide", iconName);
+    79→  1078→    let cls = old.className;
+    80→  1079→    if (typeof cls === "object" && cls.baseVal !== undefined) cls = cls.baseVal;
+    81→  1080→    const keep = cls.split(/\s+/).filter(c => c && !c.startsWith("lucide"));
+    82→  1081→    newI.className = keep.join(" ");
+    83→  1082→    old.replaceWith(newI);
+    84→  1083→    refreshIcons();
+    85→  1084→  }
+    86→  1085→
+    87→  1086→  function renderIdentity(){
+    88→  1087→    const u = user();
+    89→  1088→    const av = $("#avatar");
+    90→  1089→    av.src = u.img;
+    91→  1090→    av.onerror = () => { av.style.background = "linear-gradient(135deg,var(--accent),var(--accent-press))"; av.removeAttribute("src"); };
+    92→  1091→    $("#userName").textContent = u.name;
+    93→  1092→    $("#userHandle").textContent = "@" + u.handle;
+    94→  1093→  }
+    95→  1094→
+    96→  1095→  function renderSession(){
+    97→  1096→    const s = session();
+    98→  1097→    $("#sessionVal").textContent = s.name;
+    99→  1098→    $$("#sessionList .pop-item").forEach(b => {
+   100→  1099→      const on = b.dataset.session === state.session;
+   101→  1100→      b.classList.toggle("selected", on);
+   102→  1101→      const chk = b.querySelector(".pop-check");
+   103→  1102→      if (chk) chk.style.opacity = on ? "1" : "0";
+   104→  1103→    });
+   105→  1104→  }
+   106→  1105→
+   107→  1106→  function renderVolume(){
+   108→  1107→    const muted = state.volume.muted || state.volume.level === 0;
+   109→  1108→    const volIcon = muted ? "volume-x" : state.volume.level < 35 ? "volume-1" : "volume-2";
+   110→  1109→    $("#volText").textContent = muted ? "Muted" : state.volume.level + "%";
+   111→  1110→    $("#volTip").textContent = muted ? "Muted" : `Volume ${state.volume.level}%`;
+   112→  1111→    swapIcon("#volBtn", volIcon);
+   113→  1112→    const volToggle = $("#volToggle");
+   114→  1113→    if (volToggle){
+   115→  1114→      swapIcon("#volToggle", volIcon);
+   116→  1115→      volToggle.classList.toggle("muted", muted);
+   117→  1116→    }
+   118→  1117→    if ($("#volSlider")) $("#volSlider").value = state.volume.level;
+   119→  1118→    if ($("#volValue")) $("#volValue").textContent = muted ? "Muted" : state.volume.level + "%";
+   120→  1119→  }
+   121→  1120→
+   122→  1121→  function renderBattery(){
+   123→  1122→    const lvl = state.battery.level;
+   124→  1123→    $("#batFill").style.width = Math.max(0, Math.min(100, lvl)) + "%";
+   125→  1124→    $("#batText").textContent = lvl + "%";
+   126→  1125→    $("#batTip").textContent = state.battery.charging ? `Charging · ${lvl}%` : `${lvl}% remaining`;
+   127→  1126→  }
+   128→  1127→
+   129→  1128→  function renderNetwork(){ $("#netText").textContent = state.net.name; }
+   130→  1129→
+   131→  1130→  function renderAll(){
+   132→  1131→    renderIdentity();
+   133→  1132→    renderSession();
+   134→  1133→    renderVolume();
+   135→  1134→    renderBattery();
+   136→  1135→    renderNetwork();
+   137→  1136→  }
+   138→  1137→
+   139→  1138→  function updateAuthChrome(){
+   140→  1139→    const u = user();
+   141→  1140→    const isMulti = u.auth === "multi-step";
+   142→  1141→    state.multiStep.active = isMulti;
+   143→  1142→    state.multiStep.current = 0;
+   144→  1143→    state.multiStep.total = isMulti ? u.steps.length : 0;
+   145→  1144→    $(".method-tabs").style.display = isMulti ? "none" : "flex";
+   146→  1145→    $("#stepIndicator").classList.toggle("show", isMulti);
+   147→  1146→    const showUser = !!u.requiresUsername && !isMulti;
+   148→  1147→    $("#userInput").classList.toggle("show", showUser);
+   149→  1148→    $("#fieldSep").classList.toggle("show", showUser);
+   150→  1149→    swapIcon("#pwField .lead", showUser ? "user-round" : "lock");
+   151→  1150→    if (isMulti) renderStep();
+   152→  1151→    else setMethod(u.auth);
+   153→  1152→    updateDemoHints();
+   154→  1153→  }
+   155→  1154→
+   156→  1155→  function setMethod(m){
+   157→  1156→    state.method = m;
+   158→  1157→    $$(".method-tab").forEach(t => t.classList.toggle("active", t.dataset.method === m));
+   159→  1158→    $$(".method-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === m));
+   160→  1159→    clearErrors();
+   161→  1160→    if (m === "pattern") setTimeout(buildPattern, 50);
+   162→  1161→  }
+   163→  1162→
+   164→  1163→  function clearErrors(){
+   165→  1164→    $("#pwField").classList.remove("error");
+   166→  1165→    $("#pwError").classList.remove("show");
+   167→  1166→    $("#pinError").classList.remove("show");
+   168→  1167→    $("#patternError").classList.remove("show");
+   169→  1168→    $("#qField").classList.remove("error");
+   170→  1169→    $("#qError").classList.remove("show");
+   171→  1170→    $("#fpError").classList.remove("show");
+   172→  1171→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.remove("error"));
+   173→  1172→  }
+   174→  1173→
+   175→  1174→  function stepLabel(type){
+   176→  1175→    return { password:"Password", pin:"PIN", pattern:"Pattern", fingerprint:"Fingerprint", question:"Security Question" }[type] || type;
+   177→  1176→  }
+   178→  1177→  function renderStep(){
+   179→  1178→    if (!state.multiStep.active) return;
+   180→  1179→    const u = user();
+   181→  1180→    const step = u.steps[state.multiStep.current];
+   182→  1181→    $("#stepLabel").textContent = `Step ${state.multiStep.current+1} of ${state.multiStep.total} · ${stepLabel(step.type)}`;
+   183→  1182→    const dotsEl = $("#stepDots");
+   184→  1183→    dotsEl.innerHTML = "";
+   185→  1184→    u.steps.forEach((_, i) => {
+   186→  1185→      const dot = document.createElement("span");
+   187→  1186→      dot.className = "step-dot";
+   188→  1187→      if (i === state.multiStep.current) dot.classList.add("active");
+   189→  1188→      if (i < state.multiStep.current) dot.classList.add("completed");
+   190→  1189→      dotsEl.appendChild(dot);
+   191→  1190→    });
+   192→  1191→    setMethod(step.type);
+   193→  1192→    updateDemoHints();
+   194→  1193→  }
+   195→  1194→  function advanceStep(){
+   196→  1195→    const u = user();
+   197→  1196→    const stepType = u.steps[state.multiStep.current].type;
+   198→  1197→    if (stepType === "password") $("#pwInput").value = "";
+   199→  1198→    if (stepType === "pin") { state.pin = ""; renderPin(); }
+   200→  1199→    if (stepType === "pattern") clearPattern();
+   201→  1200→    if (stepType === "question") $("#qInput").value = "";
+   202→  1201→    state.multiStep.current++;
+   203→  1202→    renderStep();
+   204→  1203→  }
+   205→  1204→  function onAuthSuccess(){
+   206→  1205→    if (state.multiStep.active && state.multiStep.current < state.multiStep.total - 1){
+   207→  1206→      state.authStatus = "idle";
+   208→  1207→      setTimeout(advanceStep, 450);
+   209→  1208→    } else {
+   210→  1209→      showSuccess();
+   211→  1210→    }
+   212→  1211→  }
+   213→  1212→
+   214→  1213→  function updateDemoHints(){
+   215→  1214→    const u = user();
+   216→  1215→    if (u.requiresUsername && !state.multiStep.active){
+   217→  1216→      $("#pwHint").innerHTML = `<b>demo:</b> any user · pass = <b>demo</b>`;
+   218→  1217→    } else {
+   219→  1218→      $("#pwHint").innerHTML = `<b>demo:</b> password = <b>demo</b>`;
+   220→  1219→    }
+   221→  1220→    $("#pinHint").innerHTML = `<b>demo:</b> PIN = <b>1234</b>`;
+   222→  1221→    $("#patternHintDemo").innerHTML = `<b>demo:</b> any 4+ dots`;
+   223→  1222→    $("#fpHint").innerHTML = `<b>demo:</b> tap to scan`;
+   224→  1223→    if (u.question){
+   225→  1224→      $("#qHint").innerHTML = `<b>demo:</b> answer = <b>${u.answer}</b>`;
+   226→  1225→      $("#questionText").textContent = u.question;
+   227→  1226→    } else {
+   228→  1227→      $("#qHint").innerHTML = `<b>demo:</b> no question set`;
+   229→  1228→      $("#questionText").textContent = "No security question configured for this user.";
+   230→  1229→    }
+   231→  1230→  }
+   232→  1231→
+   233→  1232→  function setBtnLoading(btn, on){
+   234→  1233→    btn.classList.toggle("loading", on);
+   235→  1234→    btn.disabled = on;
+   236→  1235→    state.authStatus = on ? "loading" : "idle";
+   237→  1236→  }
+   238→  1237→  function showSuccess(){
+   239→  1238→    const u = user();
+   240→  1239→    $("#successTitle").textContent = `Welcome back, ${u.name.split(" ")[0]}`;
+   241→  1240→    $("#successSub").textContent = `Starting ${session().name} session…`;
+   242→  1241→    $("#successIcon").innerHTML = `<i data-lucide="check"></i>`;
+   243→  1242→    refreshIcons();
+   244→  1243→    $("#successOverlay").classList.add("show");
+   245→  1244→    state.authStatus = "success";
+   246→  1245→  }
+   247→  1246→  function returnToGreeter(){
+   248→  1247→    $("#successOverlay").classList.remove("show");
+   249→  1248→    $("#powerOverlay").classList.remove("show");
+   250→  1249→    state.authStatus = "idle";
+   251→  1250→    state.multiStep.current = 0;
+   252→  1251→    if (state.multiStep.active) renderStep();
+   253→  1252→    $("#pwInput").value = "";
+   254→  1253→    $("#userInput").value = "";
+   255→  1254→    $("#qInput").value = "";
+   256→  1255→    state.pin = ""; renderPin();
+   257→  1256→    clearPattern();
+   258→  1257→    clearErrors();
+   259→  1258→  }
+   260→  1259→  function flashError(fieldEl, msgEl, msg){
+   261→  1260→    fieldEl && fieldEl.classList.add("error");
+   262→  1261→    if (msg){ msgEl.textContent = msg; msgEl.classList.add("show"); }
+   263→  1262→    setTimeout(()=>{ fieldEl && fieldEl.classList.remove("error"); }, 420);
+   264→  1263→  }
+   265→  1264→
+   266→  1265→  function submitPassword(e){
+   267→  1266→    e.preventDefault();
+   268→  1267→    if (state.authStatus === "loading") return;
+   269→  1268→    const u = user();
+   270→  1269→    const pwVal = $("#pwInput").value;
+   271→  1270→    const userVal = u.requiresUsername ? $("#userInput").value.trim() : "";
+   272→  1271→    if (u.requiresUsername && !userVal){
+   273→  1272→      flashError($("#pwField"), $("#pwError"), "Enter username.");
+   274→  1273→      $("#userInput").focus(); return;
+   275→  1274→    }
+   276→  1275→    if (!pwVal){
+   277→  1276→      flashError($("#pwField"), $("#pwError"), "Enter password.");
+   278→  1277→      $("#pwInput").focus(); return;
+   279→  1278→    }
+   280→  1279→    setBtnLoading($("#pwSubmit"), true);
+   281→  1280→    setTimeout(()=>{
+   282→  1281→      setBtnLoading($("#pwSubmit"), false);
+   283→  1282→      const expectedPw = state.multiStep.active
+   284→  1283→        ? (u.steps[state.multiStep.current].pw || DEMO.password)
+   285→  1284→        : (u.pw || DEMO.password);
+   286→  1285→      if (pwVal === expectedPw) onAuthSuccess();
+   287→  1286→      else flashError($("#pwField"), $("#pwError"), "Incorrect credentials. Try again.");
+   288→  1287→    }, 850);
+   289→  1288→  }
+   290→  1289→
+   291→  1290→  function renderPin(){
+   292→  1291→    const dots = $$("#pinDisplay .pin-dot");
+   293→  1292→    dots.forEach((d,i)=>{ d.classList.toggle("filled", i < state.pin.length); d.classList.remove("error"); });
+   294→  1293→  }
+   295→  1294→  function pinError(msg){
+   296→  1295→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.add("error"));
+   297→  1296→    $("#pinError").textContent = msg || "Incorrect PIN.";
+   298→  1297→    $("#pinError").classList.add("show");
+   299→  1298→    setTimeout(()=>{ $("#pinError").classList.remove("show"); renderPin(); }, 700);
+   300→  1299→  }
+   301→  1300→  function pinPress(k){
+   302→  1301→    if (state.authStatus === "loading") return;
+   303→  1302→    if (k === "clear"){ state.pin = ""; renderPin(); $("#pinError").classList.remove("show"); return; }
+   304→  1303→    if (k === "enter"){ submitPin(); return; }
+   305→  1304→    if (state.pin.length >= 4) return;
+   306→  1305→    state.pin += k; renderPin();
+   307→  1306→    $("#pinError").classList.remove("show");
+   308→  1307→    if (state.pin.length === 4) setTimeout(submitPin, 160);
+   309→  1308→  }
+   310→  1309→  function submitPin(){
+   311→  1310→    if (state.authStatus === "loading") return;
+   312→  1311→    const enterBtn = $("#pinEnter");
+   313→  1312→    enterBtn.classList.add("loading"); enterBtn.disabled = true; state.authStatus = "loading";
+   314→  1313→    setTimeout(()=>{
+   315→  1314→      enterBtn.classList.remove("loading"); enterBtn.disabled = false; state.authStatus = "idle";
+   316→  1315→      if (state.pin === DEMO.pin){ state.pin = ""; renderPin(); onAuthSuccess(); }
+   317→  1316→      else pinError("Incorrect PIN.");
+   318→  1317→    }, 700);
+   319→  1318→  }
+   320→  1319→
+   321→  1320→  const PAT_SIZE = 3;
+   322→  1321→  const patCanvas = $("#patternCanvas");
+   323→  1322→  const patSvg = $("#patternSvg");
+   324→  1323→  let patDots = [];
+   325→  1324→  function buildPattern(){
+   326→  1325→    patCanvas.querySelectorAll(".pattern-dot").forEach(d=>d.remove());
+   327→  1326→    patSvg.innerHTML = ""; patDots = [];
+   328→  1327→    const cs = patCanvas.getBoundingClientRect();
+   329→  1328→    if (cs.width === 0) return;
+   330→  1329→    const n = PAT_SIZE, pad = 24;
+   331→  1330→    for (let r=0;r<n;r++){
+   332→  1331→      for (let c=0;c<n;c++){
+   333→  1332→        const x = pad + (cs.width-2*pad) * (c/(n-1));
+   334→  1333→        const y = pad + (cs.height-2*pad) * (r/(n-1));
+   335→  1334→        const el = document.createElement("div");
+   336→  1335→        el.className = "pattern-dot";
+   337→  1336→        el.style.left = x+"px"; el.style.top = y+"px";
+   338→  1337→        el.dataset.idx = r*n+c;
+   339→  1338→        patCanvas.appendChild(el); patDots.push(el);
+   340→  1339→      }
+   341→  1340→    }
+   342→  1341→  }
+   343→  1342→  function clearPattern(){
+   344→  1343→    state.pattern = []; state.patternDrawing=false;
+   345→  1344→    patDots.forEach(d=>d.classList.remove("active","error"));
+   346→  1345→    patSvg.innerHTML = "";
+   347→  1346→    $("#patternError").classList.remove("show");
+   348→  1347→    $("#patternHint").textContent = "Draw a pattern of 4 or more points";
+   349→  1348→  }
+   350→  1349→  function addPatternDot(idx){
+   351→  1350→    if (state.pattern.includes(idx)) return;
+   352→  1351→    state.pattern.push(idx);
+   353→  1352→    patDots[idx].classList.add("active");
+   354→  1353→    drawPatternLines();
+   355→  1354→    $("#patternHint").textContent = `${state.pattern.length} point${state.pattern.length>1?"s":""} selected`;
+   356→  1355→  }
+   357→  1356→  function drawPatternLines(){
+   358→  1357→    if (state.pattern.length < 2) return;
+   359→  1358→    const cs = patCanvas.getBoundingClientRect();
+   360→  1359→    patSvg.setAttribute("viewBox", `0 0 ${cs.width} ${cs.height}`);
+   361→  1360→    let d = "";
+   362→  1361→    state.pattern.forEach((idx,i)=>{
+   363→  1362→      const dot = patDots[idx];
+   364→  1363→      const x = parseFloat(dot.style.left), y = parseFloat(dot.style.top);
+   365→  1364→      d += (i===0?"M":"L") + x + " " + y + " ";
+   366→  1365→    });
+   367→  1366→    patSvg.innerHTML = `<path d="${d}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>`;
+   368→  1367→  }
+   369→  1368→  function dotAt(x,y){
+   370→  1369→    for (let i=0;i<patDots.length;i++){
+   371→  1370→      const r = patDots[i].getBoundingClientRect();
+   372→  1371→      if (x >= r.left-14 && x <= r.right+14 && y >= r.top-14 && y <= r.bottom+14) return i;
+   373→  1372→    }
+   374→  1373→    return -1;
+   375→  1374→  }
+   376→  1375→  function submitPattern(){
+   377→  1376→    if (state.pattern.length >= DEMO.patternMinLen){
+   378→  1377→      $("#patternHint").textContent = "Verifying…";
+   379→  1378→      setTimeout(()=>{
+   380→  1379→        if (state.pattern.length >= DEMO.patternMinLen) onAuthSuccess();
+   381→  1380→        else patternFail();
+   382→  1381→      }, 500);
+   383→  1382→    } else patternFail();
+   384→  1383→  }
+   385→  1384→  function patternFail(){
+   386→  1385→    patDots.forEach(d=>d.classList.add("error"));
+   387→  1386→    const path = patSvg.querySelector("path");
+   388→  1387→    if (path) path.setAttribute("stroke","var(--error)");
+   389→  1388→    $("#patternError").classList.add("show");
+   390→  1389→    $("#patternHint").textContent = "Pattern too short";
+   391→  1390→    setTimeout(clearPattern, 800);
+   392→  1391→  }
+   393→  1392→
+   394→  1393→  function scanFingerprint(){
+   395→  1394→    const btn = $("#fpBtn");
+   396→  1395→    if (btn.classList.contains("scanning")) return;
+   397→  1396→    btn.classList.add("scanning");
+   398→  1397→    $("#fpLabel").textContent = "Scanning…";
+   399→  1398→    $("#fpError").classList.remove("show");
+   400→  1399→    setTimeout(()=>{
+   401→  1400→      btn.classList.remove("scanning");
+   402→  1401→      btn.classList.add("success");
+   403→  1402→      $("#fpLabel").textContent = "Identity verified";
+   404→  1403→      setTimeout(()=>{ btn.classList.remove("success"); onAuthSuccess(); }, 480);
+   405→  1404→    }, 1200);
+   406→  1405→  }
+   407→  1406→
+   408→  1407→  function submitQuestion(){
+   409→  1408→    if (state.authStatus === "loading") return;
+   410→  1409→    const u = user();
+   411→  1410→    const val = $("#qInput").value.trim().toLowerCase();
+   412→  1411→    if (!val){ flashError($("#qField"), $("#qError"), "Enter an answer."); return; }
+   413→  1412→    setBtnLoading($("#qSubmit"), true);
+   414→  1413→    setTimeout(()=>{
+   415→  1414→      setBtnLoading($("#qSubmit"), false);
+   416→  1415→      if (val === (u.answer || "").toLowerCase()) onAuthSuccess();
+   417→  1416→      else flashError($("#qField"), $("#qError"), "Incorrect answer.");
+   418→  1417→    }, 850);
+   419→  1418→  }
+   420→  1419→
+   421→  1420→  function closeAllPops(){
+   422→  1421→    $$(".popover.open").forEach(p => p.classList.remove("open"));
+   423→  1422→    $("#sessionBtn").classList.remove("active");
+   424→  1423→    state.openPop = null;
+   425→  1424→  }
+   426→  1425→  function openPop(name, anchorEl){
+   427→  1426→    closeAllPops();
+   428→  1427→    const pop = $("#pop-" + name);
+   429→  1428→    if (!pop) return;
+   430→  1429→    state.openPop = name;
+   431→  1430→    if (name === "session") $("#sessionBtn").classList.add("active");
+   432→  1431→    pop.style.visibility = "hidden";
+   433→  1432→    pop.classList.add("open");
+   434→  1433→    requestAnimationFrame(()=>{
+   435→  1434→      const pr = pop.getBoundingClientRect();
+   436→  1435→      const ar = anchorEl.getBoundingClientRect();
+   437→  1436→      let left, top;
+   438→  1437→      if (name === "power"){
+   439→  1438→        left = ar.right - pr.width;
+   440→  1439→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+   441→  1440→        top = ar.top - pr.height - 12;
+   442→  1441→        if (top < 12) top = ar.bottom + 12;
+   443→  1442→      } else {
+   444→  1443→        left = ar.left;
+   445→  1444→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+   446→  1445→        top = ar.top - pr.height - 12;
+   447→  1446→        if (top < 12) top = ar.bottom + 12;
+   448→  1447→      }
+   449→  1448→      pop.style.left = left + "px";
+   450→  1449→      pop.style.top = top + "px";
+   451→  1450→      pop.style.visibility = "visible";
+   452→  1451→    });
+   453→  1452→  }
+   454→  1453→  function togglePop(name, anchorEl){
+   455→  1454→    if (state.openPop === name) closeAllPops();
+   456→  1455→    else openPop(name, anchorEl);
+   457→  1456→  }
+   458→  1457→
+   459→  1458→  function buildAvatarGrid(){
+   460→  1459→    const grid = $("#avatarGrid");
+   461→  1460→    grid.innerHTML = "";
+   462→  1461→    USERS.forEach((u, i) => {
+   463→  1462→      const btn = document.createElement("button");
+   464→  1463→      btn.className = "grid-avatar" + (i === state.userIndex ? " selected" : "");
+   465→  1464→      btn.setAttribute("aria-label", u.name);
+   466→  1465→      btn.innerHTML = `<img src="${u.img}" alt="${u.name}" onerror="this.style.background='linear-gradient(135deg,var(--accent),var(--accent-press))';this.removeAttribute('src')"/>`;
+   467→  1466→      btn.addEventListener("click", () => {
+   468→  1467→        selectUser(i);
+   469→  1468→        closeDrawer();
+   470→  1469→      });
+   471→  1470→      grid.appendChild(btn);
+   472→  1471→    });
+   473→  1472→  }
+   474→  1473→  function openDrawer(){
+   475→  1474→    state.drawerOpen = true;
+   476→  1475→    $("#userBox").classList.add("drawer-open");
+   477→  1476→  }
+   478→  1477→  function closeDrawer(){
+   479→  1478→    state.drawerOpen = false;
+   480→  1479→    $("#userBox").classList.remove("drawer-open");
+   481→  1480→  }
+   482→  1481→  function toggleDrawer(){
+   483→  1482→    if (state.drawerOpen) closeDrawer();
+   484→  1483→    else openDrawer();
+   485→  1484→  }
+   486→  1485→
+   487→  1486→  function selectUser(index){
+   488→  1487→    state.userIndex = index;
+   489→  1488→    state.pin = "";
+   490→  1489→    state.pattern = [];
+   491→  1490→    state.authStatus = "idle";
+   492→  1491→    $("#pwInput").value = "";
+   493→  1492→    $("#userInput").value = "";
+   494→  1493→    $("#qInput").value = "";
+   495→  1494→    clearErrors();
+   496→  1495→    renderIdentity();
+   497→  1496→    updateAuthChrome();
+   498→  1497→    buildAvatarGrid();
+   499→  1498→    closeAllPops();
+   500→  1499→    setTimeout(()=>{
+   501→  1500→      if (state.method === "password") $("#pwInput").focus();
+   502→  1501→      else if (state.method === "question") $("#qInput").focus();
+   503→  1502→    }, 200);
+   504→  1503→  }
+   505→  1504→
+   506→  1505→  function buildSessionList(){
+   507→  1506→    const wrap = $("#sessionList");
+   508→  1507→    wrap.innerHTML = "";
+   509→  1508→    SESSIONS.forEach(s=>{
+   510→  1509→      const b = document.createElement("button");
+   511→  1510→      b.className = "pop-item" + (s.id === state.session ? " selected" : "");
+   512→  1511→      b.dataset.session = s.id;
+   513→  1512→      b.innerHTML = `
+   514→  1513→        <span class="session-logo">${s.logo}</span>
+   515→  1514→        <span><span>${s.name}</span><span class="session-desc">${s.desc}</span></span>
+   516→  1515→        <i data-lucide="check" class="pop-check" style="opacity:${s.id===state.session?1:0}"></i>`;
+   517→  1516→      b.addEventListener("click", ()=>{
+   518→  1517→        state.session = s.id;
+   519→  1518→        renderSession();
+   520→  1519→        closeAllPops();
+   521→  1520→      });
+   522→  1521→      wrap.appendChild(b);
+   523→  1522→    });
+   524→  1523→    refreshIcons();
+   525→  1524→  }
+   526→  1525→
+   527→  1526→  const dialog = $("#dialog"), scrim = $("#scrim");
+   528→  1527→  function openDialog(action){
+   529→  1528→    const titles = {
+   530→  1529→      shutdown:["Shut down?","This will close all running sessions and power off the device. Any unsaved work will be lost.","Shut down","power"],
+   531→  1530→      restart:  ["Restart?","The system will reboot. Any unsaved work will be lost.","Restart","rotate-cw"],
+   532→  1531→      suspend:  ["Suspend?","The system will enter sleep mode and can be resumed with a key press.","Suspend","moon"]
+   533→  1532→    };
+   534→  1533→    const [title,body,confirm,icon] = titles[action] || titles.shutdown;
+   535→  1534→    $("#dlgTitle").textContent = title;
+   536→  1535→    $("#dlgBody").textContent = body;
+   537→  1536→    $("#dlgConfirm").textContent = confirm;
+   538→  1537→    state.powerAction = action;
+   539→  1538→    const di = $("#dlgIcon");
+   540→  1539→    di.innerHTML = `<i data-lucide="${icon}"></i>`;
+   541→  1540→    refreshIcons();
+   542→  1541→    di.style.background = action === "shutdown" ? "var(--error-soft)" : "var(--accent-soft)";
+   543→  1542→    di.style.color = action === "shutdown" ? "var(--error)" : "var(--accent)";
+   544→  1543→    const conf = $("#dlgConfirm");
+   545→  1544→    conf.className = "btn " + (action === "shutdown" ? "btn-danger" : "btn-primary");
+   546→  1545→    closeAllPops();
+   547→  1546→    scrim.classList.add("open");
+   548→  1547→    dialog.classList.add("open");
+   549→  1548→  }
+   550→  1549→  function closeDialog(){
+   551→  1550→    scrim.classList.remove("open");
+   552→  1551→    dialog.classList.remove("open");
+   553→  1552→    state.powerAction = null;
+   554→  1553→  }
+   555→  1554→  function confirmPower(){
+   556→  1555→    const action = state.powerAction || "shutdown";
+   557→  1556→    closeDialog();
+   558→  1557→    const titles = { shutdown:"Shutting down", restart:"Restarting", suspend:"Suspending" };
+   559→  1558→    const subs = {
+   560→  1559→      shutdown:"It is now safe to power off the device.",
+   561→  1560→      restart:"The system is restarting…",
+   562→  1561→      suspend:"System suspended. Press any key to resume."
+   563→  1562→    };
+   564→  1563→    $("#powerTitle").textContent = titles[action];
+   565→  1564→    $("#powerSub").textContent = subs[action];
+   566→  1565→    $("#powerIcon").innerHTML = `<i data-lucide="${action==='suspend'?'moon':action==='restart'?'rotate-cw':'power'}"></i>`;
+   567→  1566→    refreshIcons();
+   568→  1567→    $("#powerOverlay").classList.add("show");
+   569→  1568→  }
+   570→  1569→
+   571→  1570→  function setTheme(t){
+   572→  1571→    state.theme = t;
+   573→  1572→    document.documentElement.setAttribute("data-theme", t);
+   574→  1573→    swapIcon("#themeBtn", t === "dark" ? "sun-moon" : "sun");
+   575→  1574→  }
+   576→  1575→
+   577→  1576→  function wire(){
+   578→  1577→    const img = new Image();
+   579→  1578→    img.onload = ()=>{ $("#wallImg").classList.add("loaded"); };
+   580→  1579→    img.onerror = ()=>{};
+   581→  1580→    img.src = WALLPAPER_URL;
+   582→  1581→
+   583→  1582→    $("#themeBtn").addEventListener("click", ()=> setTheme(state.theme === "dark" ? "light" : "dark"));
+   584→  1583→
+   585→  1584→    $("#drawerBtn").addEventListener("click", e=>{
+   586→  1585→      e.stopPropagation();
+   587→  1586→      toggleDrawer();
+   588→  1587→    });
+   589→  1588→
+   590→  1589→    $$(".method-tab").forEach(t => t.addEventListener("click", ()=> {
+   591→  1590→      if (!state.multiStep.active) setMethod(t.dataset.method);
+   592→  1591→    }));
+   593→  1592→
+   594→  1593→    $("#pwForm").addEventListener("submit", submitPassword);
+   595→  1594→    let pwShown = false;
+   596→  1595→    $("#pwEye").addEventListener("click", ()=>{
+   597→  1596→      pwShown = !pwShown;
+   598→  1597→      $("#pwInput").type = pwShown ? "text" : "password";
+   599→  1598→      swapIcon("#pwEye", pwShown ? "eye-off" : "eye");
+   600→  1599→    });
+   601→  1600→    $("#pwInput").addEventListener("input", ()=>{
+   602→  1601→      $("#pwField").classList.remove("error");
+   603→  1602→      $("#pwError").classList.remove("show");
+   604→  1603→    });
+   605→  1604→    $("#userInput").addEventListener("input", ()=>{
+   606→  1605→      $("#pwField").classList.remove("error");
+   607→  1606→      $("#pwError").classList.remove("show");
+   608→  1607→    });
+   609→  1608→    $("#userInput").addEventListener("keydown", e=>{
+   610→  1609→      if (e.key === "Enter"){ e.preventDefault(); $("#pwInput").focus(); }
+   611→  1610→    });
+   612→  1611→
+   613→  1612→    $$("#pinPad .pin-key").forEach(k => k.addEventListener("click", ()=> pinPress(k.dataset.k)));
+   614→  1613→
+   615→  1614→    patCanvas.addEventListener("pointerdown", e=>{
+   616→  1615→      if (state.authStatus==="loading") return;
+   617→  1616→      clearPattern();
+   618→  1617→      state.patternDrawing = true;
+   619→  1618→      patCanvas.setPointerCapture(e.pointerId);
+   620→  1619→      const i = dotAt(e.clientX, e.clientY);
+   621→  1620→      if (i>=0) addPatternDot(i);
+   622→  1621→    });
+   623→  1622→    patCanvas.addEventListener("pointermove", e=>{
+   624→  1623→      if (!state.patternDrawing) return;
+   625→  1624→      const i = dotAt(e.clientX, e.clientY);
+   626→  1625→      if (i>=0) addPatternDot(i);
+   627→  1626→    });
+   628→  1627→    function endPattern(){
+   629→  1628→      if (!state.patternDrawing) return;
+   630→  1629→      state.patternDrawing = false;
+   631→  1630→      submitPattern();
+   632→  1631→    }
+   633→  1632→    patCanvas.addEventListener("pointerup", endPattern);
+   634→  1633→    patCanvas.addEventListener("pointercancel", endPattern);
+   635→  1634→
+   636→  1635→    $("#fpBtn").addEventListener("click", scanFingerprint);
+   637→  1636→
+   638→  1637→    $("#qSubmit").addEventListener("click", submitQuestion);
+   639→  1638→    $("#qInput").addEventListener("keydown", e=>{
+   640→  1639→      if (e.key === "Enter"){ e.preventDefault(); submitQuestion(); }
+   641→  1640→    });
+   642→  1641→    $("#qInput").addEventListener("input", ()=>{
+   643→  1642→      $("#qField").classList.remove("error");
+   644→  1643→      $("#qError").classList.remove("show");
+   645→  1644→    });
+   646→  1645→
+   647→  1646→    $("#sessionBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("session", $("#sessionBtn")); });
+   648→  1647→    $("#netBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("network", $("#netBtn")); });
+   649→  1648→    $("#volBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("volume", $("#volBtn")); });
+   650→  1649→    $("#powerBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("power", $("#powerBtn")); });
+   651→  1650→
+   652→  1651→    $("#volToggle").addEventListener("click", ()=>{
+   653→  1652→      state.volume.muted = !state.volume.muted;
+   654→  1653→      renderVolume();
+   655→  1654→    });
+   656→  1655→    $("#volSlider").addEventListener("input", e=>{
+   657→  1656→      state.volume.level = parseInt(e.target.value, 10);
+   658→  1657→      if (state.volume.level > 0) state.volume.muted = false;
+   659→  1658→      renderVolume();
+   660→  1659→    });
+   661→  1660→
+   662→  1661→    $$("#pop-power [data-power]").forEach(b => b.addEventListener("click", ()=> openDialog(b.dataset.power)));
+   663→  1662→    $("#lockBtn").addEventListener("click", ()=>{
+   664→  1663→      closeAllPops();
+   665→  1664→      $("#powerTitle").textContent = "Locking";
+   666→  1665→      $("#powerSub").textContent = "Screen locked.";
+   667→  1666→      $("#powerIcon").innerHTML = `<i data-lucide="lock-keyhole"></i>`;
+   668→  1667→      refreshIcons();
+   669→  1668→      $("#powerOverlay").classList.add("show");
+   670→  1669→    });
+   671→  1670→    $("#aboutBtn").addEventListener("click", ()=>{
+   672→  1671→      closeAllPops();
+   673→  1672→      $("#successTitle").textContent = "Aether Greeter";
+   674→  1673→      $("#successSub").textContent = "Custom Wayland display manager · v1.7 · mock environment";
+   675→  1674→      $("#successIcon").innerHTML = `<i data-lucide="info"></i>`;
+   676→  1675→      refreshIcons();
+   677→  1676→      $("#successOverlay").classList.add("show");
+   678→  1677→    });
+   679→  1678→
+   680→  1679→    $("#dlgCancel").addEventListener("click", closeDialog);
+   681→  1680→    $("#dlgConfirm").addEventListener("click", confirmPower);
+   682→  1681→    scrim.addEventListener("click", closeDialog);
+   683→  1682→
+   684→  1683→    $("#successBack").addEventListener("click", returnToGreeter);
+   685→  1684→    $("#powerBack").addEventListener("click", returnToGreeter);
+   686→  1685→
+   687→  1686→    document.addEventListener("click", e=>{
+   688→  1687→      const t = e.target;
+   689→  1688→      if (state.drawerOpen && !t.closest(".drawer-panel") && !t.closest(".drawer-btn")){
+   690→  1689→        closeDrawer();
+   691→  1690→      }
+   692→  1691→      if (!state.openPop) return;
+   693→  1692→      if (t.closest(".popover") || t.closest("[data-pop]")) return;
+   694→  1693→      closeAllPops();
+   695→  1694→    });
+   696→  1695→
+   697→  1696→    document.addEventListener("keydown", e=>{
+   698→  1697→      if (e.key === "Escape"){
+   699→  1698→        if (dialog.classList.contains("open")){ closeDialog(); return; }
+   700→  1699→        if (state.drawerOpen){ closeDrawer(); return; }
+   701→  1700→        if (state.openPop){ closeAllPops(); return; }
+   702→  1701→      }
+   703→  1702→    });
+   704→  1703→
+   705→  1704→    window.addEventListener("resize", ()=>{
+   706→  1705→      if (state.openPop) closeAllPops();
+   707→  1706→      if (state.drawerOpen) closeDrawer();
+   708→  1707→      if (state.method === "pattern") buildPattern();
+   709→  1708→    });
+   710→  1709→  }
+   711→  1710→
+   712→  1711→  function init(){
+   713→  1712→    refreshIcons();
+   714→  1713→    renderAll();
+   715→  1714→    buildAvatarGrid();
+   716→  1715→    buildSessionList();
+   717→  1716→    updateAuthChrome();
+   718→  1717→    wire();
+   719→  1718→    setTimeout(()=>{ $("#pwInput").focus(); }, 400);
+   720→  1719→  }
+   721→  1720→
+   722→  1721→  document.addEventListener("DOMContentLoaded", init);
+   723→  1722→})();
+   724→  1723→</script>
+   725→  1724→</body>
+   726→
+   727→[showing lines 1000-1724 of 1725; use offset=1725 with limit to continue reading]

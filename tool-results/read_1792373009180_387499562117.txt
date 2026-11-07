@@ -1,0 +1,2002 @@
+     1→# FileExplorer.html - Analysis
+     2→
+     3→## Overview
+     4→
+     5→**FileExplorer.html** is a self-contained, single-file web app that emulates a
+     6→modern desktop file manager inside a browser. Branded **"Aether — Files"**, it
+     7→presents a light, Google Material You-inspired UI (off-white workspace, soft
+     8→blue accent `#0B57D0`, rounded surfaces, subtle shadows) using the Inter font
+     9→for sans text and JetBrains Mono for code/shortcuts. Icons are provided by the
+    10→Lucide icon library (loaded from a CDN with a graceful fallback that draws a
+    11→placeholder dot when `window.lucide` is unavailable).
+    12→
+    13→### Visual concept
+    14→- Light theme with `--bg-workspace: #FBFAF8`, `--bg-tabbar: #F0EDE8`,
+    15→  white sidebar, and `--accent: #0B57D0` (Google-blue) for selections,
+    16→  active states, focus rings, and primary buttons.
+    17→- Soft elevation via `--shadow-pop` / `--shadow-dialog`, generous use of
+    18→  `var(--radius-*)` rounding, and a 100-260 ms cubic-bezier transition system.
+    19→- Status colors: `--success` green, `--warning` amber, `--error` red,
+    20→  `--info` blue. Storage bars switch color thresholds above 75 % / 90 %.
+    21→
+    22→### Main UI regions
+    23→1. **Sidebar** (`aside.sidebar`): brand header ("A" gradient tile + "Aether Files"
+    24→   wordmark), a scrollable nav area (Favorites, Places, Directory Tree, Storage
+    25→   & Network sections), and a right-edge resize handle.
+    26→2. **Tabstrip** (`.tab-strip`): browser-style horizontal tabs with per-tab
+    27→   icon, label, close button, an active-tab accent bar (`::after`), and a
+    28→   trailing "+" new-tab button. Tabs are right-clickable for a context menu.
+    29→3. **Toolbar** (`.toolbar`): back/forward/up/refresh `btn-group`; a
+    30→   `dir-bar-wrap` containing the breadcrumb trail plus dir-actions
+    31→   (new folder, new file, paste); and a leading-icon search input.
+    32→4. **Action bar** (`.action-bar`, auto-hides): copy / cut / rename / delete
+    33→   `btn-group` + a more-actions button + a `.selection-info` count pill.
+    34→5. **Content area** (`.content` > `.content-scroll`): renders either the
+    35→   Dashboard widget view (Win11-inspired image gallery widget with vertical
+    36→   masonry or horizontal scroll modes) or a file grid / list / compact list,
+    37→   with empty-state placeholders for no results / empty folder.
+    38→6. **Status bar** (`.statusbar`): item count + selection summary on the left;
+    39→   a `.view-segmented` control (grid/list/compact), a sort button, a divider,
+    40→   and a storage indicator on the right.
+    41→7. **Dialogs & overlays**: generic modal dialog (rename / new folder / new file
+    42→   / confirm-trash), a fixed `.properties-panel` for file details, a
+    43→   `.toast-container` for transient notifications, and floating
+    44→   `.context-menu` popups (file, background, sort, more, tab).
+    45→
+    46→
+    47→## HTML Structure
+    48→
+    49→The complete inner HTML of `<body>`, reproduced verbatim. This is the same content as `fileexplorer.body.html`.
+    50→
+    51→```html
+    52→<div class="app">
+    53→  <aside class="sidebar" id="sidebar">
+    54→    <div class="sidebar-header">
+    55→      <div class="brand-mark">A</div>
+    56→      <div class="brand-name">Aether <span class="dim">Files</span></div>
+    57→    </div>
+    58→    <div class="sidebar-scroll" id="sidebarScroll"></div>
+    59→    <div class="sidebar-resize" id="sidebarResize"></div>
+    60→  </aside>
+    61→
+    62→  <main class="workspace">
+    63→    <div class="tab-strip" id="tabStrip"></div>
+    64→
+    65→    <div class="toolbar">
+    66→      <div class="btn-group">
+    67→        <button class="btn-icon" id="backBtn" title="Back"><i data-lucide="arrow-left"></i></button>
+    68→        <button class="btn-icon" id="forwardBtn" title="Forward"><i data-lucide="arrow-right"></i></button>
+    69→        <button class="btn-icon" id="upBtn" title="Up one level"><i data-lucide="arrow-up"></i></button>
+    70→        <button class="btn-icon" id="refreshBtn" title="Refresh"><i data-lucide="refresh-cw"></i></button>
+    71→      </div>
+    72→      <div class="dir-bar-wrap">
+    73→        <div class="breadcrumb" id="breadcrumb"></div>
+    74→        <div class="btn-group dir-actions">
+    75→          <button class="btn-icon" id="newFolderBtn" title="New folder"><i data-lucide="folder-plus"></i></button>
+    76→          <button class="btn-icon" id="newFileBtn" title="New file"><i data-lucide="file-plus"></i></button>
+    77→          <button class="btn-icon" id="pasteBtn" title="Paste" disabled><i data-lucide="clipboard-paste"></i></button>
+    78→        </div>
+    79→      </div>
+    80→      <div class="search-wrap">
+    81→        <span class="search-icon"><i data-lucide="search"></i></span>
+    82→        <input type="text" class="search-input" id="searchInput" placeholder="Search current folder">
+    83→      </div>
+    84→    </div>
+    85→
+    86→    <div class="action-bar hidden" id="actionBar">
+    87→      <div class="btn-group">
+    88→        <button class="btn-icon" id="copyBtn" title="Copy" disabled><i data-lucide="copy"></i></button>
+    89→        <button class="btn-icon" id="cutBtn" title="Cut" disabled><i data-lucide="scissors"></i></button>
+    90→        <button class="btn-icon" id="renameBtn" title="Rename" disabled><i data-lucide="pencil-line"></i></button>
+    91→        <button class="btn-icon" id="deleteBtn" title="Move to trash" disabled><i data-lucide="trash-2"></i></button>
+    92→      </div>
+    93→      <div class="btn-group">
+    94→        <button class="btn-icon" id="moreMenuBtn" title="More actions"><i data-lucide="ellipsis"></i></button>
+    95→      </div>
+    96→      <div class="selection-info" id="selectionInfo"></div>
+    97→    </div>
+    98→
+    99→    <div class="content">
+   100→      <div class="content-scroll" id="contentScroll"></div>
+   101→    </div>
+   102→
+   103→    <div class="statusbar" id="statusbar"></div>
+   104→  </main>
+   105→</div>
+   106→
+   107→<div class="toast-container" id="toastContainer"></div>
+   108→
+   109→<script>
+   110→// ============================================================
+   111→//  File System Data Model
+   112→// ============================================================
+   113→
+   114→const TYPE_META = {
+   115→  folder:  { icon: 'folder',          class: 'icon-folder',  label: 'Folder' },
+   116→  image:   { icon: 'image',            class: 'icon-image',   label: 'Image' },
+   117→  video:   { icon: 'film',             class: 'icon-video',   label: 'Video' },
+   118→  audio:   { icon: 'music',            class: 'icon-audio',   label: 'Audio' },
+   119→  pdf:     { icon: 'file-text',        class: 'icon-pdf',     label: 'PDF document' },
+   120→  doc:     { icon: 'file-text',        class: 'icon-doc',     label: 'Document' },
+   121→  sheet:   { icon: 'file-spreadsheet', class: 'icon-sheet',   label: 'Spreadsheet' },
+   122→  archive: { icon: 'file-archive',     class: 'icon-archive', label: 'Archive' },
+   123→  code:    { icon: 'file-code-2',      class: 'icon-code',    label: 'Source code' },
+   124→  app:     { icon: 'app-window',       class: 'icon-app',     label: 'Application' },
+   125→  text:    { icon: 'file-text',        class: 'icon-text',    label: 'Text file' },
+   126→  generic: { icon: 'file',             class: 'icon-generic', label: 'File' },
+   127→};
+   128→
+   129→let nextId = 1;
+   130→const fsNodes = new Map();
+   131→
+   132→function createNode(data) {
+   133→  const id = data.id || ('n' + (nextId++));
+   134→  const node = {
+   135→    id,
+   136→    name: data.name,
+   137→    type: data.type || 'folder',
+   138→    parentId: data.parentId || null,
+   139→    children: (data.type === undefined || data.type === 'folder') ? (data.children || []) : null,
+   140→    size: data.size || 0,
+   141→    modified: data.modified || randomDate(),
+   142→    meta: data.meta || {},
+   143→    expanded: data.expanded || false,
+   144→  };
+   145→  fsNodes.set(id, node);
+   146→  return node;
+   147→}
+   148→
+   149→function randomDate() {
+   150→  const days = Math.floor(Math.random() * 120);
+   151→  const d = new Date(Date.now() - days * 86400000 - Math.random() * 86400000);
+   152→  return d;
+   153→}
+   154→
+   155→function getChildByName(parentId, name) {
+   156→  const parent = fsNodes.get(parentId);
+   157→  if (!parent || !parent.children) return null;
+   158→  for (const cid of parent.children) {
+   159→    const c = fsNodes.get(cid);
+   160→    if (c && c.name === name) return c;
+   161→  }
+   162→  return null;
+   163→}
+   164→
+   165→function getPath(nodeId) {
+   166→  const parts = [];
+   167→  let n = fsNodes.get(nodeId);
+   168→  while (n) {
+   169→    parts.unshift({ id: n.id, name: n.name });
+   170→    n = n.parentId ? fsNodes.get(n.parentId) : null;
+   171→  }
+   172→  return parts;
+   173→}
+   174→
+   175→function findNodeByPath(parts) {
+   176→  let cur = fsNodes.get('root');
+   177→  for (const p of parts) {
+   178→    if (!cur || !cur.children) return null;
+   179→    let found = null;
+   180→    for (const cid of cur.children) {
+   181→      const c = fsNodes.get(cid);
+   182→      if (c && c.name === p) { found = c; break; }
+   183→    }
+   184→    if (!found) return null;
+   185→    cur = found;
+   186→  }
+   187→  return cur ? cur.id : null;
+   188→}
+   189→
+   190→function isAncestor(ancestorId, nodeId) {
+   191→  let n = fsNodes.get(nodeId);
+   192→  while (n && n.parentId) {
+   193→    if (n.parentId === ancestorId) return true;
+   194→    n = fsNodes.get(n.parentId);
+   195→  }
+   196→  return false;
+   197→}
+   198→
+   199→function initFilesystem() {
+   200→  const root = createNode({ id: 'root', name: 'Computer', type: 'folder' });
+   201→  const home = createNode({ name: 'Home', type: 'folder', parentId: 'root', expanded: true });
+   202→  root.children.push(home.id);
+   203→
+   204→  const dashboardNode = { id: 'dashboard', name: 'Dashboard', type: 'dashboard', parentId: null };
+   205→  fsNodes.set('dashboard', dashboardNode);
+   206→
+   207→  const desktop   = createNode({ name: 'Desktop',   type: 'folder', parentId: home.id });
+   208→  const documents = createNode({ name: 'Documents', type: 'folder', parentId: home.id });
+   209→  const downloads = createNode({ name: 'Downloads', type: 'folder', parentId: home.id });
+   210→  const pictures  = createNode({ name: 'Pictures',  type: 'folder', parentId: home.id });
+   211→  const music     = createNode({ name: 'Music',     type: 'folder', parentId: home.id });
+   212→  const videos    = createNode({ name: 'Videos',    type: 'folder', parentId: home.id });
+   213→  const projects  = createNode({ name: 'Projects',  type: 'folder', parentId: home.id, expanded: true });
+   214→  const config    = createNode({ name: '.config',   type: 'folder', parentId: home.id });
+   215→
+   216→  home.children.push(desktop.id, documents.id, downloads.id, pictures.id, music.id, videos.id, projects.id, config.id);
+   217→
+   218→  // Documents
+   219→  const work = createNode({ name: 'Work', type: 'folder', parentId: documents.id });
+   220→  const personal = createNode({ name: 'Personal', type: 'folder', parentId: documents.id });
+   221→  const invoices = createNode({ name: 'Invoices', type: 'folder', parentId: documents.id });
+   222→  const q4Strategy = createNode({ name: 'Q4 Strategy', type: 'folder', parentId: work.id });
+   223→  work.children.push(q4Strategy.id);
+   224→  documents.children.push(work.id, personal.id, invoices.id);
+   225→
+   226→  documents.children.push(
+   227→    createNode({ name: 'resume.pdf',            type: 'pdf',     size: 248000,   parentId: documents.id }).id,
+   228→    createNode({ name: 'budget-2024.ods',       type: 'sheet',   size: 89200,    parentId: documents.id }).id,
+   229→    createNode({ name: 'meeting-notes.md',      type: 'text',    size: 4800,     parentId: documents.id }).id,
+   230→    createNode({ name: 'thesis-draft.docx',     type: 'doc',     size: 1842000, parentId: documents.id }).id,
+   231→    createNode({ name: 'reading-list.txt',      type: 'text',    size: 1200,    parentId: documents.id }).id,
+   232→    createNode({ name: 'lease-agreement.pdf',   type: 'pdf',     size: 512000,  parentId: documents.id }).id,
+   233→  );
+   234→
+   235→  personal.children.push(
+   236→    createNode({ name: 'journal.md',            type: 'text',    size: 18400,   parentId: personal.id }).id,
+   237→    createNode({ name: 'recipes.txt',           type: 'text',    size: 3200,    parentId: personal.id }).id,
+   238→    createNode({ name: 'trip-planning.ods',     type: 'sheet',   size: 42000,   parentId: personal.id }).id,
+   239→  );
+   240→
+   241→  // Downloads
+   242→  downloads.children.push(
+   243→    createNode({ name: 'ubuntu-24.04.iso',          type: 'generic', size: 4900000000, parentId: downloads.id }).id,
+   244→    createNode({ name: 'firefox-installer.deb',     type: 'generic', size: 62000000,   parentId: downloads.id }).id,
+   245→    createNode({ name: 'project-archive.zip',       type: 'archive', size: 184000000,  parentId: downloads.id }).id,
+   246→    createNode({ name: 'wallpapers-pack.tar.gz',    type: 'archive', size: 92000000,   parentId: downloads.id }).id,
+   247→    createNode({ name: 'backup-2024-03.borg',       type: 'archive', size: 2400000000, parentId: downloads.id }).id,
+   248→    createNode({ name: 'sublime-text_build.deb',     type: 'generic', size: 12000000,   parentId: downloads.id }).id,
+   249→    createNode({ name: 'vim-config.tar.gz',         type: 'archive', size: 38000,      parentId: downloads.id }).id,
+   250→  );
+   251→
+   252→  // Pictures
+   253→  const screenshots = createNode({ name: 'Screenshots', type: 'folder', parentId: pictures.id });
+   254→  const wallpapers  = createNode({ name: 'Wallpapers',   type: 'folder', parentId: pictures.id });
+   255→  const photos      = createNode({ name: 'Photos',       type: 'folder', parentId: pictures.id });
+   256→  pictures.children.push(screenshots.id, wallpapers.id, photos.id);
+   257→
+   258→  pictures.children.push(
+   259→    createNode({ name: 'aurora-night.png',      type: 'image', size: 4800000, parentId: pictures.id, meta: { w: 3840, h: 2160 } }).id,
+   260→    createNode({ name: 'mountain-vista.jpg',     type: 'image', size: 3200000, parentId: pictures.id, meta: { w: 3840, h: 2160 } }).id,
+   261→    createNode({ name: 'portrait-001.jpg',       type: 'image', size: 2800000, parentId: pictures.id, meta: { w: 1080, h: 1620 } }).id,
+   262→  );
+   263→
+   264→  screenshots.children.push(
+   265→    createNode({ name: 'screenshot-001.png', type: 'image', size: 380000, parentId: screenshots.id }).id,
+   266→    createNode({ name: 'screenshot-002.png', type: 'image', size: 420000, parentId: screenshots.id }).id,
+   267→    createNode({ name: 'screenshot-003.png', type: 'image', size: 510000, parentId: screenshots.id }).id,
+   268→    createNode({ name: 'screenshot-004.png', type: 'image', size: 460000, parentId: screenshots.id }).id,
+   269→  );
+   270→
+   271→  wallpapers.children.push(
+   272→    createNode({ name: 'gradient-mist.jpg',  type: 'image', size: 1800000, parentId: wallpapers.id }).id,
+   273→    createNode({ name: 'minimal-dark.png',    type: 'image', size: 2100000, parentId: wallpapers.id }).id,
+   274→    createNode({ name: 'forest-calm.jpg',     type: 'image', size: 3400000, parentId: wallpapers.id }).id,
+   275→    createNode({ name: 'desert-dusk.jpg',     type: 'image', size: 2900000, parentId: wallpapers.id }).id,
+   276→  );
+   277→
+   278→  // Music
+   279→  const playlists = createNode({ name: 'Playlists', type: 'folder', parentId: music.id });
+   280→  music.children.push(playlists.id);
+   281→  music.children.push(
+   282→    createNode({ name: 'ambient-mix.mp3',        type: 'audio', size: 8400000,  parentId: music.id }).id,
+   283→    createNode({ name: 'podcast-ep42.ogg',       type: 'audio', size: 32000000, parentId: music.id }).id,
+   284→    createNode({ name: 'live-recording.flac',    type: 'audio', size: 28000000, parentId: music.id }).id,
+   285→    createNode({ name: 'symphony-no9.flac',      type: 'audio', size: 42000000, parentId: music.id }).id,
+   286→  );
+   287→
+   288→  // Videos
+   289→  videos.children.push(
+   290→    createNode({ name: 'conference-talk.mp4',  type: 'video', size: 480000000, parentId: videos.id }).id,
+   291→    createNode({ name: 'screen-recording.mkv', type: 'video', size: 184000000, parentId: videos.id }).id,
+   292→    createNode({ name: 'holiday-clip.mov',     type: 'video', size: 920000000, parentId: videos.id }).id,
+   293→  );
+   294→
+   295→  // Projects
+   296→  const webApp  = createNode({ name: 'web-app',   type: 'folder', parentId: projects.id, expanded: true });
+   297→  const dotfiles = createNode({ name: 'dotfiles', type: 'folder', parentId: projects.id });
+   298→  const cliTool = createNode({ name: 'cli-tool', type: 'folder', parentId: projects.id });
+   299→  projects.children.push(webApp.id, dotfiles.id, cliTool.id);
+   300→
+   301→  const srcDir = createNode({ name: 'src', type: 'folder', parentId: webApp.id, expanded: true });
+   302→  webApp.children.push(srcDir.id);
+   303→  webApp.children.push(
+   304→    createNode({ name: 'package.json',  type: 'code', size: 1200, parentId: webApp.id }).id,
+   305→    createNode({ name: 'README.md',     type: 'text', size: 3400, parentId: webApp.id }).id,
+   306→    createNode({ name: 'tsconfig.json', type: 'code', size: 580,  parentId: webApp.id }).id,
+   307→    createNode({ name: 'vite.config.ts', type: 'code', size: 820, parentId: webApp.id }).id,
+   308→  );
+   309→  srcDir.children.push(
+   310→    createNode({ name: 'index.ts',   type: 'code', size: 4200, parentId: srcDir.id }).id,
+   311→    createNode({ name: 'app.tsx',    type: 'code', size: 8900, parentId: srcDir.id }).id,
+   312→    createNode({ name: 'utils.ts',   type: 'code', size: 2100, parentId: srcDir.id }).id,
+   313→    createNode({ name: 'styles.css', type: 'code', size: 3400, parentId: srcDir.id }).id,
+   314→  );
+   315→
+   316→  dotfiles.children.push(
+   317→    createNode({ name: '.bashrc',     type: 'code', size: 4200, parentId: dotfiles.id }).id,
+   318→    createNode({ name: '.gitconfig',  type: 'code', size: 320,  parentId: dotfiles.id }).id,
+   319→    createNode({ name: '.tmux.conf',  type: 'code', size: 1800, parentId: dotfiles.id }).id,
+   320→  );
+   321→
+   322→  // Desktop
+   323→  desktop.children.push(
+   324→    createNode({ name: 'README.txt',       type: 'text', size: 480, parentId: desktop.id }).id,
+   325→    createNode({ name: 'project-links.url', type: 'generic', size: 120, parentId: desktop.id }).id,
+   326→    createNode({ name: 'screenshot.png',   type: 'image', size: 280000, parentId: desktop.id }).id,
+   327→  );
+   328→
+   329→  // Config
+   330→  config.children.push(
+   331→    createNode({ name: 'nvim',  type: 'folder', parentId: config.id }).id,
+   332→    createNode({ name: 'fish',  type: 'folder', parentId: config.id }).id,
+   333→    createNode({ name: 'gitconfig', type: 'code', size: 320, parentId: config.id }).id,
+   334→  );
+   335→
+   336→  return home;
+   337→}
+   338→
+   339→// ============================================================
+   340→//  Application State
+   341→// ============================================================
+   342→
+   343→const state = {
+   344→  homeId: null,
+   345→  dashboardId: 'dashboard',
+   346→  tabs: [],
+   347→  activeTabId: null,
+   348→  clipboard: null,
+   349→  selection: new Set(),
+   350→  sortBy: 'name',
+   351→  sortDir: 'asc',
+   352→  viewMode: 'grid',
+   353→  searchQuery: '',
+   354→  sidebarWidth: 264,
+   355→  nextTabId: 1,
+   356→  widgets: {
+   357→    imageGallery: { visible: true, orientation: 'vertical' }
+   358→  }
+   359→};
+   360→
+   361→// ============================================================
+   362→//  Tab Management
+   363→// ============================================================
+   364→
+   365→function createTab(nodeId) {
+   366→  const tabId = 't' + (state.nextTabId++);
+   367→  const tab = {
+   368→    id: tabId,
+   369→    nodeId: nodeId,
+   370→    history: [nodeId],
+   371→    historyIdx: 0,
+   372→    selectedIds: new Set(),
+   373→  };
+   374→  state.tabs.push(tab);
+   375→  state.activeTabId = tabId;
+   376→  return tab;
+   377→}
+   378→
+   379→function getActiveTab() {
+   380→  return state.tabs.find(t => t.id === state.activeTabId);
+   381→}
+   382→
+   383→function switchTab(tabId) {
+   384→  state.activeTabId = tabId;
+   385→  const tab = getActiveTab();
+   386→  if (tab) {
+   387→    state.selection = tab.selectedIds;
+   388→    state.searchQuery = '';
+   389→    document.getElementById('searchInput').value = '';
+   390→    renderAll();
+   391→  }
+   392→}
+   393→
+   394→function closeTab(tabId) {
+   395→  const idx = state.tabs.findIndex(t => t.id === tabId);
+   396→  if (idx < 0) return;
+   397→  state.tabs.splice(idx, 1);
+   398→  if (state.tabs.length === 0) {
+   399→    createTab(state.dashboardId);
+   400→  } else if (state.activeTabId === tabId) {
+   401→    const newTab = state.tabs[Math.min(idx, state.tabs.length - 1)];
+   402→    state.activeTabId = newTab.id;
+   403→    state.selection = newTab.selectedIds;
+   404→  }
+   405→  renderAll();
+   406→}
+   407→
+   408→function navigateTo(nodeId) {
+   409→  const tab = getActiveTab();
+   410→  if (!tab || tab.nodeId === nodeId) return;
+   411→  tab.history = tab.history.slice(0, tab.historyIdx + 1);
+   412→  tab.history.push(nodeId);
+   413→  tab.historyIdx = tab.history.length - 1;
+   414→  tab.nodeId = nodeId;
+   415→  tab.selectedIds = new Set();
+   416→  state.selection = tab.selectedIds;
+   417→  state.searchQuery = '';
+   418→  document.getElementById('searchInput').value = '';
+   419→  renderAll();
+   420→}
+   421→
+   422→function goBack() {
+   423→  const tab = getActiveTab();
+   424→  if (!tab || tab.historyIdx <= 0) return;
+   425→  tab.historyIdx--;
+   426→  tab.nodeId = tab.history[tab.historyIdx];
+   427→  tab.selectedIds = new Set();
+   428→  state.selection = tab.selectedIds;
+   429→  renderAll();
+   430→}
+   431→
+   432→function goForward() {
+   433→  const tab = getActiveTab();
+   434→  if (!tab || tab.historyIdx >= tab.history.length - 1) return;
+   435→  tab.historyIdx++;
+   436→  tab.nodeId = tab.history[tab.historyIdx];
+   437→  tab.selectedIds = new Set();
+   438→  state.selection = tab.selectedIds;
+   439→  renderAll();
+   440→}
+   441→
+   442→function goUp() {
+   443→  const tab = getActiveTab();
+   444→  if (!tab) return;
+   445→  const node = fsNodes.get(tab.nodeId);
+   446→  if (node && node.parentId) {
+   447→    navigateTo(node.parentId);
+   448→  }
+   449→}
+   450→
+   451→// ============================================================
+   452→//  Sidebar Rendering
+   453→// ============================================================
+   454→
+   455→function getSidebarSections() {
+   456→  return [
+   457→    { title: 'Favorites', items: [
+   458→      { icon: 'layout-dashboard', label: 'Dashboard', nodeId: state.dashboardId },
+   459→      { icon: 'clock',      label: 'Recent',    special: 'recent' },
+   460→      { icon: 'star',       label: 'Starred',   special: 'starred' },
+   461→      { icon: 'trash-2',    label: 'Trash',     special: 'trash' },
+   462→    ]},
+   463→    { title: 'Places', items: [
+   464→      { icon: 'house',      label: 'Home',      nodeId: state.homeId },
+   465→      { icon: 'monitor',    label: 'Desktop',   nodeId: findNodeByPath(['Home', 'Desktop']) },
+   466→      { icon: 'file-text',  label: 'Documents', nodeId: findNodeByPath(['Home', 'Documents']) },
+   467→      { icon: 'download',   label: 'Downloads', nodeId: findNodeByPath(['Home', 'Downloads']) },
+   468→      { icon: 'image',      label: 'Pictures',  nodeId: findNodeByPath(['Home', 'Pictures']) },
+   469→      { icon: 'music',      label: 'Music',     nodeId: findNodeByPath(['Home', 'Music']) },
+   470→      { icon: 'film',       label: 'Videos',    nodeId: findNodeByPath(['Home', 'Videos']) },
+   471→    ]},
+   472→  ];
+   473→}
+   474→
+   475→function getStorageItems() {
+   476→  return [
+   477→    { id: 'local',     name: 'Local SSD',       icon: 'hard-drive',   used: 380,   total: 500,  status: 'success' },
+   478→    { id: 'home-vol',  name: 'home volume',     icon: 'database',     used: 124,   total: 200,  status: 'success' },
+   479→    { id: 'usb',       name: 'USB Drive',       icon: 'usb',           used: 12,    total: 64,   status: 'success' },
+   480→    { id: 'nas',       name: 'nas.lan',         icon: 'server',        used: 1800,  total: 4000, status: 'success' },
+   481→    { id: 'nextcloud', name: 'Nextcloud',       icon: 'cloud',         used: 18,    total: 50,   status: 'success' },
+   482→    { id: 'gdrive',    name: 'Google Drive',    icon: 'cloud',         used: 8.4,   total: 15,   status: 'syncing' },
+   483→  ];
+   484→}
+   485→
+   486→function renderSidebar() {
+   487→  const root = document.getElementById('sidebarScroll');
+   488→  const tab = getActiveTab();
+   489→  const activeNodeId = tab ? tab.nodeId : null;
+   490→
+   491→  let html = '';
+   492→
+   493→  for (const section of getSidebarSections()) {
+   494→    html += `<div class="nav-section">`;
+   495→    html += `<div class="nav-section-title">${section.title}</div>`;
+   496→    for (const item of section.items) {
+   497→      const active = item.nodeId && item.nodeId === activeNodeId;
+   498→      html += `<div class="nav-item ${active ? 'active' : ''}" data-node-id="${item.nodeId || ''}" data-special="${item.special || ''}">
+   499→        <i data-lucide="${item.icon}" class="icon"></i>
+   500→        <span class="label">${item.label}</span>
+   501→      </div>`;
+   502→    }
+   503→    html += `</div>`;
+   504→  }
+   505→
+   506→  // Directory tree
+   507→  html += `<div class="nav-section">
+   508→    <div class="nav-section-title">Directory Tree</div>
+   509→    <div id="treeRoot">${renderTreeNode(state.homeId, 0, activeNodeId)}</div>
+   510→  </div>`;
+   511→
+   512→  // Storage
+   513→  html += `<div class="nav-section">
+   514→    <div class="nav-section-title">Storage & Network</div>`;
+   515→  for (const item of getStorageItems()) {
+   516→    const pct = (item.used / item.total) * 100;
+   517→    const fillColor = pct > 90 ? 'danger' : pct > 75 ? 'warn' : '';
+   518→    const usedLabel = item.total >= 1000 ? `${(item.used/1000).toFixed(1)} TB` : `${item.used} GB`;
+   519→    const totalLabel = item.total >= 1000 ? `${(item.total/1000).toFixed(0)} TB` : `${item.total} GB`;
+   520→    html += `<div class="storage-item" data-storage="${item.id}">
+   521→      <div class="storage-item-head">
+   522→        <i data-lucide="${item.icon}" class="icon"></i>
+   523→        <span class="name">${item.name}</span>
+   524→        <span class="status-dot ${item.status === 'syncing' ? 'syncing' : ''}"></span>
+   525→      </div>
+   526→      <div class="storage-bar"><div class="storage-bar-fill ${fillColor}" style="width:${pct}%"></div></div>
+   527→      <div class="storage-meta"><span>${usedLabel} of ${totalLabel}</span><span>${pct.toFixed(0)}%</span></div>
+   528→    </div>`;
+   529→  }
+   530→  html += `</div>`;
+   531→
+   532→  root.innerHTML = html;
+   533→
+   534→  root.querySelectorAll('.nav-item').forEach(el => {
+   535→    el.addEventListener('click', () => {
+   536→      const nodeId = el.dataset.nodeId;
+   537→      const special = el.dataset.special;
+   538→      if (nodeId) {
+   539→        navigateTo(nodeId);
+   540→      } else if (special) {
+   541→        showToast(`${special.charAt(0).toUpperCase() + special.slice(1)} view is illustrative in this demo`, 'info');
+   542→      }
+   543→    });
+   544→  });
+   545→
+   546→  root.querySelectorAll('.tree-arrow').forEach(el => {
+   547→    el.addEventListener('click', (e) => {
+   548→      e.stopPropagation();
+   549→      const nodeId = el.dataset.nodeId;
+   550→      const node = fsNodes.get(nodeId);
+   551→      if (node) {
+   552→        node.expanded = !node.expanded;
+   553→        renderSidebar();
+   554→      }
+   555→    });
+   556→  });
+   557→
+   558→  root.querySelectorAll('.tree-item').forEach(el => {
+   559→    el.addEventListener('click', () => {
+   560→      const nodeId = el.dataset.nodeId;
+   561→      if (nodeId) navigateTo(nodeId);
+   562→    });
+   563→  });
+   564→
+   565→  if (window.lucide) lucide.createIcons();
+   566→}
+   567→
+   568→function renderTreeNode(nodeId, depth, activeNodeId) {
+   569→  const node = fsNodes.get(nodeId);
+   570→  if (!node) return '';
+   571→
+   572→  const hasChildren = node.children && node.children.length > 0 && node.children.some(cid => {
+   573→    const c = fsNodes.get(cid);
+   574→    return c && c.type === 'folder';
+   575→  });
+   576→  const isActive = nodeId === activeNodeId;
+   577→  const padLeft = 8 + depth * 18;
+   578→
+   579→  let html = `<div class="tree-node">`;
+   580→  html += `<div class="tree-item ${isActive ? 'active' : ''}" data-node-id="${nodeId}" style="padding-left:${padLeft}px">`;
+   581→  html += `<span class="tree-arrow ${node.expanded ? 'expanded' : ''} ${hasChildren ? '' : 'empty'}" data-node-id="${nodeId}">
+   582→    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+   583→  </span>`;
+   584→  html += `<i data-lucide="${node.expanded ? 'folder-open' : 'folder'}" class="tree-icon"></i>`;
+   585→  html += `<span class="tree-label">${escapeHtml(node.name)}</span>`;
+   586→  html += `</div>`;
+   587→
+   588→  if (hasChildren && node.expanded) {
+   589→    html += `<div class="tree-children expanded">`;
+   590→    for (const cid of node.children) {
+   591→      const child = fsNodes.get(cid);
+   592→      if (child && child.type === 'folder') {
+   593→        html += renderTreeNode(cid, depth + 1, activeNodeId);
+   594→      }
+   595→    }
+   596→    html += `</div>`;
+   597→  }
+   598→
+   599→  html += `</div>`;
+   600→  return html;
+   601→}
+   602→
+   603→// ============================================================
+   604→//  Breadcrumb
+   605→// ============================================================
+   606→
+   607→function renderBreadcrumb() {
+   608→  const tab = getActiveTab();
+   609→  if (!tab) return;
+   610→  const path = getPath(tab.nodeId);
+   611→  const el = document.getElementById('breadcrumb');
+   612→  let html = '';
+   613→  path.forEach((p, i) => {
+   614→    if (i > 0) html += `<span class="crumb-sep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
+   615→    const current = i === path.length - 1;
+   616→    html += `<span class="crumb ${current ? 'current' : ''}" data-node-id="${p.id}">${escapeHtml(p.name)}</span>`;
+   617→  });
+   618→  el.innerHTML = html;
+   619→  el.querySelectorAll('.crumb').forEach(c => {
+   620→    c.addEventListener('click', () => {
+   621→      const id = c.dataset.nodeId;
+   622→      if (id) navigateTo(id);
+   623→    });
+   624→  });
+   625→}
+   626→
+   627→// ============================================================
+   628→//  Tab strip
+   629→// ============================================================
+   630→
+   631→function renderTabs() {
+   632→  const strip = document.getElementById('tabStrip');
+   633→  let html = '';
+   634→  for (const tab of state.tabs) {
+   635→    const node = fsNodes.get(tab.nodeId);
+   636→    const name = node ? node.name : '?';
+   637→    const active = tab.id === state.activeTabId;
+   638→    
+   639→    let iconStr = 'file';
+   640→    if (node) {
+   641→      if (node.type === 'dashboard') iconStr = 'layout-dashboard';
+   642→      else if (node.type === 'folder') iconStr = 'folder';
+   643→    }
+   644→    
+   645→    html += `<div class="tab ${active ? 'active' : ''}" data-tab-id="${tab.id}" title="${escapeHtml(name)}">
+   646→      <i data-lucide="${iconStr}" class="icon"></i>
+   647→      <span class="tab-label">${escapeHtml(name)}</span>
+   648→      <span class="tab-close" data-tab-id="${tab.id}">
+   649→        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+   650→      </span>
+   651→    </div>`;
+   652→  }
+   653→  html += `<button class="tab-new" id="newTabBtn" title="New tab"><i data-lucide="plus"></i></button>`;
+   654→  strip.innerHTML = html;
+   655→
+   656→  strip.querySelectorAll('.tab').forEach(t => {
+   657→    t.addEventListener('click', (e) => {
+   658→      if (e.target.closest('.tab-close')) return;
+   659→      switchTab(t.dataset.tabId);
+   660→    });
+   661→    t.addEventListener('contextmenu', (e) => {
+   662→      e.preventDefault();
+   663→      showTabContextMenu(e.clientX, e.clientY, t.dataset.tabId);
+   664→    });
+   665→  });
+   666→  strip.querySelectorAll('.tab-close').forEach(c => {
+   667→    c.addEventListener('click', (e) => {
+   668→      e.stopPropagation();
+   669→      closeTab(c.dataset.tabId);
+   670→    });
+   671→  });
+   672→  document.getElementById('newTabBtn').addEventListener('click', () => {
+   673→    const tab = getActiveTab();
+   674→    createTab(tab ? tab.nodeId : state.dashboardId);
+   675→    renderAll();
+   676→  });
+   677→
+   678→  if (window.lucide) lucide.createIcons();
+   679→}
+   680→
+   681→// ============================================================
+   682→//  Content rendering
+   683→// ============================================================
+   684→
+   685→// Pre-defined actual images from Unsplash for the gallery
+   686→const GALLERY_IMAGES = [
+   687→  { src: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=240&h=320&fit=crop', name: 'Mountain River' },
+   688→  { src: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=240&h=200&fit=crop', name: 'Snowy Peaks' },
+   689→  { src: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=240&h=280&fit=crop', name: 'Forest Cabin' },
+   690→  { src: 'https://images.unsplash.com/photo-1546587348-d12660c30c50?w=240&h=360&fit=crop', name: 'Waterfall' },
+   691→  { src: 'https://images.unsplash.com/photo-1433086966358-54859d0ed7df?w=240&h=240&fit=crop', name: 'Autumn Leaves' },
+   692→  { src: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=240&h=300&fit=crop', name: 'Lake Reflection' },
+   693→  { src: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=240&h=220&fit=crop', name: 'Desert Dunes' },
+   694→  { src: 'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=240&h=340&fit=crop', name: 'City Street' },
+   695→  { src: 'https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=240&h=260&fit=crop', name: 'Coastal Cliffs' },
+   696→  { src: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=240&h=380&fit=crop', name: 'Sunset Rays' },
+   697→  { src: 'https://images.unsplash.com/photo-1475924156734-496f6ca7a043?w=240&h=210&fit=crop', name: 'Green Valley' },
+   698→  { src: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=240&h=290&fit=crop', name: 'Ocean Waves' },
+   699→  { src: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=240&h=250&fit=crop', name: 'Misty Forest' },
+   700→  { src: 'https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?w=240&h=330&fit=crop', name: 'Starry Night' }
+   701→];
+   702→
+   703→function renderContent() {
+   704→  const scroll = document.getElementById('contentScroll');
+   705→  const tab = getActiveTab();
+   706→  if (!tab) return;
+   707→
+   708→  // Dashboard view shows widgets
+   709→  if (tab.nodeId === state.dashboardId && !state.searchQuery) {
+   710→    scroll.innerHTML = renderHomeView();
+   711→    wireHomeView();
+   712→    if (window.lucide) lucide.createIcons();
+   713→    return;
+   714→  }
+   715→
+   716→  const items = getCurrentItems();
+   717→
+   718→  if (items.length === 0) {
+   719→    if (state.searchQuery) {
+   720→      scroll.innerHTML = `<div class="empty-state">
+   721→        <i data-lucide="search-x"></i>
+   722→        <div class="title">No results for "${escapeHtml(state.searchQuery)}"</div>
+   723→        <div class="desc">Try a different search term or clear the search</div>
+   724→      </div>`;
+   725→    } else {
+   726→      scroll.innerHTML = `<div class="empty-state">
+   727→        <i data-lucide="folder-open"></i>
+   728→        <div class="title">This folder is empty</div>
+   729→        <div class="desc">Create a new file or folder to get started</div>
+   730→      </div>`;
+   731→    }
+   732→    if (window.lucide) lucide.createIcons();
+   733→    return;
+   734→  }
+   735→
+   736→  if (state.viewMode === 'grid') {
+   737→    scroll.innerHTML = renderGrid(items);
+   738→  } else {
+   739→    scroll.innerHTML = renderList(items, state.viewMode === 'compact');
+   740→  }
+   741→
+   742→  wireFileItems();
+   743→  if (window.lucide) lucide.createIcons();
+   744→}
+   745→
+   746→// ============================================================
+   747→//  Home View — Widgets (Win11 inspired)
+   748→// ============================================================
+   749→
+   750→function renderHomeView() {
+   751→  let html = `<div class="home-view">`;
+   752→
+   753→  // ---------- Image Gallery Widget ----------
+   754→  if (state.widgets.imageGallery.visible) {
+   755→    const orient = state.widgets.imageGallery.orientation;
+   756→    const orientIcon = orient === 'vertical' ? 'rows-3' : 'columns-3';
+   757→    const orientLabel = orient === 'vertical' ? 'Switch to horizontal scroll' : 'Switch to vertical masonry';
+   758→    const orientSubtitle = orient === 'vertical'
+   759→      ? `${GALLERY_IMAGES.length} images · masonry layout`
+   760→      : `${GALLERY_IMAGES.length} images · horizontal scroll`;
+   761→
+   762→    html += `
+   763→      <section class="widget-box" id="widget-gallery">
+   764→        <header class="widget-header">
+   765→          <div class="widget-header-icon"><i data-lucide="image"></i></div>
+   766→          <div class="widget-header-text">
+   767→            <div class="widget-title">Image Gallery</div>
+   768→            <div class="widget-subtitle">${orientSubtitle}</div>
+   769→          </div>
+   770→        </header>
+   771→        <div class="widget-actions">
+   772→          <button class="widget-action-btn" data-action="toggle-orientation" title="${orientLabel}">
+   773→            <i data-lucide="${orientIcon}"></i>
+   774→          </button>
+   775→          <button class="widget-action-btn" data-action="refresh-gallery" title="Refresh images">
+   776→            <i data-lucide="refresh-cw"></i>
+   777→          </button>
+   778→          <button class="widget-action-btn danger" data-action="close-gallery" title="Close widget">
+   779→            <i data-lucide="x"></i>
+   780→          </button>
+   781→        </div>
+   782→        <div class="widget-body">
+   783→          <div class="masonry-gallery ${orient}">
+   784→            ${GALLERY_IMAGES.map((img, i) => {
+   785→              return `
+   786→              <div class="masonry-item" data-index="${i}" title="${escapeHtml(img.name)}">
+   787→                <img src="${img.src}" alt="${escapeHtml(img.name)}" loading="lazy">
+   788→                <div class="masonry-name">${escapeHtml(img.name)}</div>
+   789→              </div>`;
+   790→            }).join('')}
+   791→          </div>
+   792→        </div>
+   793→      </section>
+   794→    `;
+   795→  }
+   796→
+   797→  // ---------- Empty state ----------
+   798→  if (!state.widgets.imageGallery.visible) {
+   799→    html += `
+   800→      <div class="widgets-empty">
+   801→        <i data-lucide="layout-grid"></i>
+   802→        <div style="font-size:14px;font-weight:500;color:var(--text-secondary);">No widgets active</div>
+   803→        <div style="font-size:12.5px;">Refresh the page to restore default widgets</div>
+   804→      </div>`;
+   805→  }
+   806→
+   807→  html += `</div>`;
+   808→  return html;
+   809→}
+   810→
+   811→function wireHomeView() {
+   812→  // Widget action buttons
+   813→  document.querySelectorAll('.widget-action-btn').forEach(btn => {
+   814→    btn.addEventListener('click', (e) => {
+   815→      e.stopPropagation();
+   816→      const action = btn.dataset.action;
+   817→      switch (action) {
+   818→        case 'toggle-orientation':
+   819→          toggleGalleryOrientation();
+   820→          break;
+   821→        case 'refresh-gallery':
+   822→          showToast('Gallery refreshed', 'info');
+   823→          renderContent();
+   824→          break;
+   825→        case 'close-gallery':
+   826→          closeWidget('imageGallery');
+   827→          break;
+   828→      }
+   829→    });
+   830→  });
+   831→
+   832→  // Click on masonry item -> open properties
+   833→  document.querySelectorAll('.masonry-item').forEach(el => {
+   834→    el.addEventListener('click', () => {
+   835→      const index = el.dataset.index;
+   836→      const img = GALLERY_IMAGES[index];
+   837→      if (img) showToast(`Selected: ${img.name}`, 'info');
+   838→    });
+   839→    el.addEventListener('dblclick', () => {
+   840→      const index = el.dataset.index;
+   841→      const img = GALLERY_IMAGES[index];
+   842→      if (img) showToast(`Opening: ${img.name}`, 'info');
+   843→    });
+   844→  });
+   845→}
+   846→
+   847→function toggleGalleryOrientation() {
+   848→  const w = state.widgets.imageGallery;
+   849→  w.orientation = w.orientation === 'vertical' ? 'horizontal' : 'vertical';
+   850→  renderContent();
+   851→  showToast(`Gallery: ${w.orientation === 'vertical' ? 'vertical masonry' : 'horizontal scroll'}`, 'info');
+   852→}
+   853→
+   854→function closeWidget(name) {
+   855→  if (name === 'imageGallery') state.widgets.imageGallery.visible = false;
+   856→  renderContent();
+   857→}
+   858→
+   859→function getCurrentItems() {
+   860→  const tab = getActiveTab();
+   861→  if (!tab || tab.nodeId === 'dashboard') return [];
+   862→  
+   863→  const node = fsNodes.get(tab.nodeId);
+   864→  if (!node || !node.children) return [];
+   865→  let items = node.children.map(cid => fsNodes.get(cid)).filter(Boolean);
+   866→
+   867→  if (state.searchQuery) {
+   868→    const q = state.searchQuery.toLowerCase();
+   869→    items = items.filter(it => it.name.toLowerCase().includes(q));
+   870→  }
+   871→
+   872→  const dir = state.sortDir === 'asc' ? 1 : -1;
+   873→  items.sort((a, b) => {
+   874→    const aFolder = a.type === 'folder';
+   875→    const bFolder = b.type === 'folder';
+   876→    if (aFolder !== bFolder) return aFolder ? -1 : 1;
+   877→    let av, bv;
+   878→    switch (state.sortBy) {
+   879→      case 'name':
+   880→        av = a.name.toLowerCase(); bv = b.name.toLowerCase();
+   881→        return av < bv ? -1 * dir : (av > bv ? 1 * dir : 0);
+   882→      case 'size':
+   883→        av = a.size; bv = b.size;
+   884→        return (av - bv) * dir;
+   885→      case 'type':
+   886→        av = a.type; bv = b.type;
+   887→        return av < bv ? -1 * dir : (av > bv ? 1 * dir : 0);
+   888→      case 'modified':
+   889→        av = a.modified.getTime(); bv = b.modified.getTime();
+   890→        return (av - bv) * dir;
+   891→      default: return 0;
+   892→    }
+   893→  });
+   894→
+   895→  return items;
+   896→}
+   897→
+   898→function formatSize(bytes) {
+   899→  if (bytes === 0) return '—';
+   900→  if (bytes < 1024) return bytes + ' B';
+   901→  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+   902→  if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+   903→  if (bytes < 1024 * 1024 * 1024 * 1024) return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+   904→  return (bytes / 1024 / 1024 / 1024 / 1024).toFixed(2) + ' TB';
+   905→}
+   906→
+   907→function formatDate(d) {
+   908→  const now = new Date();
+   909→  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+   910→  const that = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+   911→  const diffDays = Math.round((today - that) / 86400000);
+   912→  if (diffDays === 0) return 'Today, ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+   913→  if (diffDays === 1) return 'Yesterday';
+   914→  if (diffDays < 7) return diffDays + ' days ago';
+   915→  return d.toLocaleDateString([], {year: 'numeric', month: 'short', day: 'numeric'});
+   916→}
+   917→
+   918→function getFileMeta(node) {
+   919→  return TYPE_META[node.type] || TYPE_META.generic;
+   920→}
+   921→
+   922→function renderGrid(items) {
+   923→  let html = `<div class="file-grid">`;
+   924→  for (const it of items) {
+   925→    const meta = getFileMeta(it);
+   926→    const selected = state.selection.has(it.id);
+   927→    html += `<div class="file-item ${selected ? 'selected' : ''}" data-node-id="${it.id}">
+   928→      <div class="file-checkbox ${selected ? 'checked' : ''}"></div>
+   929→      <div class="file-icon-wrap">
+   930→        <i data-lucide="${meta.icon}" class="${meta.class}"></i>
+   931→      </div>
+   932→      <div class="file-name">${escapeHtml(it.name)}</div>
+   933→    </div>`;
+   934→  }
+   935→  html += `</div>`;
+   936→  return html;
+   937→}
+   938→
+   939→function renderList(items, compact) {
+   940→  const sortIcon = state.sortDir === 'asc' ? 'chevron-up' : 'chevron-down';
+   941→  let html = `<div class="file-list ${compact ? 'compact' : ''}">`;
+   942→  html += `<div class="list-header">
+   943→    <div class="col name ${state.sortBy === 'name' ? 'sorted' : ''}" data-sort="name">
+   944→      <span>Name</span>
+   945→      ${state.sortBy === 'name' ? `<i data-lucide="${sortIcon}"></i>` : ''}
+   946→    </div>
+   947→    <div class="col size ${state.sortBy === 'size' ? 'sorted' : ''}" data-sort="size">
+   948→      <span>Size</span>
+   949→      ${state.sortBy === 'size' ? `<i data-lucide="${sortIcon}"></i>` : ''}
+   950→    </div>
+   951→    <div class="col type ${state.sortBy === 'type' ? 'sorted' : ''}" data-sort="type">
+   952→      <span>Type</span>
+   953→      ${state.sortBy === 'type' ? `<i data-lucide="${sortIcon}"></i>` : ''}
+   954→    </div>
+   955→    <div class="col date ${state.sortBy === 'modified' ? 'sorted' : ''}" data-sort="modified">
+   956→      <span>Modified</span>
+   957→      ${state.sortBy === 'modified' ? `<i data-lucide="${sortIcon}"></i>` : ''}
+   958→    </div>
+   959→    <div></div>
+   960→  </div>`;
+   961→
+   962→  for (const it of items) {
+   963→    const meta = getFileMeta(it);
+   964→    const selected = state.selection.has(it.id);
+   965→    const size = it.type === 'folder' ? '—' : formatSize(it.size);
+   966→    html += `<div class="list-row ${selected ? 'selected' : ''}" data-node-id="${it.id}">
+   967→      <div class="name-col">
+   968→        <div class="file-icon-wrap"><i data-lucide="${meta.icon}" class="${meta.class}"></i></div>
+   969→        <span class="name-text">${escapeHtml(it.name)}</span>
+   970→      </div>
+   971→      <div class="size-col">${size}</div>
+   972→      <div class="type-col">${meta.label}</div>
+   973→      <div class="date-col">${formatDate(it.modified)}</div>
+   974→      <div></div>
+   975→    </div>`;
+   976→  }
+   977→  html += `</div>`;
+   978→  return html;
+   979→}
+   980→
+   981→function wireFileItems() {
+   982→  document.querySelectorAll('.file-item, .list-row').forEach(el => {
+   983→    const nodeId = el.dataset.nodeId;
+   984→
+   985→    el.addEventListener('click', (e) => {
+   986→      const isCheckbox = e.target.closest('.file-checkbox');
+   987→
+   988→      if (isCheckbox) {
+   989→        e.stopPropagation();
+   990→        if (state.selection.has(nodeId)) state.selection.delete(nodeId);
+   991→        else state.selection.add(nodeId);
+   992→      } else if (e.ctrlKey || e.metaKey) {
+   993→        if (state.selection.has(nodeId)) state.selection.delete(nodeId);
+   994→        else state.selection.add(nodeId);
+   995→      } else if (e.shiftKey) {
+   996→        const items = getCurrentItems();
+   997→        const idx = items.findIndex(i => i.id === nodeId);
+   998→        if (idx >= 0 && state.selection.size > 0) {
+   999→          const lastSelected = Array.from(state.selection).pop();
+  1000→          const lastIdx = items.findIndex(i => i.id === lastSelected);
+  1001→          if (lastIdx >= 0) {
+  1002→            const start = Math.min(idx, lastIdx);
+  1003→            const end = Math.max(idx, lastIdx);
+  1004→            for (let i = start; i <= end; i++) state.selection.add(items[i].id);
+  1005→          }
+  1006→        } else {
+  1007→          state.selection.clear();
+  1008→          state.selection.add(nodeId);
+  1009→        }
+  1010→      } else {
+  1011→        state.selection.clear();
+  1012→        state.selection.add(nodeId);
+  1013→      }
+  1014→
+  1015→      const tab = getActiveTab();
+  1016→      if (tab) tab.selectedIds = state.selection;
+  1017→      updateSelectionUI();
+  1018→    });
+  1019→
+  1020→    el.addEventListener('dblclick', () => {
+  1021→      const node = fsNodes.get(nodeId);
+  1022→      if (!node) return;
+  1023→      if (node.type === 'folder') {
+  1024→        navigateTo(nodeId);
+  1025→      } else {
+  1026→        showProperties(nodeId);
+  1027→      }
+  1028→    });
+  1029→
+  1030→    el.addEventListener('contextmenu', (e) => {
+  1031→      e.preventDefault();
+  1032→      if (!state.selection.has(nodeId)) {
+  1033→        state.selection.clear();
+  1034→        state.selection.add(nodeId);
+  1035→        const tab = getActiveTab();
+  1036→        if (tab) tab.selectedIds = state.selection;
+  1037→        updateSelectionUI();
+  1038→      }
+  1039→      showFileContextMenu(e.clientX, e.clientY, nodeId);
+  1040→    });
+  1041→  });
+  1042→
+  1043→  document.querySelectorAll('.list-header .col').forEach(c => {
+  1044→    c.addEventListener('click', () => {
+  1045→      const sort = c.dataset.sort;
+  1046→      if (!sort) return;
+  1047→      if (state.sortBy === sort) {
+  1048→        state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  1049→      } else {
+  1050→        state.sortBy = sort;
+  1051→        state.sortDir = 'asc';
+  1052→      }
+  1053→      renderContent();
+  1054→      renderStatusbar();
+  1055→    });
+  1056→  });
+  1057→}
+  1058→
+  1059→function updateSelectionUI() {
+  1060→  document.querySelectorAll('.file-item, .list-row').forEach(el => {
+  1061→    const id = el.dataset.nodeId;
+  1062→    const selected = state.selection.has(id);
+  1063→    el.classList.toggle('selected', selected);
+  1064→    const cb = el.querySelector('.file-checkbox');
+  1065→    if (cb) cb.classList.toggle('checked', selected);
+  1066→  });
+  1067→  renderStatusbar();
+  1068→  renderSelectionInfo();
+  1069→  updateActionButtons();
+  1070→}
+  1071→
+  1072→function renderStatusbar() {
+  1073→  const items = getCurrentItems();
+  1074→  const totalSize = state.selection.size > 0
+  1075→    ? Array.from(state.selection).map(id => fsNodes.get(id)).filter(Boolean).reduce((s, n) => s + (n.size || 0), 0)
+  1076→    : 0;
+  1077→
+  1078→  const tab = getActiveTab();
+  1079→  let storageLabel = 'Local SSD · 120 GB free';
+  1080→  if (tab) {
+  1081→    const path = getPath(tab.nodeId);
+  1082→    if (path.length > 1 && path[1].name === 'Home') storageLabel = 'home volume · 76 GB free';
+  1083→    else if (tab.nodeId === 'dashboard') storageLabel = 'System Overview';
+  1084→  }
+  1085→
+  1086→  const sortLabels = { name: 'Name', size: 'Size', type: 'Type', modified: 'Modified' };
+  1087→  const sortIcon = state.sortDir === 'asc' ? 'chevron-up' : 'chevron-down';
+  1088→
+  1089→  const el = document.getElementById('statusbar');
+  1090→  el.innerHTML = `
+  1091→    <div class="status-left">
+  1092→      <div class="status-item">
+  1093→        <i data-lucide="${tab && tab.nodeId === 'dashboard' ? 'layout-dashboard' : 'folder'}"></i>
+  1094→        <span>${tab && tab.nodeId === 'dashboard' ? 'Dashboard' : `${items.length} item${items.length !== 1 ? 's' : ''}`}</span>
+  1095→      </div>
+  1096→      ${state.selection.size > 0 ? `
+  1097→        <div class="status-divider"></div>
+  1098→        <div class="status-item">
+  1099→          <span class="status-accent">${state.selection.size} selected</span>
+  1100→          ${totalSize > 0 ? `<span class="status-muted">· ${formatSize(totalSize)}</span>` : ''}
+  1101→        </div>
+  1102→      ` : ''}
+  1103→    </div>
+  1104→    <div class="status-spacer"></div>
+  1105→    <div class="status-right-group">
+  1106→      <div class="view-segmented">
+  1107→        <button class="seg-btn ${state.viewMode === 'grid' ? 'active' : ''}" data-view="grid" title="Grid view">
+  1108→          <i data-lucide="grid-3x3"></i>
+  1109→        </button>
+  1110→        <button class="seg-btn ${state.viewMode === 'list' ? 'active' : ''}" data-view="list" title="List view">
+  1111→          <i data-lucide="list"></i>
+  1112→        </button>
+  1113→        <button class="seg-btn ${state.viewMode === 'compact' ? 'active' : ''}" data-view="compact" title="Compact view">
+  1114→          <i data-lucide="rows-3"></i>
+  1115→        </button>
+  1116→      </div>
+  1117→      <button class="sort-btn" id="sortBtn">
+  1118→        <i data-lucide="arrow-up-down"></i>
+  1119→        <span>${sortLabels[state.sortBy]}</span>
+  1120→        <i data-lucide="${sortIcon}" class="chev"></i>
+  1121→      </button>
+  1122→      <div class="status-divider"></div>
+  1123→      <div class="status-item">
+  1124→        <i data-lucide="hard-drive"></i>
+  1125→        <span>${storageLabel}</span>
+  1126→      </div>
+  1127→    </div>
+  1128→  `;
+  1129→
+  1130→  el.querySelectorAll('.seg-btn').forEach(btn => {
+  1131→    btn.addEventListener('click', () => setViewMode(btn.dataset.view));
+  1132→  });
+  1133→
+  1134→  const sortBtn = document.getElementById('sortBtn');
+  1135→  if (sortBtn) {
+  1136→    sortBtn.addEventListener('click', () => {
+  1137→      const rect = sortBtn.getBoundingClientRect();
+  1138→      showSortMenu(rect.left, rect.top, true);
+  1139→    });
+  1140→  }
+  1141→
+  1142→  if (window.lucide) lucide.createIcons();
+  1143→}
+  1144→
+  1145→function renderSelectionInfo() {
+  1146→  const el = document.getElementById('selectionInfo');
+  1147→  if (state.selection.size === 0) {
+  1148→    el.innerHTML = '';
+  1149→  } else {
+  1150→    el.innerHTML = `<span class="dot"></span><span class="count">${state.selection.size}</span><span>selected</span>`;
+  1151→  }
+  1152→}
+  1153→
+  1154→function updateActionButtons() {
+  1155→  const hasSelection = state.selection.size > 0;
+  1156→  const hasClipboard = state.clipboard && state.clipboard.ids.length > 0;
+  1157→  const tab = getActiveTab();
+  1158→  const isDashboard = tab && tab.nodeId === 'dashboard';
+  1159→
+  1160→  // Directory bar actions
+  1161→  document.getElementById('pasteBtn').disabled = !hasClipboard || isDashboard;
+  1162→
+  1163→  // Action bar buttons
+  1164→  document.getElementById('copyBtn').disabled = !hasSelection;
+  1165→  document.getElementById('cutBtn').disabled = !hasSelection;
+  1166→  document.getElementById('renameBtn').disabled = state.selection.size !== 1;
+  1167→  document.getElementById('deleteBtn').disabled = !hasSelection;
+  1168→
+  1169→  // Auto-hide action bar
+  1170→  const actionBar = document.getElementById('actionBar');
+  1171→  if (hasSelection) {
+  1172→    actionBar.classList.remove('hidden');
+  1173→  } else {
+  1174→    actionBar.classList.add('hidden');
+  1175→  }
+  1176→}
+  1177→
+  1178→function updateNavButtons() {
+  1179→  const tab = getActiveTab();
+  1180→  if (!tab) return;
+  1181→  document.getElementById('backBtn').disabled = tab.historyIdx <= 0;
+  1182→  document.getElementById('forwardBtn').disabled = tab.historyIdx >= tab.history.length - 1;
+  1183→  const node = fsNodes.get(tab.nodeId);
+  1184→  document.getElementById('upBtn').disabled = !node || !node.parentId;
+  1185→}
+  1186→
+  1187→function setViewMode(mode) {
+  1188→  state.viewMode = mode;
+  1189→  renderContent();
+  1190→  renderStatusbar();
+  1191→}
+  1192→
+  1193→function renderAll() {
+  1194→  renderSidebar();
+  1195→  renderTabs();
+  1196→  renderBreadcrumb();
+  1197→  renderContent();
+  1198→  renderStatusbar();
+  1199→  renderSelectionInfo();
+  1200→  updateActionButtons();
+  1201→  updateNavButtons();
+  1202→}
+  1203→
+  1204→// ============================================================
+  1205→//  Context menus
+  1206→// ============================================================
+  1207→
+  1208→function closeAllMenus() {
+  1209→  document.querySelectorAll('.context-menu').forEach(m => m.remove());
+  1210→}
+  1211→
+  1212→function positionMenu(menu, x, y, openAbove = false) {
+  1213→  document.body.appendChild(menu);
+  1214→  const rect = menu.getBoundingClientRect();
+  1215→  let mx = Math.min(x, window.innerWidth - rect.width - 8);
+  1216→  let my;
+  1217→  if (openAbove) {
+  1218→    my = y - rect.height;
+  1219→    if (my < 8) my = 8;
+  1220→  } else {
+  1221→    my = Math.min(y, window.innerHeight - rect.height - 8);
+  1222→    if (my < 8) my = 8;
+  1223→  }
+  1224→  if (mx < 8) mx = 8;
+  1225→  menu.style.left = mx + 'px';
+  1226→  menu.style.top = my + 'px';
+  1227→}
+  1228→
+  1229→function showFileContextMenu(x, y, nodeId) {
+  1230→  closeAllMenus();
+  1231→  const node = fsNodes.get(nodeId);
+  1232→  if (!node) return;
+  1233→  const isFolder = node.type === 'folder';
+  1234→  const multi = state.selection.size > 1;
+  1235→
+  1236→  const menu = document.createElement('div');
+  1237→  menu.className = 'context-menu';
+  1238→  menu.innerHTML = `
+  1239→    ${multi ? `<div class="menu-section-label">${state.selection.size} items selected</div>` : ''}
+  1240→    <div class="menu-item" data-action="open">
+  1241→      <i data-lucide="${isFolder ? 'folder-open' : 'external-link'}" class="icon"></i>
+  1242→      <span class="label">Open</span>
+  1243→    </div>
+  1244→    ${isFolder ? `
+  1245→      <div class="menu-item" data-action="open-new-tab">
+  1246→        <i data-lucide="square-arrow-out-up-right" class="icon"></i>
+  1247→        <span class="label">Open in new tab</span>
+  1248→      </div>
+  1249→    ` : `
+  1250→      <div class="menu-item" data-action="open-with">
+  1251→        <i data-lucide="app-window" class="icon"></i>
+  1252→        <span class="label">Open with…</span>
+  1253→        <i data-lucide="chevron-right" class="menu-arrow"></i>
+  1254→      </div>
+  1255→    `}
+  1256→    <div class="menu-separator"></div>
+  1257→    <div class="menu-item" data-action="copy">
+  1258→      <i data-lucide="copy" class="icon"></i>
+  1259→      <span class="label">Copy</span>
+  1260→      <span class="shortcut">Ctrl+C</span>
+  1261→    </div>
+  1262→    <div class="menu-item" data-action="cut">
+  1263→      <i data-lucide="scissors" class="icon"></i>
+  1264→      <span class="label">Cut</span>
+  1265→      <span class="shortcut">Ctrl+X</span>
+  1266→    </div>
+  1267→    <div class="menu-item ${multi ? 'disabled' : ''}" data-action="duplicate">
+  1268→      <i data-lucide="copy-plus" class="icon"></i>
+  1269→      <span class="label">Duplicate</span>
+  1270→    </div>
+  1271→    <div class="menu-item ${multi ? 'disabled' : ''}" data-action="rename">
+  1272→      <i data-lucide="pencil-line" class="icon"></i>
+  1273→      <span class="label">Rename…</span>
+  1274→      <span class="shortcut">F2</span>
+  1275→    </div>
+  1276→    <div class="menu-separator"></div>
+  1277→    <div class="menu-item" data-action="properties">
+  1278→      <i data-lucide="info" class="icon"></i>
+  1279→      <span class="label">Properties</span>
+  1280→    </div>
+  1281→    <div class="menu-separator"></div>
+  1282→    <div class="menu-item danger" data-action="trash">
+  1283→      <i data-lucide="trash-2" class="icon"></i>
+  1284→      <span class="label">Move to Trash</span>
+  1285→      <span class="shortcut">Del</span>
+  1286→    </div>
+  1287→  `;
+  1288→
+  1289→  positionMenu(menu, x, y);
+  1290→  if (window.lucide) lucide.createIcons();
+  1291→
+  1292→  menu.querySelectorAll('.menu-item').forEach(mi => {
+  1293→    mi.addEventListener('click', () => {
+  1294→      if (mi.classList.contains('disabled')) return;
+  1295→      const action = mi.dataset.action;
+  1296→      closeAllMenus();
+  1297→      handleFileAction(action, nodeId);
+  1298→    });
+  1299→  });
+  1300→}
+  1301→
+  1302→function handleFileAction(action, nodeId) {
+  1303→  switch (action) {
+  1304→    case 'open': {
+  1305→      const node = fsNodes.get(nodeId);
+  1306→      if (node) {
+  1307→        if (node.type === 'folder') navigateTo(nodeId);
+  1308→        else showProperties(nodeId);
+  1309→      }
+  1310→      break;
+  1311→    }
+  1312→    case 'open-new-tab':
+  1313→      createTab(nodeId);
+  1314→      renderAll();
+  1315→      break;
+  1316→    case 'open-with':
+  1317→      showToast('Application picker is illustrative in this demo', 'info');
+  1318→      break;
+  1319→    case 'copy': copySelection(); break;
+  1320→    case 'cut': cutSelection(); break;
+  1321→    case 'rename':
+  1322→      if (state.selection.size === 1) showRenameDialog(nodeId);
+  1323→      break;
+  1324→    case 'duplicate': duplicateNode(nodeId); break;
+  1325→    case 'properties': showProperties(nodeId); break;
+  1326→    case 'trash': trashSelection(); break;
+  1327→  }
+  1328→}
+  1329→
+  1330→function showBackgroundContextMenu(x, y) {
+  1331→  closeAllMenus();
+  1332→  const tab = getActiveTab();
+  1333→  const isDashboard = tab && tab.nodeId === 'dashboard';
+  1334→  
+  1335→  const menu = document.createElement('div');
+  1336→  menu.className = 'context-menu';
+  1337→  menu.innerHTML = `
+  1338→    <div class="menu-item ${isDashboard ? 'disabled' : ''}" data-action="new-folder">
+  1339→      <i data-lucide="folder-plus" class="icon"></i>
+  1340→      <span class="label">New folder</span>
+  1341→      <span class="shortcut">Ctrl+Shift+N</span>
+  1342→    </div>
+  1343→    <div class="menu-item ${isDashboard ? 'disabled' : ''}" data-action="new-file">
+  1344→      <i data-lucide="file-plus" class="icon"></i>
+  1345→      <span class="label">New file</span>
+  1346→    </div>
+  1347→    <div class="menu-item" data-action="import">
+  1348→      <i data-lucide="upload" class="icon"></i>
+  1349→      <span class="label">Import files…</span>
+  1350→    </div>
+  1351→    <div class="menu-separator"></div>
+  1352→    <div class="menu-item ${(!state.clipboard || isDashboard) ? 'disabled' : ''}" data-action="paste">
+  1353→      <i data-lucide="clipboard-paste" class="icon"></i>
+  1354→      <span class="label">Paste</span>
+  1355→      <span class="shortcut">Ctrl+V</span>
+  1356→    </div>
+  1357→    <div class="menu-separator"></div>
+  1358→    <div class="menu-item" data-action="select-all">
+  1359→      <i data-lucide="square-mouse-pointer" class="icon"></i>
+  1360→      <span class="label">Select all</span>
+  1361→      <span class="shortcut">Ctrl+A</span>
+  1362→    </div>
+  1363→    <div class="menu-item" data-action="refresh">
+  1364→      <i data-lucide="refresh-cw" class="icon"></i>
+  1365→      <span class="label">Refresh</span>
+  1366→      <span class="shortcut">F5</span>
+  1367→    </div>
+  1368→    <div class="menu-separator"></div>
+  1369→    <div class="menu-item" data-action="properties-folder">
+  1370→      <i data-lucide="info" class="icon"></i>
+  1371→      <span class="label">Properties</span>
+  1372→    </div>
+  1373→  `;
+  1374→
+  1375→  positionMenu(menu, x, y);
+  1376→  if (window.lucide) lucide.createIcons();
+  1377→
+  1378→  menu.querySelectorAll('.menu-item').forEach(mi => {
+  1379→    mi.addEventListener('click', () => {
+  1380→      if (mi.classList.contains('disabled')) return;
+  1381→      const action = mi.dataset.action;
+  1382→      closeAllMenus();
+  1383→      switch (action) {
+  1384→        case 'new-folder': showNewFolderDialog(); break;
+  1385→        case 'new-file': showNewFileDialog(); break;
+  1386→        case 'import': triggerFileImport(); break;
+  1387→        case 'paste': pasteClipboard(); break;
+  1388→        case 'select-all': selectAll(); break;
+  1389→        case 'refresh':
+  1390→          renderAll();
+  1391→          showToast('Refreshed', 'info');
+  1392→          break;
+  1393→        case 'properties-folder':
+  1394→          if (tab) showProperties(tab.nodeId);
+  1395→          break;
+  1396→      }
+  1397→    });
+  1398→  });
+  1399→}
+  1400→
+  1401→function showSortMenu(x, y, openAbove = false) {
+  1402→  closeAllMenus();
+  1403→  const options = [
+  1404→    { key: 'name', label: 'Name' },
+  1405→    { key: 'size', label: 'Size' },
+  1406→    { key: 'type', label: 'Type' },
+  1407→    { key: 'modified', label: 'Date modified' },
+  1408→  ];
+  1409→  const menu = document.createElement('div');
+  1410→  menu.className = 'context-menu';
+  1411→  menu.innerHTML = `<div class="menu-section-label">Sort by</div>` +
+  1412→    options.map(o => `
+  1413→      <div class="menu-item" data-sort="${o.key}">
+  1414→        <i data-lucide="${state.sortBy === o.key ? 'check' : 'circle'}" class="icon" style="${state.sortBy === o.key ? 'color:var(--accent)' : 'opacity:0'}"></i>
+  1415→        <span class="label">${o.label}</span>
+  1416→      </div>
+  1417→    `).join('') +
+  1418→    `<div class="menu-separator"></div>
+  1419→    <div class="menu-section-label">Order</div>
+  1420→    <div class="menu-item" data-dir="asc">
+  1421→      <i data-lucide="${state.sortDir === 'asc' ? 'check' : 'circle'}" class="icon" style="${state.sortDir === 'asc' ? 'color:var(--accent)' : 'opacity:0'}"></i>
+  1422→      <span class="label">Ascending</span>
+  1423→    </div>
+  1424→    <div class="menu-item" data-dir="desc">
+  1425→      <i data-lucide="${state.sortDir === 'desc' ? 'check' : 'circle'}" class="icon" style="${state.sortDir === 'desc' ? 'color:var(--accent)' : 'opacity:0'}"></i>
+  1426→      <span class="label">Descending</span>
+  1427→    </div>`;
+  1428→  positionMenu(menu, x, y, openAbove);
+  1429→  if (window.lucide) lucide.createIcons();
+  1430→
+  1431→  menu.querySelectorAll('[data-sort]').forEach(mi => {
+  1432→    mi.addEventListener('click', () => {
+  1433→      state.sortBy = mi.dataset.sort;
+  1434→      state.sortDir = 'asc';
+  1435→      closeAllMenus();
+  1436→      renderContent();
+  1437→      renderStatusbar();
+  1438→    });
+  1439→  });
+  1440→  menu.querySelectorAll('[data-dir]').forEach(mi => {
+  1441→    mi.addEventListener('click', () => {
+  1442→      state.sortDir = mi.dataset.dir;
+  1443→      closeAllMenus();
+  1444→      renderContent();
+  1445→      renderStatusbar();
+  1446→    });
+  1447→  });
+  1448→}
+  1449→
+  1450→function showMoreMenu(x, y) {
+  1451→  closeAllMenus();
+  1452→  const menu = document.createElement('div');
+  1453→  menu.className = 'context-menu';
+  1454→  menu.innerHTML = `
+  1455→    <div class="menu-item" data-action="select-all">
+  1456→      <i data-lucide="square-mouse-pointer" class="icon"></i>
+  1457→      <span class="label">Select all</span>
+  1458→      <span class="shortcut">Ctrl+A</span>
+  1459→    </div>
+  1460→    <div class="menu-item" data-action="invert">
+  1461→      <i data-lucide="list-checks" class="icon"></i>
+  1462→      <span class="label">Invert selection</span>
+  1463→    </div>
+  1464→    <div class="menu-separator"></div>
+  1465→    <div class="menu-item" data-action="terminal">
+  1466→      <i data-lucide="terminal" class="icon"></i>
+  1467→      <span class="label">Open terminal here</span>
+  1468→    </div>
+  1469→    <div class="menu-item" data-action="import">
+  1470→      <i data-lucide="upload" class="icon"></i>
+  1471→      <span class="label">Import files…</span>
+  1472→    </div>
+  1473→    <div class="menu-item" data-action="export">
+  1474→      <i data-lucide="download" class="icon"></i>
+  1475→      <span class="label">Export listing…</span>
+  1476→    </div>
+  1477→    <div class="menu-separator"></div>
+  1478→    <div class="menu-item" data-action="properties-folder">
+  1479→      <i data-lucide="info" class="icon"></i>
+  1480→      <span class="label">Folder properties</span>
+  1481→    </div>
+  1482→  `;
+  1483→  positionMenu(menu, x, y);
+  1484→  if (window.lucide) lucide.createIcons();
+  1485→
+  1486→  menu.querySelectorAll('.menu-item').forEach(mi => {
+  1487→    mi.addEventListener('click', () => {
+  1488→      const action = mi.dataset.action;
+  1489→      closeAllMenus();
+  1490→      switch (action) {
+  1491→        case 'select-all': selectAll(); break;
+  1492→        case 'invert': {
+  1493→          const items = getCurrentItems();
+  1494→          const newSel = new Set();
+  1495→          items.forEach(it => { if (!state.selection.has(it.id)) newSel.add(it.id); });
+  1496→          state.selection = newSel;
+  1497→          const tab = getActiveTab();
+  1498→          if (tab) tab.selectedIds = state.selection;
+  1499→          updateSelectionUI();
+  1500→          break;
+  1501→        }
+  1502→        case 'terminal': showToast('Terminal requires system integration not available in browser', 'info'); break;
+  1503→        case 'import': triggerFileImport(); break;
+  1504→        case 'export': showToast('Listing exported to clipboard', 'success'); break;
+  1505→        case 'properties-folder':
+  1506→          const tab = getActiveTab();
+  1507→          if (tab) showProperties(tab.nodeId);
+  1508→          break;
+  1509→      }
+  1510→    });
+  1511→  });
+  1512→}
+  1513→
+  1514→function showTabContextMenu(x, y, tabId) {
+  1515→  closeAllMenus();
+  1516→  const menu = document.createElement('div');
+  1517→  menu.className = 'context-menu';
+  1518→  menu.innerHTML = `
+  1519→    <div class="menu-item" data-action="new-tab-right">
+  1520→      <i data-lucide="plus" class="icon"></i>
+  1521→      <span class="label">New tab to the right</span>
+  1522→    </div>
+  1523→    <div class="menu-item" data-action="duplicate-tab">
+  1524→      <i data-lucide="copy" class="icon"></i>
+  1525→      <span class="label">Duplicate this tab</span>
+  1526→    </div>
+  1527→    <div class="menu-separator"></div>
+  1528→    <div class="menu-item" data-action="close">
+  1529→      <i data-lucide="x" class="icon"></i>
+  1530→      <span class="label">Close tab</span>
+  1531→    </div>
+  1532→    <div class="menu-item" data-action="close-others">
+  1533→      <i data-lucide="square-x" class="icon"></i>
+  1534→      <span class="label">Close other tabs</span>
+  1535→    </div>
+  1536→  `;
+  1537→  positionMenu(menu, x, y);
+  1538→  if (window.lucide) lucide.createIcons();
+  1539→
+  1540→  menu.querySelectorAll('.menu-item').forEach(mi => {
+  1541→    mi.addEventListener('click', () => {
+  1542→      const action = mi.dataset.action;
+  1543→      closeAllMenus();
+  1544→      const tab = state.tabs.find(t => t.id === tabId);
+  1545→      if (!tab) return;
+  1546→      switch (action) {
+  1547→        case 'new-tab-right':
+  1548→          createTab(tab.nodeId);
+  1549→          renderAll();
+  1550→          break;
+  1551→        case 'duplicate-tab':
+  1552→          const dup = createTab(tab.nodeId);
+  1553→          state.activeTabId = dup.id;
+  1554→          renderAll();
+  1555→          break;
+  1556→        case 'close':
+  1557→          closeTab(tabId);
+  1558→          break;
+  1559→        case 'close-others':
+  1560→          state.tabs = state.tabs.filter(t => t.id === tabId);
+  1561→          state.activeTabId = tabId;
+  1562→          renderAll();
+  1563→          break;
+  1564→      }
+  1565→    });
+  1566→  });
+  1567→}
+  1568→
+  1569→// ============================================================
+  1570→//  File operations
+  1571→// ============================================================
+  1572→
+  1573→function copySelection() {
+  1574→  if (state.selection.size === 0) return;
+  1575→  state.clipboard = { mode: 'copy', ids: Array.from(state.selection) };
+  1576→  updateActionButtons();
+  1577→  showToast(`Copied ${state.selection.size} item${state.selection.size > 1 ? 's' : ''}`, 'success');
+  1578→}
+  1579→
+  1580→function cutSelection() {
+  1581→  if (state.selection.size === 0) return;
+  1582→  state.clipboard = { mode: 'cut', ids: Array.from(state.selection) };
+  1583→  updateActionButtons();
+  1584→  showToast(`Cut ${state.selection.size} item${state.selection.size > 1 ? 's' : ''}`, 'success');
+  1585→}
+  1586→
+  1587→function pasteClipboard() {
+  1588→  if (!state.clipboard) return;
+  1589→  const tab = getActiveTab();
+  1590→  if (!tab || tab.nodeId === 'dashboard') return;
+  1591→  
+  1592→  const dest = fsNodes.get(tab.nodeId);
+  1593→  if (!dest || !dest.children) return;
+  1594→
+  1595→  let count = 0;
+  1596→  for (const id of state.clipboard.ids) {
+  1597→    const node = fsNodes.get(id);
+  1598→    if (!node) continue;
+  1599→    if (state.clipboard.mode === 'cut' && (id === tab.nodeId || isAncestor(id, tab.nodeId))) continue;
+  1600→
+  1601→    let newName = node.name;
+  1602→    if (state.clipboard.mode === 'copy') {
+  1603→      newName = getUniqueName(dest, node.name);
+  1604→      cloneNodeTree(node, dest, newName);
+  1605→    } else {
+  1606→      const oldParent = fsNodes.get(node.parentId);
+  1607→      if (oldParent) {
+  1608→        const idx = oldParent.children.indexOf(id);
+  1609→        if (idx >= 0) oldParent.children.splice(idx, 1);
+  1610→      }
+  1611→      node.parentId = dest.id;
+  1612→      node.name = newName;
+  1613→      dest.children.push(id);
+  1614→    }
+  1615→    count++;
+  1616→  }
+  1617→
+  1618→  if (state.clipboard.mode === 'cut') state.clipboard = null;
+  1619→  state.selection.clear();
+  1620→  renderAll();
+  1621→  if (count > 0) showToast(`Pasted ${count} item${count > 1 ? 's' : ''}`, 'success');
+  1622→}
+  1623→
+  1624→function cloneNodeTree(node, parent, name) {
+  1625→  const clone = createNode({
+  1626→    name: name,
+  1627→    type: node.type,
+  1628→    parentId: parent.id,
+  1629→    size: node.size,
+  1630→    meta: { ...node.meta },
+  1631→  });
+  1632→  parent.children.push(clone.id);
+  1633→  if (node.children) {
+  1634→    for (const cid of node.children) {
+  1635→      const child = fsNodes.get(cid);
+  1636→      if (child) cloneNodeTree(child, clone, child.name);
+  1637→    }
+  1638→  }
+  1639→  return clone;
+  1640→}
+  1641→
+  1642→function getUniqueName(parent, name) {
+  1643→  if (!getChildByName(parent.id, name)) return name;
+  1644→  const dot = name.lastIndexOf('.');
+  1645→  const base = dot > 0 ? name.substring(0, dot) : name;
+  1646→  const ext = dot > 0 ? name.substring(dot) : '';
+  1647→  let i = 1;
+  1648→  while (getChildByName(parent.id, `${base} (copy${i > 1 ? ' ' + i : ''})${ext}`)) i++;
+  1649→  return `${base} (copy${i > 1 ? ' ' + i : ''})${ext}`;
+  1650→}
+  1651→
+  1652→function trashSelection() {
+  1653→  if (state.selection.size === 0) return;
+  1654→  const count = state.selection.size;
+  1655→
+  1656→  if (count >= 3) {
+  1657→    showConfirmDialog(
+  1658→      `Move ${count} items to trash?`,
+  1659→      `These ${count} items will be moved to the trash. You can restore them later from the Trash.`,
+  1660→      () => doTrash()
+  1661→    );
+  1662→  } else {
+  1663→    doTrash();
+  1664→  }
+  1665→}
+  1666→
+  1667→function doTrash() {
+  1668→  const tab = getActiveTab();
+  1669→  if (!tab) return;
+  1670→  const parent = fsNodes.get(tab.nodeId);
+  1671→  if (!parent || !parent.children) return;
+  1672→
+  1673→  const count = state.selection.size;
+  1674→  for (const id of state.selection) {
+  1675→    const idx = parent.children.indexOf(id);
+  1676→    if (idx >= 0) parent.children.splice(idx, 1);
+  1677→  }
+  1678→  state.selection.clear();
+  1679→  renderAll();
+  1680→  showToast(`Moved ${count} item${count > 1 ? 's' : ''} to trash`, 'success');
+  1681→}
+  1682→
+  1683→function duplicateNode(nodeId) {
+  1684→  const node = fsNodes.get(nodeId);
+  1685→  if (!node || !node.parentId) return;
+  1686→  const parent = fsNodes.get(node.parentId);
+  1687→  if (!parent) return;
+  1688→  const newName = getUniqueName(parent, node.name);
+  1689→  cloneNodeTree(node, parent, newName);
+  1690→  state.selection.clear();
+  1691→  renderAll();
+  1692→  showToast('Item duplicated', 'success');
+  1693→}
+  1694→
+  1695→function showRenameDialog(nodeId) {
+  1696→  const node = fsNodes.get(nodeId);
+  1697→  if (!node) return;
+  1698→  showDialog({
+  1699→    title: 'Rename item',
+  1700→    desc: 'Enter a new name for this item.',
+  1701→    input: { value: node.name, selectName: true },
+  1702→    primaryLabel: 'Rename',
+  1703→    onPrimary: (val) => {
+  1704→      if (!val || val === node.name) return;
+  1705→      const parent = fsNodes.get(node.parentId);
+  1706→      if (parent && getChildByName(parent.id, val) && val !== node.name) {
+  1707→        showToast('An item with this name already exists', 'error');
+  1708→        return;
+  1709→      }
+  1710→      node.name = val;
+  1711→      node.modified = new Date();
+  1712→      renderAll();
+  1713→      showToast('Renamed successfully', 'success');
+  1714→    }
+  1715→  });
+  1716→}
+  1717→
+  1718→function showNewFolderDialog() {
+  1719→  const tab = getActiveTab();
+  1720→  if (!tab || tab.nodeId === 'dashboard') {
+  1721→    showToast('Cannot create folders on the Dashboard', 'info');
+  1722→    return;
+  1723→  }
+  1724→  const parent = fsNodes.get(tab.nodeId);
+  1725→  if (!parent) return;
+  1726→  const name = getUniqueName(parent, 'New Folder');
+  1727→  showDialog({
+  1728→    title: 'New folder',
+  1729→    desc: 'Enter a name for the new folder.',
+  1730→    input: { value: name, selectName: true },
+  1731→    primaryLabel: 'Create',
+  1732→    onPrimary: (val) => {
+  1733→      if (!val) return;
+  1734→      if (getChildByName(parent.id, val)) {
+  1735→        showToast('An item with this name already exists', 'error');
+  1736→        return;
+  1737→      }
+  1738→      const node = createNode({ name: val, type: 'folder', parentId: parent.id });
+  1739→      parent.children.push(node.id);
+  1740→      parent.expanded = true;
+  1741→      renderAll();
+  1742→      showToast('Folder created', 'success');
+  1743→    }
+  1744→  });
+  1745→}
+  1746→
+  1747→function showNewFileDialog() {
+  1748→  const tab = getActiveTab();
+  1749→  if (!tab || tab.nodeId === 'dashboard') {
+  1750→    showToast('Cannot create files on the Dashboard', 'info');
+  1751→    return;
+  1752→  }
+  1753→  const parent = fsNodes.get(tab.nodeId);
+  1754→  if (!parent) return;
+  1755→  const name = getUniqueName(parent, 'untitled.txt');
+  1756→  showDialog({
+  1757→    title: 'New file',
+  1758→    desc: 'Enter a name for the new file.',
+  1759→    input: { value: name, selectName: true },
+  1760→    primaryLabel: 'Create',
+  1761→    onPrimary: (val) => {
+  1762→      if (!val) return;
+  1763→      if (getChildByName(parent.id, val)) {
+  1764→        showToast('An item with this name already exists', 'error');
+  1765→        return;
+  1766→      }
+  1767→      const node = createNode({ name: val, type: 'text', parentId: parent.id, size: 0 });
+  1768→      parent.children.push(node.id);
+  1769→      renderAll();
+  1770→      showToast('File created', 'success');
+  1771→    }
+  1772→  });
+  1773→}
+  1774→
+  1775→// ============================================================
+  1776→//  Properties panel
+  1777→// ============================================================
+  1778→
+  1779→let propertiesPanelEl = null;
+  1780→
+  1781→function showProperties(nodeId) {
+  1782→  const node = fsNodes.get(nodeId);
+  1783→  if (!node || node.type === 'dashboard') return;
+  1784→
+  1785→  if (propertiesPanelEl) propertiesPanelEl.remove();
+  1786→
+  1787→  const meta = getFileMeta(node);
+  1788→  const location = getPath(nodeId).slice(0, -1).map(p => p.name).join(' / ') || '/';
+  1789→
+  1790→  let preview = `<div class="prop-preview"><i data-lucide="${meta.icon}" class="${meta.class}"></i></div>`;
+  1791→
+  1792→  let rows = `
+  1793→    <div class="prop-row"><span class="key">Type</span><span class="val">${meta.label}</span></div>
+  1794→    <div class="prop-row"><span class="key">Location</span><span class="val" title="${escapeHtml(location)}">${escapeHtml(location)}</span></div>
+  1795→    <div class="prop-row"><span class="key">Size</span><span class="val">${node.type === 'folder' ? '—' : formatSize(node.size)}</span></div>
+  1796→    <div class="prop-row"><span class="key">Modified</span><span class="val">${formatDate(node.modified)}</span></div>
+  1797→  `;
+  1798→
+  1799→  if (node.type === 'image' && node.meta.w) {
+  1800→    rows += `<div class="prop-row"><span class="key">Dimensions</span><span class="val">${node.meta.w} × ${node.meta.h}</span></div>`;
+  1801→  }
+  1802→  if (node.type === 'folder') {
+  1803→    const childCount = node.children ? node.children.length : 0;
+  1804→    rows += `<div class="prop-row"><span class="key">Items</span><span class="val">${childCount}</span></div>`;
+  1805→  }
+  1806→
+  1807→  const panel = document.createElement('div');
+  1808→  panel.className = 'properties-panel';
+  1809→  panel.innerHTML = `
+  1810→    <div class="properties-header">
+  1811→      <div class="icon-wrap"><i data-lucide="${meta.icon}" class="${meta.class}"></i></div>
+  1812→      <div style="overflow:hidden;flex:1">
+  1813→        <div class="name">${escapeHtml(node.name)}</div>
+  1814→        <div class="type">${meta.label}</div>
+  1815→      </div>
+  1816→      <button class="properties-close" id="propClose">
+  1817→        <i data-lucide="x"></i>
+  1818→      </button>
+  1819→    </div>
+  1820→    <div class="properties-body">
+  1821→      ${preview}
+  1822→      ${rows}
+  1823→    </div>
+  1824→  `;
+  1825→
+  1826→  document.body.appendChild(panel);
+  1827→  propertiesPanelEl = panel;
+  1828→  if (window.lucide) lucide.createIcons();
+  1829→
+  1830→  document.getElementById('propClose').addEventListener('click', () => {
+  1831→    panel.remove();
+  1832→    propertiesPanelEl = null;
+  1833→  });
+  1834→}
+  1835→
+  1836→// ============================================================
+  1837→//  Dialogs
+  1838→// ============================================================
+  1839→
+  1840→function showDialog({ title, desc, input, primaryLabel, onPrimary, danger }) {
+  1841→  const backdrop = document.createElement('div');
+  1842→  backdrop.className = 'dialog-backdrop';
+  1843→
+  1844→  const inputHtml = input ? `<input type="text" class="dialog-input" id="dialogInput" value="${escapeHtml(input.value)}">` : '';
+  1845→
+  1846→  backdrop.innerHTML = `
+  1847→    <div class="dialog">
+  1848→      <div class="dialog-title">${escapeHtml(title)}</div>
+  1849→      ${desc ? `<div class="dialog-desc">${escapeHtml(desc)}</div>` : ''}
+  1850→      ${inputHtml}
+  1851→      <div class="dialog-actions">
+  1852→        <button class="btn btn-secondary" id="dialogCancel">Cancel</button>
+  1853→        <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="dialogPrimary">${escapeHtml(primaryLabel)}</button>
+  1854→      </div>
+  1855→    </div>
+  1856→  `;
+  1857→
+  1858→  document.body.appendChild(backdrop);
+  1859→  if (window.lucide) lucide.createIcons();
+  1860→
+  1861→  const inputEl = document.getElementById('dialogInput');
+  1862→  if (inputEl) {
+  1863→    setTimeout(() => {
+  1864→      inputEl.focus();
+  1865→      if (input && input.selectName) {
+  1866→        const dot = inputEl.value.lastIndexOf('.');
+  1867→        if (dot > 0) inputEl.setSelectionRange(0, dot);
+  1868→        else inputEl.select();
+  1869→      } else {
+  1870→        inputEl.select();
+  1871→      }
+  1872→    }, 30);
+  1873→
+  1874→    inputEl.addEventListener('keydown', (e) => {
+  1875→      if (e.key === 'Enter') {
+  1876→        const val = inputEl.value.trim();
+  1877→        backdrop.remove();
+  1878→        if (onPrimary) onPrimary(val);
+  1879→      } else if (e.key === 'Escape') {
+  1880→        backdrop.remove();
+  1881→      }
+  1882→    });
+  1883→  }
+  1884→
+  1885→  document.getElementById('dialogCancel').addEventListener('click', () => backdrop.remove());
+  1886→  document.getElementById('dialogPrimary').addEventListener('click', () => {
+  1887→    const val = inputEl ? inputEl.value.trim() : true;
+  1888→    backdrop.remove();
+  1889→    if (onPrimary) onPrimary(val);
+  1890→  });
+  1891→
+  1892→  backdrop.addEventListener('click', (e) => {
+  1893→    if (e.target === backdrop) backdrop.remove();
+  1894→  });
+  1895→}
+  1896→
+  1897→function showConfirmDialog(title, desc, onConfirm) {
+  1898→  showDialog({
+  1899→    title, desc, primaryLabel: 'Move to Trash', danger: true, onPrimary: () => onConfirm()
+  1900→  });
+  1901→}
+  1902→
+  1903→// ============================================================
+  1904→//  Toasts
+  1905→// ============================================================
+  1906→
+  1907→function showToast(message, type = 'info') {
+  1908→  const container = document.getElementById('toastContainer');
+  1909→  const toast = document.createElement('div');
+  1910→  toast.className = `toast ${type}`;
+  1911→  const iconName = type === 'success' ? 'check-circle-2' : type === 'error' ? 'alert-circle' : 'info';
+  1912→  toast.innerHTML = `<i data-lucide="${iconName}" class="icon"></i><span>${escapeHtml(message)}</span>`;
+  1913→  container.appendChild(toast);
+  1914→  if (window.lucide) lucide.createIcons();
+  1915→  setTimeout(() => {
+  1916→    toast.style.opacity = '0';
+  1917→    toast.style.transform = 'translateX(24px)';
+  1918→    toast.style.transition = 'all 200ms';
+  1919→    setTimeout(() => toast.remove(), 200);
+  1920→  }, 2600);
+  1921→}
+  1922→
+  1923→// ============================================================
+  1924→//  Utilities
+  1925→// ============================================================
+  1926→
+  1927→function escapeHtml(str) {
+  1928→  if (str == null) return '';
+  1929→  return String(str).replace(/[&<>"']/g, m => ({
+  1930→    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  1931→  }[m]));
+  1932→}
+  1933→
+  1934→function selectAll() {
+  1935→  const items = getCurrentItems();
+  1936→  state.selection.clear();
+  1937→  items.forEach(it => state.selection.add(it.id));
+  1938→  const tab = getActiveTab();
+  1939→  if (tab) tab.selectedIds = state.selection;
+  1940→  updateSelectionUI();
+  1941→}
+  1942→
+  1943→function triggerFileImport() {
+  1944→  const tab = getActiveTab();
+  1945→  if (!tab || tab.nodeId === 'dashboard') {
+  1946→    showToast('Cannot import files directly to the Dashboard', 'info');
+  1947→    return;
+  1948→  }
+  1949→
+  1950→  const input = document.createElement('input');
+  1951→  input.type = 'file';
+  1952→  input.multiple = true;
+  1953→  input.onchange = (e) => {
+  1954→    const files = e.target.files;
+  1955→    const parent = fsNodes.get(tab.nodeId);
+  1956→    if (!parent) return;
+  1957→    for (const f of files) {
+  1958→      const ext = f.name.split('.').pop().toLowerCase();
+  1959→      let type = 'generic';
+  1960→      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) type = 'image';
+  1961→      else if (['mp4', 'mkv', 'mov', 'avi', 'webm'].includes(ext)) type = 'video';
+  1962→      else if (['mp3', 'ogg', 'flac', 'wav', 'm4a'].includes(ext)) type = 'audio';
+  1963→      else if (['zip', 'tar', 'gz', 'bz2', '7z', 'rar', 'borg'].includes(ext)) type = 'archive';
+  1964→      else if (['js', 'ts', 'tsx', 'jsx', 'py', 'go', 'rs', 'java', 'c', 'cpp', 'rb', 'php', 'sh', 'json', 'yaml', 'yml', 'toml', 'css', 'html'].includes(ext)) type = 'code';
+  1965→      else if (['txt', 'md', 'rst'].includes(ext)) type = 'text';
+  1966→      else if (ext === 'pdf') type = 'pdf';
+  1967→      else if (['doc', 'docx', 'odt', 'rtf'].includes(ext)) type = 'doc';
+  1968→      else if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) type = 'sheet';
+  1969→      else if (['deb', 'rpm', 'appimage', 'snap'].includes(ext)) type = 'app';
+  1970→
+  1971→      const node = createNode({
+  1972→        name: f.name,
+  1973→        type: type,
+  1974→        size: f.size,
+  1975→        parentId: parent.id,
+  1976→      });
+  1977→      parent.children.push(node.id);
+  1978→    }
+  1979→    renderAll();
+  1980→    showToast(`Imported ${files.length} file${files.length > 1 ? 's' : ''}`, 'success');
+  1981→  };
+  1982→  input.click();
+  1983→}
+  1984→
+  1985→// ============================================================
+  1986→//  Event wiring
+  1987→// ============================================================
+  1988→
+  1989→function initEvents() {
+  1990→  document.getElementById('backBtn').addEventListener('click', goBack);
+  1991→  document.getElementById('forwardBtn').addEventListener('click', goForward);
+  1992→  document.getElementById('upBtn').addEventListener('click', goUp);
+  1993→  document.getElementById('refreshBtn').addEventListener('click', () => {
+  1994→    renderAll();
+  1995→    showToast('Refreshed', 'info');
+  1996→  });
+  1997→
+  1998→  document.getElementById('searchInput').addEventListener('input', (e) => {
+  1999→    state.searchQuery = e.target.value;
+  2000→    renderContent();
+
+[showing lines 1-2000 of 4684; use offset=2001 with limit to continue reading]

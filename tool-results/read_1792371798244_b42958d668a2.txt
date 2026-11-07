@@ -1,0 +1,2002 @@
+     1→<!DOCTYPE html>
+     2→<html lang="en">
+     3→<head>
+     4→<meta charset="UTF-8">
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0">
+     6→<title>Aether — Files</title>
+     7→<link rel="preconnect" href="https://fonts.googleapis.com">
+     8→<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     9→<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    10→<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    11→<style>
+    12→:root {
+    13→  --bg-sidebar: #FFFFFF;
+    14→  --bg-tabbar: #F0EDE8;
+    15→  --bg-workspace: #FBFAF8;
+    16→  --bg-statusbar: #F0EDE8;
+    17→  --bg-elevated: #FFFFFF;
+    18→  --bg-elevated-2: #EDE9E3;
+    19→  --bg-group: rgba(0, 0, 0, 0.05);
+    20→  --bg-hover: rgba(0, 0, 0, 0.045);
+    21→  --bg-active: rgba(0, 0, 0, 0.075);
+    22→  --bg-selected: rgba(11, 87, 208, 0.09);
+    23→  --bg-selected-hover: rgba(11, 87, 208, 0.14);
+    24→
+    25→  --border: rgba(0, 0, 0, 0.065);
+    26→  --border-strong: rgba(0, 0, 0, 0.11);
+    27→  --border-accent: rgba(11, 87, 208, 0.35);
+    28→
+    29→  --text-primary: #1C1B1F;
+    30→  --text-secondary: #49454F;
+    31→  --text-muted: #79747E;
+    32→  --text-faint: #A8A2AD;
+    33→
+    34→  --accent: #0B57D0;
+    35→  --accent-hover: #0842A0;
+    36→  --accent-active: #063483;
+    37→  --accent-soft: rgba(11, 87, 208, 0.08);
+    38→  --accent-on: #FFFFFF;
+    39→
+    40→  --success: #1F7A4D;
+    41→  --warning: #B2651C;
+    42→  --error: #B3261E;
+    43→  --info: #00639B;
+    44→
+    45→  --radius-sm: 6px;
+    46→  --radius-md: 10px;
+    47→  --radius-lg: 14px;
+    48→  --radius-xl: 20px;
+    49→
+    50→  --tr-fast: 100ms cubic-bezier(0.4, 0, 0.2, 1);
+    51→  --tr-base: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    52→  --tr-slow: 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    53→
+    54→  --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.04);
+    55→  --shadow-dialog: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+    56→
+    57→  --sidebar-w: 264px;
+    58→  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    59→  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+    60→}
+    61→
+    62→* { box-sizing: border-box; margin: 0; padding: 0; }
+    63→
+    64→html, body {
+    65→  height: 100%;
+    66→  overflow: hidden;
+    67→  background: var(--bg-tabbar);
+    68→  color: var(--text-primary);
+    69→  font-family: var(--font-sans);
+    70→  font-size: 13px;
+    71→  line-height: 1.4;
+    72→  -webkit-font-smoothing: antialiased;
+    73→  -moz-osx-font-smoothing: grayscale;
+    74→  user-select: none;
+    75→}
+    76→
+    77→button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    78→input { font-family: inherit; }
+    79→
+    80→/* ===== App layout ===== */
+    81→.app {
+    82→  display: grid;
+    83→  grid-template-columns: var(--sidebar-w) 1fr;
+    84→  height: 100vh;
+    85→  width: 100vw;
+    86→}
+    87→
+    88→/* ===== Sidebar ===== */
+    89→.sidebar {
+    90→  background: var(--bg-sidebar);
+    91→  border-right: 1px solid var(--border);
+    92→  display: flex;
+    93→  flex-direction: column;
+    94→  overflow: hidden;
+    95→  position: relative;
+    96→}
+    97→
+    98→.sidebar-header {
+    99→  padding: 16px 16px 10px;
+   100→  display: flex;
+   101→  align-items: center;
+   102→  gap: 11px;
+   103→  height: 56px;
+   104→  flex-shrink: 0;
+   105→}
+   106→
+   107→.brand-mark {
+   108→  width: 28px; height: 28px;
+   109→  border-radius: 8px;
+   110→  background: linear-gradient(135deg, #4285F4 0%, #0B57D0 100%);
+   111→  display: grid; place-items: center;
+   112→  color: #FFFFFF;
+   113→  font-weight: 800;
+   114→  font-size: 14px;
+   115→  letter-spacing: -0.02em;
+   116→  box-shadow: 0 2px 6px rgba(11, 87, 208, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+   117→}
+   118→
+   119→.brand-name {
+   120→  font-weight: 600;
+   121→  font-size: 14px;
+   122→  letter-spacing: -0.005em;
+   123→  color: var(--text-primary);
+   124→}
+   125→.brand-name .dim { color: var(--text-muted); font-weight: 400; }
+   126→
+   127→.sidebar-scroll {
+   128→  flex: 1;
+   129→  overflow-y: auto;
+   130→  overflow-x: hidden;
+   131→  padding: 4px 6px 16px;
+   132→}
+   133→
+   134→.nav-section { margin-bottom: 8px; }
+   135→
+   136→.nav-section-title {
+   137→  font-size: 11px;
+   138→  font-weight: 600;
+   139→  color: var(--text-muted);
+   140→  letter-spacing: 0.06em;
+   141→  text-transform: uppercase;
+   142→  padding: 10px 12px 4px;
+   143→}
+   144→
+   145→.nav-item {
+   146→  display: flex;
+   147→  align-items: center;
+   148→  gap: 12px;
+   149→  padding: 0 16px;
+   150→  margin: 2px 6px;
+   151→  border-radius: var(--radius-md);
+   152→  color: var(--text-secondary);
+   153→  cursor: pointer;
+   154→  font-size: 13px;
+   155→  height: 38px;
+   156→  transition: background var(--tr-fast), color var(--tr-fast);
+   157→}
+   158→
+   159→.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+   160→.nav-item:hover .icon { color: var(--text-secondary); }
+   161→
+   162→.nav-item.active {
+   163→  background: var(--accent-soft);
+   164→  color: var(--accent);
+   165→}
+   166→.nav-item.active .icon { color: var(--accent); }
+   167→
+   168→.nav-item .icon {
+   169→  width: 18px; height: 18px;
+   170→  flex-shrink: 0;
+   171→  color: var(--text-muted);
+   172→  transition: color var(--tr-fast);
+   173→}
+   174→
+   175→.nav-item .label {
+   176→  flex: 1;
+   177→  white-space: nowrap;
+   178→  overflow: hidden;
+   179→  text-overflow: ellipsis;
+   180→}
+   181→
+   182→/* ===== Directory tree ===== */
+   183→.tree-node { position: relative; }
+   184→
+   185→.tree-item {
+   186→  display: flex;
+   187→  align-items: center;
+   188→  gap: 6px;
+   189→  padding: 0 10px;
+   190→  margin: 2px 6px;
+   191→  border-radius: var(--radius-md);
+   192→  cursor: pointer;
+   193→  height: 36px;
+   194→  font-size: 13px;
+   195→  color: var(--text-secondary);
+   196→  transition: background var(--tr-fast), color var(--tr-fast);
+   197→}
+   198→
+   199→.tree-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+   200→.tree-item.active {
+   201→  background: var(--accent-soft);
+   202→  color: var(--accent);
+   203→}
+   204→.tree-item.active .tree-icon { color: var(--accent); }
+   205→
+   206→.tree-arrow {
+   207→  width: 20px;
+   208→  height: 20px;
+   209→  display: grid;
+   210→  place-items: center;
+   211→  flex-shrink: 0;
+   212→  color: var(--text-muted);
+   213→  border-radius: 5px;
+   214→  transition: transform var(--tr-base), color var(--tr-fast), background var(--tr-fast);
+   215→}
+   216→.tree-arrow:hover { background: var(--bg-active); color: var(--text-secondary); }
+   217→.tree-arrow.expanded { transform: rotate(90deg); }
+   218→.tree-arrow svg { width: 12px; height: 12px; }
+   219→.tree-arrow.empty { visibility: hidden; }
+   220→
+   221→.tree-icon {
+   222→  width: 18px; height: 18px;
+   223→  flex-shrink: 0;
+   224→  color: var(--text-muted);
+   225→  transition: color var(--tr-fast);
+   226→}
+   227→.tree-item:hover .tree-icon { color: var(--text-secondary); }
+   228→
+   229→.tree-label {
+   230→  flex: 1;
+   231→  white-space: nowrap;
+   232→  overflow: hidden;
+   233→  text-overflow: ellipsis;
+   234→}
+   235→
+   236→.tree-children {
+   237→  overflow: hidden;
+   238→  max-height: 0;
+   239→  transition: max-height var(--tr-slow);
+   240→}
+   241→.tree-children.expanded { max-height: 5000px; }
+   242→
+   243→/* ===== Storage items ===== */
+   244→.storage-item {
+   245→  padding: 10px 12px;
+   246→  margin: 2px 6px;
+   247→  border-radius: var(--radius-md);
+   248→  cursor: pointer;
+   249→  transition: background var(--tr-fast);
+   250→}
+   251→.storage-item:hover { background: var(--bg-hover); }
+   252→
+   253→.storage-item-head {
+   254→  display: flex;
+   255→  align-items: center;
+   256→  gap: 10px;
+   257→  margin-bottom: 6px;
+   258→}
+   259→.storage-item .icon {
+   260→  width: 16px; height: 16px;
+   261→  color: var(--text-muted);
+   262→  flex-shrink: 0;
+   263→}
+   264→.storage-item .name {
+   265→  flex: 1;
+   266→  font-size: 12.5px;
+   267→  color: var(--text-secondary);
+   268→  white-space: nowrap;
+   269→  overflow: hidden;
+   270→  text-overflow: ellipsis;
+   271→}
+   272→.storage-item .status-dot {
+   273→  width: 7px; height: 7px;
+   274→  border-radius: 50%;
+   275→  background: var(--success);
+   276→  flex-shrink: 0;
+   277→}
+   278→.storage-item .status-dot.syncing {
+   279→  background: var(--warning);
+   280→  animation: pulse 1.6s ease-in-out infinite;
+   281→}
+   282→@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+   283→
+   284→.storage-bar {
+   285→  height: 4px;
+   286→  background: var(--bg-elevated-2);
+   287→  border-radius: 2px;
+   288→  overflow: hidden;
+   289→}
+   290→.storage-bar-fill {
+   291→  height: 100%;
+   292→  background: var(--accent);
+   293→  border-radius: 2px;
+   294→  transition: width var(--tr-slow);
+   295→}
+   296→.storage-bar-fill.warn { background: var(--warning); }
+   297→.storage-bar-fill.danger { background: var(--error); }
+   298→
+   299→.storage-meta {
+   300→  display: flex;
+   301→  justify-content: space-between;
+   302→  font-size: 10.5px;
+   303→  color: var(--text-muted);
+   304→  margin-top: 5px;
+   305→  font-variant-numeric: tabular-nums;
+   306→}
+   307→
+   308→/* ===== Resize handle ===== */
+   309→.sidebar-resize {
+   310→  position: absolute;
+   311→  right: -2px;
+   312→  top: 0;
+   313→  bottom: 0;
+   314→  width: 4px;
+   315→  cursor: col-resize;
+   316→  z-index: 10;
+   317→  transition: background var(--tr-fast);
+   318→}
+   319→.sidebar-resize:hover,
+   320→.sidebar-resizing {
+   321→  background: rgba(11, 87, 208, 0.25);
+   322→}
+   323→.sidebar-resizing { background: rgba(11, 87, 208, 0.4); }
+   324→
+   325→/* ===== Workspace ===== */
+   326→.workspace {
+   327→  display: flex;
+   328→  flex-direction: column;
+   329→  overflow: hidden;
+   330→  background: var(--bg-workspace);
+   331→  min-width: 0;
+   332→}
+   333→
+   334→/* ===== Tab strip ===== */
+   335→.tab-strip {
+   336→  display: flex;
+   337→  align-items: flex-end;
+   338→  gap: 2px;
+   339→  padding: 0 10px;
+   340→  height: 44px;
+   341→  border-bottom: 1px solid var(--border);
+   342→  flex-shrink: 0;
+   343→  background: var(--bg-tabbar);
+   344→  overflow-x: auto;
+   345→  overflow-y: hidden;
+   346→  scrollbar-width: none;
+   347→}
+   348→.tab-strip::-webkit-scrollbar { display: none; }
+   349→
+   350→.tab {
+   351→  display: flex;
+   352→  align-items: center;
+   353→  gap: 8px;
+   354→  height: 36px;
+   355→  padding: 0 8px 0 14px;
+   356→  border-radius: var(--radius-md) var(--radius-md) 0 0;
+   357→  color: var(--text-muted);
+   358→  cursor: pointer;
+   359→  font-size: 12.5px;
+   360→  white-space: nowrap;
+   361→  position: relative;
+   362→  min-width: 130px;
+   363→  max-width: 220px;
+   364→  transition: background var(--tr-fast), color var(--tr-fast);
+   365→  border: 1px solid transparent;
+   366→  border-bottom: none;
+   367→}
+   368→.tab:hover {
+   369→  background: rgba(0, 0, 0, 0.04);
+   370→  color: var(--text-secondary);
+   371→}
+   372→.tab.active {
+   373→  background: var(--bg-workspace);
+   374→  color: var(--text-primary);
+   375→  border-color: var(--border);
+   376→}
+   377→.tab.active::after {
+   378→  content: '';
+   379→  position: absolute;
+   380→  top: -1px;
+   381→  left: 0;
+   382→  right: 0;
+   383→  height: 3px;
+   384→  background: var(--accent);
+   385→  border-radius: 0 0 3px 3px;
+   386→}
+   387→.tab .icon {
+   388→  width: 15px; height: 15px;
+   389→  flex-shrink: 0;
+   390→  color: var(--text-faint);
+   391→}
+   392→.tab.active .icon { color: var(--accent); }
+   393→.tab-label {
+   394→  flex: 1;
+   395→  overflow: hidden;
+   396→  text-overflow: ellipsis;
+   397→}
+   398→.tab-close {
+   399→  width: 20px; height: 20px;
+   400→  display: grid;
+   401→  place-items: center;
+   402→  border-radius: 5px;
+   403→  opacity: 0;
+   404→  transition: opacity var(--tr-fast), background var(--tr-fast);
+   405→  color: var(--text-muted);
+   406→  flex-shrink: 0;
+   407→}
+   408→.tab:hover .tab-close, .tab.active .tab-close { opacity: 0.6; }
+   409→.tab-close:hover { background: var(--bg-active); color: var(--text-primary); opacity: 1; }
+   410→.tab-close svg { width: 12px; height: 12px; }
+   411→
+   412→.tab-new {
+   413→  width: 36px; height: 36px;
+   414→  display: grid;
+   415→  place-items: center;
+   416→  border-radius: var(--radius-md);
+   417→  color: var(--text-muted);
+   418→  flex-shrink: 0;
+   419→  margin-left: 6px;
+   420→  align-self: center;
+   421→}
+   422→.tab-new:hover { background: var(--bg-hover); color: var(--text-primary); }
+   423→.tab-new svg { width: 16px; height: 16px; }
+   424→
+   425→/* ===== Toolbar ===== */
+   426→.toolbar {
+   427→  height: 56px;
+   428→  display: flex;
+   429→  align-items: center;
+   430→  gap: 8px;
+   431→  padding: 0 12px;
+   432→  border-bottom: 1px solid var(--border);
+   433→  flex-shrink: 0;
+   434→  background: var(--bg-workspace);
+   435→  box-sizing: border-box;
+   436→}
+   437→
+   438→.btn-group {
+   439→  display: flex;
+   440→  align-items: center;
+   441→  gap: 2px;
+   442→  background: var(--bg-group);
+   443→  padding: 3px;
+   444→  border-radius: var(--radius-md);
+   445→  height: 42px;
+   446→  box-sizing: border-box;
+   447→}
+   448→
+   449→.btn-icon {
+   450→  width: 36px; height: 36px;
+   451→  display: grid;
+   452→  place-items: center;
+   453→  border-radius: var(--radius-sm);
+   454→  color: var(--text-secondary);
+   455→  transition: background var(--tr-fast), color var(--tr-fast);
+   456→  flex-shrink: 0;
+   457→}
+   458→.btn-icon:hover:not(:disabled) {
+   459→  background: var(--bg-hover);
+   460→  color: var(--text-primary);
+   461→}
+   462→.btn-icon:active:not(:disabled) { background: var(--bg-active); }
+   463→.btn-icon:disabled { opacity: 0.3; cursor: not-allowed; }
+   464→.btn-icon svg { width: 18px; height: 18px; }
+   465→
+   466→/* ===== Directory Bar (Breadcrumb + Actions) ===== */
+   467→.dir-bar-wrap {
+   468→  flex: 1;
+   469→  display: flex;
+   470→  align-items: center;
+   471→  gap: 4px;
+   472→  min-width: 0;
+   473→  margin: 0 4px;
+   474→  height: 42px;
+   475→  background: var(--bg-group);
+   476→  border-radius: var(--radius-md);
+   477→  padding: 3px;
+   478→  box-sizing: border-box;
+   479→}
+   480→
+   481→.breadcrumb {
+   482→  flex: 1;
+   483→  display: flex;
+   484→  align-items: center;
+   485→  gap: 1px;
+   486→  min-width: 0;
+   487→  overflow-x: auto;
+   488→  overflow-y: hidden;
+   489→  scrollbar-width: none;
+   490→  padding: 0 6px;
+   491→}
+   492→.breadcrumb::-webkit-scrollbar { display: none; }
+   493→
+   494→.crumb {
+   495→  padding: 6px 10px;
+   496→  border-radius: var(--radius-sm);
+   497→  color: var(--text-secondary);
+   498→  font-size: 13px;
+   499→  cursor: pointer;
+   500→  white-space: nowrap;
+   501→  transition: background var(--tr-fast), color var(--tr-fast);
+   502→  flex-shrink: 0;
+   503→}
+   504→.crumb:hover { background: var(--bg-hover); color: var(--text-primary); }
+   505→.crumb.current { color: var(--text-primary); font-weight: 500; }
+   506→.crumb-sep {
+   507→  color: var(--text-faint);
+   508→  display: grid;
+   509→  place-items: center;
+   510→  flex-shrink: 0;
+   511→}
+   512→.crumb-sep svg { width: 14px; height: 14px; }
+   513→
+   514→.dir-actions {
+   515→  height: 36px;
+   516→  display: flex;
+   517→  align-items: center;
+   518→  gap: 2px;
+   519→  background: rgba(255,255,255,0.5);
+   520→  padding: 3px;
+   521→  border-radius: var(--radius-sm);
+   522→  flex-shrink: 0;
+   523→  box-sizing: border-box;
+   524→}
+   525→.dir-actions .btn-icon {
+   526→  width: 32px;
+   527→  height: 32px;
+   528→}
+   529→.dir-actions .btn-icon svg {
+   530→  width: 16px;
+   531→  height: 16px;
+   532→}
+   533→
+   534→/* ===== Search ===== */
+   535→.search-wrap {
+   536→  position: relative;
+   537→  display: flex;
+   538→  align-items: center;
+   539→  flex-shrink: 0;
+   540→  background: var(--bg-group);
+   541→  border-radius: var(--radius-md);
+   542→  height: 42px;
+   543→  padding: 3px;
+   544→  box-sizing: border-box;
+   545→}
+   546→.search-icon {
+   547→  position: absolute;
+   548→  left: 15px;
+   549→  color: var(--text-muted);
+   550→  pointer-events: none;
+   551→  display: flex;
+   552→}
+   553→.search-icon svg { width: 16px; height: 16px; }
+   554→.search-input {
+   555→  width: 240px;
+   556→  height: 36px;
+   557→  background: transparent;
+   558→  border: 1px solid transparent;
+   559→  border-radius: var(--radius-sm);
+   560→  padding: 0 16px 0 38px;
+   561→  color: var(--text-primary);
+   562→  font-size: 13px;
+   563→  transition: all var(--tr-fast);
+   564→}
+   565→.search-input:focus {
+   566→  outline: none;
+   567→  border-color: var(--accent);
+   568→  background: #FFFFFF;
+   569→  box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.1);
+   570→}
+   571→.search-input::placeholder { color: var(--text-muted); }
+   572→
+   573→/* ===== Action bar (Auto-hides) ===== */
+   574→.action-bar {
+   575→  height: 52px;
+   576→  display: flex;
+   577→  align-items: center;
+   578→  gap: 8px;
+   579→  padding: 0 12px;
+   580→  border-bottom: 1px solid var(--border);
+   581→  background: var(--bg-workspace);
+   582→  flex-shrink: 0;
+   583→  overflow: hidden;
+   584→  transition: height 0.25s ease, opacity 0.2s ease, border-bottom-color 0.2s ease, padding 0.25s ease, min-height 0.25s ease;
+   585→  box-sizing: border-box;
+   586→}
+   587→.action-bar.hidden {
+   588→  height: 0;
+   589→  min-height: 0;
+   590→  opacity: 0;
+   591→  border-bottom-color: transparent;
+   592→  padding-top: 0;
+   593→  padding-bottom: 0;
+   594→  pointer-events: none;
+   595→}
+   596→
+   597→.selection-info {
+   598→  margin-left: auto;
+   599→  font-size: 12px;
+   600→  color: var(--text-muted);
+   601→  padding-right: 4px;
+   602→  display: flex;
+   603→  align-items: center;
+   604→  gap: 8px;
+   605→  font-variant-numeric: tabular-nums;
+   606→}
+   607→.selection-info .count {
+   608→  color: var(--accent);
+   609→  font-weight: 600;
+   610→}
+   611→.selection-info .dot {
+   612→  width: 4px; height: 4px;
+   613→  border-radius: 50%;
+   614→  background: var(--text-faint);
+   615→}
+   616→
+   617→/* ===== Content ===== */
+   618→.content {
+   619→  flex: 1;
+   620→  overflow: hidden;
+   621→  position: relative;
+   622→  background: var(--bg-workspace);
+   623→  min-height: 0;
+   624→}
+   625→
+   626→.content-scroll {
+   627→  height: 100%;
+   628→  overflow: auto;
+   629→  padding: 12px;
+   630→}
+   631→
+   632→/* ============================================================
+   633→   Home View — Win11 inspired widgets
+   634→   ============================================================ */
+   635→.home-view {
+   636→  display: flex;
+   637→  flex-direction: column;
+   638→  gap: 14px;
+   639→  max-width: 1200px;
+   640→  margin: 0 auto;
+   641→  padding: 8px 4px 20px;
+   642→}
+   643→
+   644→/* Widget container */
+   645→.widget-box {
+   646→  background: #FFFFFF;
+   647→  border: 1px solid var(--border);
+   648→  border-radius: var(--radius-lg);
+   649→  overflow: hidden;
+   650→  position: relative;
+   651→  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.025);
+   652→  transition: box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease;
+   653→}
+   654→.widget-box:hover {
+   655→  box-shadow: 0 2px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.07);
+   656→  border-color: var(--border-strong);
+   657→}
+   658→
+   659→/* Always-visible header (icon + title + subtitle) */
+   660→.widget-header {
+   661→  display: flex;
+   662→  align-items: center;
+   663→  gap: 11px;
+   664→  padding: 14px 16px 10px;
+   665→  position: relative;
+   666→}
+   667→.widget-header-icon {
+   668→  width: 30px;
+   669→  height: 30px;
+   670→  border-radius: 9px;
+   671→  background: var(--accent-soft);
+   672→  display: grid;
+   673→  place-items: center;
+   674→  color: var(--accent);
+   675→  flex-shrink: 0;
+   676→}
+   677→.widget-header-icon svg { width: 16px; height: 16px; }
+   678→.widget-header-text { flex: 1; min-width: 0; }
+   679→.widget-title {
+   680→  font-weight: 600;
+   681→  font-size: 14px;
+   682→  color: var(--text-primary);
+   683→  letter-spacing: -0.005em;
+   684→  line-height: 1.25;
+   685→}
+   686→.widget-subtitle {
+   687→  font-size: 11.5px;
+   688→  color: var(--text-muted);
+   689→  font-weight: 400;
+   690→  margin-top: 2px;
+   691→}
+   692→
+   693→/* Auto-hide top action bar (top-right, floats over header) */
+   694→.widget-actions {
+   695→  position: absolute;
+   696→  top: 10px;
+   697→  right: 10px;
+   698→  display: flex;
+   699→  gap: 2px;
+   700→  background: rgba(255,255,255,0.94);
+   701→  backdrop-filter: blur(10px);
+   702→  -webkit-backdrop-filter: blur(10px);
+   703→  border: 1px solid var(--border);
+   704→  border-radius: 9px;
+   705→  padding: 3px;
+   706→  opacity: 0;
+   707→  transform: translateY(-6px) scale(0.96);
+   708→  transform-origin: top right;
+   709→  transition: opacity 0.18s ease, transform 0.18s ease;
+   710→  pointer-events: none;
+   711→  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+   712→  z-index: 10;
+   713→}
+   714→.widget-box:hover .widget-actions {
+   715→  opacity: 1;
+   716→  transform: translateY(0) scale(1);
+   717→  pointer-events: auto;
+   718→}
+   719→.widget-action-btn {
+   720→  width: 28px;
+   721→  height: 28px;
+   722→  border-radius: 6px;
+   723→  display: grid;
+   724→  place-items: center;
+   725→  color: var(--text-secondary);
+   726→  transition: background var(--tr-fast), color var(--tr-fast);
+   727→}
+   728→.widget-action-btn:hover {
+   729→  background: var(--bg-hover);
+   730→  color: var(--text-primary);
+   731→}
+   732→.widget-action-btn.danger:hover {
+   733→  background: rgba(179, 38, 30, 0.1);
+   734→  color: var(--error);
+   735→}
+   736→.widget-action-btn svg { width: 14px; height: 14px; }
+   737→
+   738→.widget-body {
+   739→  padding: 4px 12px 14px;
+   740→}
+   741→
+   742→/* ===== Masonry Gallery Widget ===== */
+   743→.masonry-gallery.vertical {
+   744→  column-count: 5;
+   745→  column-gap: 8px;
+   746→}
+   747→@media (max-width: 1100px) { .masonry-gallery.vertical { column-count: 4; } }
+   748→@media (max-width: 880px)  { .masonry-gallery.vertical { column-count: 3; } }
+   749→@media (max-width: 600px)  { .masonry-gallery.vertical { column-count: 2; } }
+   750→
+   751→.masonry-gallery.vertical .masonry-item {
+   752→  width: 100%;
+   753→  display: block;
+   754→  margin-bottom: 8px;
+   755→  break-inside: avoid;
+   756→}
+   757→
+   758→.masonry-gallery.horizontal {
+   759→  display: flex;
+   760→  flex-wrap: nowrap;
+   761→  overflow-x: auto;
+   762→  overflow-y: hidden;
+   763→  gap: 8px;
+   764→  padding: 2px 2px 6px;
+   765→  scroll-behavior: smooth;
+   766→  scroll-snap-type: x proximity;
+   767→  scrollbar-width: thin;
+   768→}
+   769→.masonry-gallery.horizontal::-webkit-scrollbar { height: 8px; }
+   770→.masonry-gallery.horizontal .masonry-item {
+   771→  flex: 0 0 auto;
+   772→  width: 200px;
+   773→  height: 260px;
+   774→  scroll-snap-align: start;
+   775→}
+   776→
+   777→.masonry-item {
+   778→  position: relative;
+   779→  cursor: pointer;
+   780→  overflow: hidden;
+   781→  border-radius: 10px;
+   782→  background: var(--bg-elevated-2);
+   783→  transition: transform 0.2s ease, box-shadow 0.2s ease;
+   784→}
+   785→.masonry-item:hover {
+   786→  transform: translateY(-2px);
+   787→  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+   788→}
+   789→.masonry-item img {
+   790→  width: 100%;
+   791→  display: block;
+   792→  transition: transform 0.35s ease;
+   793→}
+   794→.masonry-gallery.vertical .masonry-item img {
+   795→  height: auto; /* Preserve aspect ratio in vertical layout */
+   796→}
+   797→.masonry-gallery.horizontal .masonry-item img {
+   798→  height: 100%; /* Cover fixed height in horizontal layout */
+   799→  object-fit: cover;
+   800→}
+   801→.masonry-item:hover img {
+   802→  transform: scale(1.06);
+   803→}
+   804→.masonry-name {
+   805→  position: absolute;
+   806→  bottom: 0;
+   807→  left: 0;
+   808→  right: 0;
+   809→  padding: 18px 10px 8px;
+   810→  background: linear-gradient(to top, rgba(0,0,0,0.85) 10%, transparent);
+   811→  color: #FFF;
+   812→  font-size: 11.5px;
+   813→  font-weight: 500;
+   814→  opacity: 0;
+   815→  transition: opacity 0.2s ease;
+   816→  pointer-events: none;
+   817→  white-space: nowrap;
+   818→  overflow: hidden;
+   819→  text-overflow: ellipsis;
+   820→}
+   821→.masonry-item:hover .masonry-name {
+   822→  opacity: 1;
+   823→}
+   824→
+   825→/* Empty widgets state */
+   826→.widgets-empty {
+   827→  display: flex;
+   828→  flex-direction: column;
+   829→  align-items: center;
+   830→  justify-content: center;
+   831→  min-height: 280px;
+   832→  gap: 10px;
+   833→  color: var(--text-muted);
+   834→}
+   835→.widgets-empty svg { width: 40px; height: 40px; opacity: 0.3; }
+   836→
+   837→/* ===== Grid view ===== */
+   838→.file-grid {
+   839→  display: grid;
+   840→  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+   841→  gap: 2px;
+   842→}
+   843→
+   844→.file-item {
+   845→  border-radius: var(--radius-md);
+   846→  padding: 12px 8px 10px;
+   847→  display: flex;
+   848→  flex-direction: column;
+   849→  align-items: center;
+   850→  gap: 8px;
+   851→  cursor: default;
+   852→  position: relative;
+   853→  transition: background var(--tr-fast);
+   854→  text-align: center;
+   855→}
+   856→.file-item:hover { background: var(--bg-hover); }
+   857→.file-item.selected { background: var(--bg-selected); }
+   858→.file-item.selected:hover { background: var(--bg-selected-hover); }
+   859→
+   860→.file-icon-wrap {
+   861→  width: 56px;
+   862→  height: 56px;
+   863→  display: grid;
+   864→  place-items: center;
+   865→  position: relative;
+   866→  flex-shrink: 0;
+   867→}
+   868→.file-icon-wrap svg { width: 48px; height: 48px; }
+   869→
+   870→.file-name {
+   871→  font-size: 12px;
+   872→  color: var(--text-secondary);
+   873→  line-height: 1.35;
+   874→  word-break: break-word;
+   875→  max-width: 100%;
+   876→  overflow: hidden;
+   877→  display: -webkit-box;
+   878→  -webkit-line-clamp: 2;
+   879→  -webkit-box-orient: vertical;
+   880→}
+   881→.file-item.selected .file-name { color: var(--text-primary); }
+   882→
+   883→.file-meta {
+   884→  font-size: 10px;
+   885→  color: var(--text-faint);
+   886→  font-variant-numeric: tabular-nums;
+   887→}
+   888→
+   889→/* ===== File checkbox ===== */
+   890→.file-checkbox {
+   891→  position: absolute;
+   892→  top: 6px;
+   893→  left: 6px;
+   894→  width: 18px;
+   895→  height: 18px;
+   896→  border-radius: 4px;
+   897→  border: 1.5px solid rgba(0, 0, 0, 0.2);
+   898→  background: rgba(255, 255, 255, 0.85);
+   899→  opacity: 0;
+   900→  transition: opacity var(--tr-fast);
+   901→  display: grid;
+   902→  place-items: center;
+   903→  z-index: 1;
+   904→}
+   905→.file-item:hover .file-checkbox, .file-item.selected .file-checkbox { opacity: 1; }
+   906→.file-checkbox.checked {
+   907→  background: var(--accent);
+   908→  border-color: var(--accent);
+   909→}
+   910→.file-checkbox.checked::after {
+   911→  content: '';
+   912→  width: 8px; height: 5px;
+   913→  border-left: 2px solid #FFFFFF;
+   914→  border-bottom: 2px solid #FFFFFF;
+   915→  transform: rotate(-45deg) translate(0.5px, -1px);
+   916→}
+   917→
+   918→/* ===== List view ===== */
+   919→.file-list {
+   920→  display: flex;
+   921→  flex-direction: column;
+   922→}
+   923→
+   924→.list-header {
+   925→  display: grid;
+   926→  grid-template-columns: 1fr 100px 120px 140px 32px;
+   927→  gap: 10px;
+   928→  padding: 8px 14px;
+   929→  font-size: 11px;
+   930→  color: var(--text-muted);
+   931→  font-weight: 600;
+   932→  border-bottom: 1px solid var(--border);
+   933→  text-transform: uppercase;
+   934→  letter-spacing: 0.05em;
+   935→  position: sticky;
+   936→  top: -12px;
+   937→  background: var(--bg-workspace);
+   938→  z-index: 1;
+   939→  margin-bottom: 2px;
+   940→}
+   941→
+   942→.list-header .col {
+   943→  display: flex;
+   944→  align-items: center;
+   945→  gap: 5px;
+   946→  cursor: pointer;
+   947→  user-select: none;
+   948→}
+   949→.list-header .col:hover { color: var(--text-secondary); }
+   950→.list-header .col.sorted { color: var(--accent); }
+   951→.list-header .col svg { width: 13px; height: 13px; }
+   952→.list-header .col.size { justify-content: flex-end; }
+   953→
+   954→.list-row {
+   955→  display: grid;
+   956→  grid-template-columns: 1fr 100px 120px 140px 32px;
+   957→  gap: 10px;
+   958→  padding: 0 14px;
+   959→  height: 40px;
+   960→  align-items: center;
+   961→  font-size: 13px;
+   962→  color: var(--text-secondary);
+   963→  border-radius: var(--radius-sm);
+   964→  cursor: default;
+   965→  transition: background var(--tr-fast);
+   966→}
+   967→.list-row:hover { background: var(--bg-hover); }
+   968→.list-row.selected { background: var(--bg-selected); }
+   969→.list-row.selected:hover { background: var(--bg-selected-hover); }
+   970→
+   971→.list-row .name-col {
+   972→  display: flex;
+   973→  align-items: center;
+   974→  gap: 10px;
+   975→  overflow: hidden;
+   976→  min-width: 0;
+   977→}
+   978→.list-row .name-col .file-icon-wrap {
+   979→  width: 20px; height: 20px;
+   980→}
+   981→.list-row .name-col .file-icon-wrap svg {
+   982→  width: 18px; height: 18px;
+   983→}
+   984→.list-row .name-text {
+   985→  overflow: hidden;
+   986→  text-overflow: ellipsis;
+   987→  white-space: nowrap;
+   988→  color: var(--text-primary);
+   989→}
+   990→.list-row .size-col,
+   991→.list-row .type-col,
+   992→.list-row .date-col {
+   993→  color: var(--text-muted);
+   994→  font-variant-numeric: tabular-nums;
+   995→  overflow: hidden;
+   996→  text-overflow: ellipsis;
+   997→  white-space: nowrap;
+   998→}
+   999→.list-row .size-col { text-align: right; }
+  1000→
+  1001→.file-list.compact .list-row { height: 30px; font-size: 12px; }
+  1002→.file-list.compact .list-row .name-col { gap: 8px; }
+  1003→.file-list.compact .list-row .name-col .file-icon-wrap { width: 16px; height: 16px; }
+  1004→.file-list.compact .list-row .name-col .file-icon-wrap svg { width: 14px; height: 14px; }
+  1005→
+  1006→/* ===== File type colors ===== */
+  1007→.icon-folder { color: #4285F4; }
+  1008→.icon-image { color: #9C27B0; }
+  1009→.icon-video { color: #EF6C00; }
+  1010→.icon-audio { color: #00897B; }
+  1011→.icon-pdf { color: #D32F2F; }
+  1012→.icon-doc { color: #1976D2; }
+  1013→.icon-sheet { color: #2E7D32; }
+  1014→.icon-archive { color: #F57F17; }
+  1015→.icon-code { color: #00897B; }
+  1016→.icon-app { color: #C62828; }
+  1017→.icon-text { color: #5F6368; }
+  1018→.icon-generic { color: #9AA0A6; }
+  1019→
+  1020→/* ===== Empty state ===== */
+  1021→.empty-state {
+  1022→  display: flex;
+  1023→  flex-direction: column;
+  1024→  align-items: center;
+  1025→  justify-content: center;
+  1026→  height: 100%;
+  1027→  gap: 12px;
+  1028→  color: var(--text-muted);
+  1029→  padding: 40px 20px;
+  1030→}
+  1031→.empty-state svg { width: 48px; height: 48px; opacity: 0.25; color: var(--text-muted); }
+  1032→.empty-state .title {
+  1033→  font-size: 14px;
+  1034→  font-weight: 500;
+  1035→  color: var(--text-secondary);
+  1036→}
+  1037→.empty-state .desc { font-size: 12.5px; color: var(--text-muted); }
+  1038→
+  1039→/* ===== Status bar ===== */
+  1040→.statusbar {
+  1041→  height: 52px;
+  1042→  display: flex;
+  1043→  align-items: center;
+  1044→  padding: 0 14px;
+  1045→  border-top: 1px solid var(--border);
+  1046→  background: var(--bg-tabbar);
+  1047→  font-size: 12px;
+  1048→  color: var(--text-muted);
+  1049→  gap: 12px;
+  1050→  flex-shrink: 0;
+  1051→}
+  1052→.status-left {
+  1053→  display: flex;
+  1054→  align-items: center;
+  1055→  gap: 10px;
+  1056→}
+  1057→.status-item {
+  1058→  display: flex;
+  1059→  align-items: center;
+  1060→  gap: 6px;
+  1061→  font-variant-numeric: tabular-nums;
+  1062→}
+  1063→.status-item svg { width: 13px; height: 13px; color: var(--text-faint); }
+  1064→.status-divider {
+  1065→  width: 1px;
+  1066→  height: 22px;
+  1067→  background: var(--border-strong);
+  1068→}
+  1069→.status-spacer { flex: 1; }
+  1070→.status-accent { color: var(--accent); font-weight: 600; }
+  1071→.status-muted { color: var(--text-muted); }
+  1072→
+  1073→.status-right-group {
+  1074→  display: flex;
+  1075→  align-items: center;
+  1076→  gap: 8px;
+  1077→  background: var(--bg-group);
+  1078→  padding: 4px;
+  1079→  border-radius: var(--radius-md);
+  1080→  height: 42px;
+  1081→}
+  1082→
+  1083→.view-segmented {
+  1084→  display: flex;
+  1085→  background: rgba(255,255,255,0.5);
+  1086→  border-radius: var(--radius-sm);
+  1087→  padding: 2px;
+  1088→  height: 34px;
+  1089→}
+  1090→.seg-btn {
+  1091→  width: 34px;
+  1092→  display: grid;
+  1093→  place-items: center;
+  1094→  border-radius: 5px;
+  1095→  color: var(--text-muted);
+  1096→  transition: all var(--tr-fast);
+  1097→}
+  1098→.seg-btn:hover { color: var(--text-secondary); }
+  1099→.seg-btn.active {
+  1100→  background: #FFFFFF;
+  1101→  color: var(--accent);
+  1102→  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  1103→}
+  1104→.seg-btn svg { width: 16px; height: 16px; }
+  1105→
+  1106→.sort-btn {
+  1107→  height: 34px;
+  1108→  padding: 0 12px;
+  1109→  border-radius: var(--radius-sm);
+  1110→  background: rgba(255,255,255,0.5);
+  1111→  color: var(--text-secondary);
+  1112→  display: flex;
+  1113→  align-items: center;
+  1114→  gap: 7px;
+  1115→  font-size: 12.5px;
+  1116→  transition: all var(--tr-fast);
+  1117→}
+  1118→.sort-btn:hover { background: #FFFFFF; color: var(--text-primary); }
+  1119→.sort-btn svg { width: 14px; height: 14px; }
+  1120→.sort-btn .chev { color: var(--text-faint); }
+  1121→
+  1122→/* ===== Context menu ===== */
+  1123→.context-menu {
+  1124→  position: fixed;
+  1125→  background: var(--bg-elevated);
+  1126→  border: 1px solid var(--border-strong);
+  1127→  border-radius: var(--radius-lg);
+  1128→  padding: 6px;
+  1129→  min-width: 220px;
+  1130→  box-shadow: var(--shadow-pop);
+  1131→  z-index: 1000;
+  1132→  font-size: 13px;
+  1133→  animation: menuIn var(--tr-fast);
+  1134→}
+  1135→@keyframes menuIn {
+  1136→  from { opacity: 0; transform: scale(0.96) translateY(-3px); }
+  1137→  to { opacity: 1; transform: scale(1) translateY(0); }
+  1138→}
+  1139→
+  1140→.menu-item {
+  1141→  display: flex;
+  1142→  align-items: center;
+  1143→  gap: 10px;
+  1144→  padding: 0 12px;
+  1145→  border-radius: var(--radius-sm);
+  1146→  cursor: pointer;
+  1147→  color: var(--text-secondary);
+  1148→  height: 36px;
+  1149→  position: relative;
+  1150→}
+  1151→.menu-item:hover {
+  1152→  background: var(--bg-hover);
+  1153→  color: var(--text-primary);
+  1154→}
+  1155→.menu-item.disabled { opacity: 0.35; pointer-events: none; }
+  1156→.menu-item .icon, .menu-item svg.lucide {
+  1157→  width: 17px; height: 17px;
+  1158→  color: var(--text-muted);
+  1159→  flex-shrink: 0;
+  1160→}
+  1161→.menu-item:hover .icon, .menu-item:hover svg.lucide { color: var(--accent); }
+  1162→.menu-item .label { flex: 1; }
+  1163→.menu-item .shortcut {
+  1164→  font-size: 11px;
+  1165→  color: var(--text-faint);
+  1166→  font-family: var(--font-mono);
+  1167→}
+  1168→.menu-item.danger, .menu-item.danger .icon { color: var(--error); }
+  1169→.menu-item.danger:hover .icon { color: var(--error); }
+  1170→
+  1171→.menu-arrow { width: 14px; height: 14px; color: var(--text-muted); }
+  1172→
+  1173→.menu-separator {
+  1174→  height: 1px;
+  1175→  background: var(--border);
+  1176→  margin: 4px 4px;
+  1177→}
+  1178→
+  1179→.menu-section-label {
+  1180→  font-size: 10.5px;
+  1181→  font-weight: 600;
+  1182→  color: var(--text-muted);
+  1183→  text-transform: uppercase;
+  1184→  letter-spacing: 0.07em;
+  1185→  padding: 8px 12px 4px;
+  1186→}
+  1187→
+  1188→/* ===== Dialog ===== */
+  1189→.dialog-backdrop {
+  1190→  position: fixed;
+  1191→  inset: 0;
+  1192→  background: rgba(0, 0, 0, 0.3);
+  1193→  backdrop-filter: blur(3px);
+  1194→  z-index: 2000;
+  1195→  display: grid;
+  1196→  place-items: center;
+  1197→  animation: fadeIn var(--tr-base);
+  1198→}
+  1199→@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  1200→
+  1201→.dialog {
+  1202→  background: var(--bg-elevated);
+  1203→  border: 1px solid var(--border);
+  1204→  border-radius: var(--radius-xl);
+  1205→  padding: 22px 24px 18px;
+  1206→  min-width: 420px;
+  1207→  max-width: 500px;
+  1208→  box-shadow: var(--shadow-dialog);
+  1209→  animation: dialogIn var(--tr-base);
+  1210→}
+  1211→@keyframes dialogIn {
+  1212→  from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+  1213→  to { opacity: 1; transform: scale(1) translateY(0); }
+  1214→}
+  1215→
+  1216→.dialog-title {
+  1217→  font-size: 15px;
+  1218→  font-weight: 600;
+  1219→  color: var(--text-primary);
+  1220→  margin-bottom: 5px;
+  1221→}
+  1222→.dialog-desc {
+  1223→  font-size: 13px;
+  1224→  color: var(--text-secondary);
+  1225→  margin-bottom: 16px;
+  1226→  line-height: 1.45;
+  1227→}
+  1228→.dialog-input {
+  1229→  width: 100%;
+  1230→  height: 38px;
+  1231→  background: var(--bg-elevated-2);
+  1232→  border: 1px solid transparent;
+  1233→  border-radius: var(--radius-md);
+  1234→  padding: 0 14px;
+  1235→  color: var(--text-primary);
+  1236→  font-size: 13px;
+  1237→  margin-bottom: 18px;
+  1238→  transition: border-color var(--tr-fast), background var(--tr-fast);
+  1239→}
+  1240→.dialog-input:focus { outline: none; border-color: var(--accent); background: #FFFFFF; box-shadow: 0 0 0 3px rgba(11,87,208,0.1); }
+  1241→.dialog-actions {
+  1242→  display: flex;
+  1243→  justify-content: flex-end;
+  1244→  gap: 8px;
+  1245→}
+  1246→
+  1247→.btn {
+  1248→  height: 36px;
+  1249→  padding: 0 18px;
+  1250→  border-radius: var(--radius-md);
+  1251→  font-size: 13px;
+  1252→  font-weight: 500;
+  1253→  display: inline-flex;
+  1254→  align-items: center;
+  1255→  gap: 7px;
+  1256→  transition: background var(--tr-fast), transform var(--tr-fast);
+  1257→  border: none;
+  1258→}
+  1259→.btn:active { transform: translateY(0.5px); }
+  1260→.btn-secondary {
+  1261→  background: var(--bg-elevated-2);
+  1262→  color: var(--text-secondary);
+  1263→}
+  1264→.btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
+  1265→.btn-primary {
+  1266→  background: var(--accent);
+  1267→  color: var(--accent-on);
+  1268→  font-weight: 600;
+  1269→}
+  1270→.btn-primary:hover { background: var(--accent-hover); }
+  1271→.btn-danger {
+  1272→  background: var(--error);
+  1273→  color: #FFFFFF;
+  1274→  font-weight: 600;
+  1275→}
+  1276→.btn-danger:hover { background: #9B2018; }
+  1277→
+  1278→/* ===== Properties panel ===== */
+  1279→.properties-panel {
+  1280→  position: fixed;
+  1281→  right: 16px;
+  1282→  top: 110px;
+  1283→  width: 290px;
+  1284→  background: var(--bg-elevated);
+  1285→  border: 1px solid var(--border);
+  1286→  border-radius: var(--radius-lg);
+  1287→  box-shadow: var(--shadow-pop);
+  1288→  z-index: 100;
+  1289→  overflow: hidden;
+  1290→  animation: dialogIn var(--tr-base);
+  1291→}
+  1292→
+  1293→.properties-header {
+  1294→  padding: 14px 16px 12px;
+  1295→  display: flex;
+  1296→  align-items: center;
+  1297→  gap: 12px;
+  1298→  border-bottom: 1px solid var(--border);
+  1299→}
+  1300→.properties-header .icon-wrap {
+  1301→  width: 40px;
+  1302→  height: 40px;
+  1303→  display: grid;
+  1304→  place-items: center;
+  1305→  background: var(--bg-elevated-2);
+  1306→  border-radius: var(--radius-md);
+  1307→  flex-shrink: 0;
+  1308→}
+  1309→.properties-header .icon-wrap svg { width: 22px; height: 22px; }
+  1310→.properties-header .name {
+  1311→  font-size: 14px;
+  1312→  font-weight: 500;
+  1313→  color: var(--text-primary);
+  1314→  overflow: hidden;
+  1315→  text-overflow: ellipsis;
+  1316→  white-space: nowrap;
+  1317→  max-width: 170px;
+  1318→}
+  1319→.properties-header .type {
+  1320→  font-size: 12px;
+  1321→  color: var(--text-muted);
+  1322→}
+  1323→.properties-close {
+  1324→  margin-left: auto;
+  1325→  width: 28px;
+  1326→  height: 28px;
+  1327→  display: grid;
+  1328→  place-items: center;
+  1329→  border-radius: var(--radius-sm);
+  1330→  color: var(--text-muted);
+  1331→  flex-shrink: 0;
+  1332→}
+  1333→.properties-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+  1334→.properties-close svg { width: 15px; height: 15px; }
+  1335→
+  1336→.properties-body { padding: 10px 16px 14px; }
+  1337→.prop-row {
+  1338→  display: flex;
+  1339→  justify-content: space-between;
+  1340→  padding: 5px 0;
+  1341→  font-size: 12px;
+  1342→  gap: 12px;
+  1343→}
+  1344→.prop-row .key { color: var(--text-muted); }
+  1345→.prop-row .val {
+  1346→  color: var(--text-secondary);
+  1347→  font-variant-numeric: tabular-nums;
+  1348→  text-align: right;
+  1349→  max-width: 60%;
+  1350→  overflow: hidden;
+  1351→  text-overflow: ellipsis;
+  1352→  white-space: nowrap;
+  1353→}
+  1354→
+  1355→.prop-preview {
+  1356→  width: 100%;
+  1357→  height: 140px;
+  1358→  background: var(--bg-elevated-2);
+  1359→  border-radius: var(--radius-md);
+  1360→  margin-bottom: 10px;
+  1361→  display: grid;
+  1362→  place-items: center;
+  1363→  overflow: hidden;
+  1364→  position: relative;
+  1365→  border: 1px solid var(--border);
+  1366→}
+  1367→.prop-preview svg { width: 48px; height: 48px; }
+  1368→
+  1369→/* ===== Toast ===== */
+  1370→.toast-container {
+  1371→  position: fixed;
+  1372→  bottom: 64px;
+  1373→  right: 16px;
+  1374→  z-index: 3000;
+  1375→  display: flex;
+  1376→  flex-direction: column;
+  1377→  gap: 8px;
+  1378→  align-items: flex-end;
+  1379→}
+  1380→.toast {
+  1381→  background: #322F35;
+  1382→  border: none;
+  1383→  border-radius: var(--radius-md);
+  1384→  padding: 11px 16px;
+  1385→  font-size: 12.5px;
+  1386→  color: #F5F3F0;
+  1387→  box-shadow: var(--shadow-pop);
+  1388→  display: flex;
+  1389→  align-items: center;
+  1390→  gap: 9px;
+  1391→  min-width: 240px;
+  1392→  max-width: 360px;
+  1393→  animation: toastIn var(--tr-base);
+  1394→}
+  1395→@keyframes toastIn {
+  1396→  from { opacity: 0; transform: translateX(24px); }
+  1397→  to { opacity: 1; transform: translateX(0); }
+  1398→}
+  1399→.toast .icon { width: 16px; height: 16px; flex-shrink: 0; }
+  1400→.toast.success .icon { color: #7DD3A8; }
+  1401→.toast.error .icon { color: #EF8A8A; }
+  1402→.toast.info .icon { color: #7DC3FF; }
+  1403→
+  1404→/* ===== Scrollbars ===== */
+  1405→::-webkit-scrollbar { width: 10px; height: 10px; }
+  1406→::-webkit-scrollbar-track { background: transparent; }
+  1407→::-webkit-scrollbar-thumb {
+  1408→  background: rgba(0, 0, 0, 0.12);
+  1409→  border-radius: 5px;
+  1410→  border: 2px solid transparent;
+  1411→  background-clip: padding-box;
+  1412→}
+  1413→::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.20); background-clip: padding-box; }
+  1414→::-webkit-scrollbar-corner { background: transparent; }
+  1415→
+  1416→/* ===== Reduced motion ===== */
+  1417→@media (prefers-reduced-motion: reduce) {
+  1418→  *, *::before, *::after {
+  1419→    transition: none !important;
+  1420→    animation: none !important;
+  1421→  }
+  1422→}
+  1423→
+  1424→/* ===== Responsive ===== */
+  1425→@media (max-width: 880px) {
+  1426→  .app { grid-template-columns: 220px 1fr; }
+  1427→  .search-input { width: 160px; }
+  1428→  .search-input:focus { width: 220px; }
+  1429→}
+  1430→
+  1431→@media (max-width: 680px) {
+  1432→  .app { grid-template-columns: 60px 1fr; }
+  1433→  .nav-item .label, .nav-section-title, .storage-item .name,
+  1434→  .storage-bar, .storage-meta, .tree-label, .brand-name { display: none; }
+  1435→  .nav-item { justify-content: center; }
+  1436→  .sidebar-header { justify-content: center; padding: 16px 8px 10px; }
+  1437→  .search-input { width: 120px; }
+  1438→  .search-input:focus { width: 160px; }
+  1439→}
+  1440→</style>
+  1441→</head>
+  1442→<body>
+  1443→<div class="app">
+  1444→  <aside class="sidebar" id="sidebar">
+  1445→    <div class="sidebar-header">
+  1446→      <div class="brand-mark">A</div>
+  1447→      <div class="brand-name">Aether <span class="dim">Files</span></div>
+  1448→    </div>
+  1449→    <div class="sidebar-scroll" id="sidebarScroll"></div>
+  1450→    <div class="sidebar-resize" id="sidebarResize"></div>
+  1451→  </aside>
+  1452→
+  1453→  <main class="workspace">
+  1454→    <div class="tab-strip" id="tabStrip"></div>
+  1455→
+  1456→    <div class="toolbar">
+  1457→      <div class="btn-group">
+  1458→        <button class="btn-icon" id="backBtn" title="Back"><i data-lucide="arrow-left"></i></button>
+  1459→        <button class="btn-icon" id="forwardBtn" title="Forward"><i data-lucide="arrow-right"></i></button>
+  1460→        <button class="btn-icon" id="upBtn" title="Up one level"><i data-lucide="arrow-up"></i></button>
+  1461→        <button class="btn-icon" id="refreshBtn" title="Refresh"><i data-lucide="refresh-cw"></i></button>
+  1462→      </div>
+  1463→      <div class="dir-bar-wrap">
+  1464→        <div class="breadcrumb" id="breadcrumb"></div>
+  1465→        <div class="btn-group dir-actions">
+  1466→          <button class="btn-icon" id="newFolderBtn" title="New folder"><i data-lucide="folder-plus"></i></button>
+  1467→          <button class="btn-icon" id="newFileBtn" title="New file"><i data-lucide="file-plus"></i></button>
+  1468→          <button class="btn-icon" id="pasteBtn" title="Paste" disabled><i data-lucide="clipboard-paste"></i></button>
+  1469→        </div>
+  1470→      </div>
+  1471→      <div class="search-wrap">
+  1472→        <span class="search-icon"><i data-lucide="search"></i></span>
+  1473→        <input type="text" class="search-input" id="searchInput" placeholder="Search current folder">
+  1474→      </div>
+  1475→    </div>
+  1476→
+  1477→    <div class="action-bar hidden" id="actionBar">
+  1478→      <div class="btn-group">
+  1479→        <button class="btn-icon" id="copyBtn" title="Copy" disabled><i data-lucide="copy"></i></button>
+  1480→        <button class="btn-icon" id="cutBtn" title="Cut" disabled><i data-lucide="scissors"></i></button>
+  1481→        <button class="btn-icon" id="renameBtn" title="Rename" disabled><i data-lucide="pencil-line"></i></button>
+  1482→        <button class="btn-icon" id="deleteBtn" title="Move to trash" disabled><i data-lucide="trash-2"></i></button>
+  1483→      </div>
+  1484→      <div class="btn-group">
+  1485→        <button class="btn-icon" id="moreMenuBtn" title="More actions"><i data-lucide="ellipsis"></i></button>
+  1486→      </div>
+  1487→      <div class="selection-info" id="selectionInfo"></div>
+  1488→    </div>
+  1489→
+  1490→    <div class="content">
+  1491→      <div class="content-scroll" id="contentScroll"></div>
+  1492→    </div>
+  1493→
+  1494→    <div class="statusbar" id="statusbar"></div>
+  1495→  </main>
+  1496→</div>
+  1497→
+  1498→<div class="toast-container" id="toastContainer"></div>
+  1499→
+  1500→<script>
+  1501→// ============================================================
+  1502→//  File System Data Model
+  1503→// ============================================================
+  1504→
+  1505→const TYPE_META = {
+  1506→  folder:  { icon: 'folder',          class: 'icon-folder',  label: 'Folder' },
+  1507→  image:   { icon: 'image',            class: 'icon-image',   label: 'Image' },
+  1508→  video:   { icon: 'film',             class: 'icon-video',   label: 'Video' },
+  1509→  audio:   { icon: 'music',            class: 'icon-audio',   label: 'Audio' },
+  1510→  pdf:     { icon: 'file-text',        class: 'icon-pdf',     label: 'PDF document' },
+  1511→  doc:     { icon: 'file-text',        class: 'icon-doc',     label: 'Document' },
+  1512→  sheet:   { icon: 'file-spreadsheet', class: 'icon-sheet',   label: 'Spreadsheet' },
+  1513→  archive: { icon: 'file-archive',     class: 'icon-archive', label: 'Archive' },
+  1514→  code:    { icon: 'file-code-2',      class: 'icon-code',    label: 'Source code' },
+  1515→  app:     { icon: 'app-window',       class: 'icon-app',     label: 'Application' },
+  1516→  text:    { icon: 'file-text',        class: 'icon-text',    label: 'Text file' },
+  1517→  generic: { icon: 'file',             class: 'icon-generic', label: 'File' },
+  1518→};
+  1519→
+  1520→let nextId = 1;
+  1521→const fsNodes = new Map();
+  1522→
+  1523→function createNode(data) {
+  1524→  const id = data.id || ('n' + (nextId++));
+  1525→  const node = {
+  1526→    id,
+  1527→    name: data.name,
+  1528→    type: data.type || 'folder',
+  1529→    parentId: data.parentId || null,
+  1530→    children: (data.type === undefined || data.type === 'folder') ? (data.children || []) : null,
+  1531→    size: data.size || 0,
+  1532→    modified: data.modified || randomDate(),
+  1533→    meta: data.meta || {},
+  1534→    expanded: data.expanded || false,
+  1535→  };
+  1536→  fsNodes.set(id, node);
+  1537→  return node;
+  1538→}
+  1539→
+  1540→function randomDate() {
+  1541→  const days = Math.floor(Math.random() * 120);
+  1542→  const d = new Date(Date.now() - days * 86400000 - Math.random() * 86400000);
+  1543→  return d;
+  1544→}
+  1545→
+  1546→function getChildByName(parentId, name) {
+  1547→  const parent = fsNodes.get(parentId);
+  1548→  if (!parent || !parent.children) return null;
+  1549→  for (const cid of parent.children) {
+  1550→    const c = fsNodes.get(cid);
+  1551→    if (c && c.name === name) return c;
+  1552→  }
+  1553→  return null;
+  1554→}
+  1555→
+  1556→function getPath(nodeId) {
+  1557→  const parts = [];
+  1558→  let n = fsNodes.get(nodeId);
+  1559→  while (n) {
+  1560→    parts.unshift({ id: n.id, name: n.name });
+  1561→    n = n.parentId ? fsNodes.get(n.parentId) : null;
+  1562→  }
+  1563→  return parts;
+  1564→}
+  1565→
+  1566→function findNodeByPath(parts) {
+  1567→  let cur = fsNodes.get('root');
+  1568→  for (const p of parts) {
+  1569→    if (!cur || !cur.children) return null;
+  1570→    let found = null;
+  1571→    for (const cid of cur.children) {
+  1572→      const c = fsNodes.get(cid);
+  1573→      if (c && c.name === p) { found = c; break; }
+  1574→    }
+  1575→    if (!found) return null;
+  1576→    cur = found;
+  1577→  }
+  1578→  return cur ? cur.id : null;
+  1579→}
+  1580→
+  1581→function isAncestor(ancestorId, nodeId) {
+  1582→  let n = fsNodes.get(nodeId);
+  1583→  while (n && n.parentId) {
+  1584→    if (n.parentId === ancestorId) return true;
+  1585→    n = fsNodes.get(n.parentId);
+  1586→  }
+  1587→  return false;
+  1588→}
+  1589→
+  1590→function initFilesystem() {
+  1591→  const root = createNode({ id: 'root', name: 'Computer', type: 'folder' });
+  1592→  const home = createNode({ name: 'Home', type: 'folder', parentId: 'root', expanded: true });
+  1593→  root.children.push(home.id);
+  1594→
+  1595→  const dashboardNode = { id: 'dashboard', name: 'Dashboard', type: 'dashboard', parentId: null };
+  1596→  fsNodes.set('dashboard', dashboardNode);
+  1597→
+  1598→  const desktop   = createNode({ name: 'Desktop',   type: 'folder', parentId: home.id });
+  1599→  const documents = createNode({ name: 'Documents', type: 'folder', parentId: home.id });
+  1600→  const downloads = createNode({ name: 'Downloads', type: 'folder', parentId: home.id });
+  1601→  const pictures  = createNode({ name: 'Pictures',  type: 'folder', parentId: home.id });
+  1602→  const music     = createNode({ name: 'Music',     type: 'folder', parentId: home.id });
+  1603→  const videos    = createNode({ name: 'Videos',    type: 'folder', parentId: home.id });
+  1604→  const projects  = createNode({ name: 'Projects',  type: 'folder', parentId: home.id, expanded: true });
+  1605→  const config    = createNode({ name: '.config',   type: 'folder', parentId: home.id });
+  1606→
+  1607→  home.children.push(desktop.id, documents.id, downloads.id, pictures.id, music.id, videos.id, projects.id, config.id);
+  1608→
+  1609→  // Documents
+  1610→  const work = createNode({ name: 'Work', type: 'folder', parentId: documents.id });
+  1611→  const personal = createNode({ name: 'Personal', type: 'folder', parentId: documents.id });
+  1612→  const invoices = createNode({ name: 'Invoices', type: 'folder', parentId: documents.id });
+  1613→  const q4Strategy = createNode({ name: 'Q4 Strategy', type: 'folder', parentId: work.id });
+  1614→  work.children.push(q4Strategy.id);
+  1615→  documents.children.push(work.id, personal.id, invoices.id);
+  1616→
+  1617→  documents.children.push(
+  1618→    createNode({ name: 'resume.pdf',            type: 'pdf',     size: 248000,   parentId: documents.id }).id,
+  1619→    createNode({ name: 'budget-2024.ods',       type: 'sheet',   size: 89200,    parentId: documents.id }).id,
+  1620→    createNode({ name: 'meeting-notes.md',      type: 'text',    size: 4800,     parentId: documents.id }).id,
+  1621→    createNode({ name: 'thesis-draft.docx',     type: 'doc',     size: 1842000, parentId: documents.id }).id,
+  1622→    createNode({ name: 'reading-list.txt',      type: 'text',    size: 1200,    parentId: documents.id }).id,
+  1623→    createNode({ name: 'lease-agreement.pdf',   type: 'pdf',     size: 512000,  parentId: documents.id }).id,
+  1624→  );
+  1625→
+  1626→  personal.children.push(
+  1627→    createNode({ name: 'journal.md',            type: 'text',    size: 18400,   parentId: personal.id }).id,
+  1628→    createNode({ name: 'recipes.txt',           type: 'text',    size: 3200,    parentId: personal.id }).id,
+  1629→    createNode({ name: 'trip-planning.ods',     type: 'sheet',   size: 42000,   parentId: personal.id }).id,
+  1630→  );
+  1631→
+  1632→  // Downloads
+  1633→  downloads.children.push(
+  1634→    createNode({ name: 'ubuntu-24.04.iso',          type: 'generic', size: 4900000000, parentId: downloads.id }).id,
+  1635→    createNode({ name: 'firefox-installer.deb',     type: 'generic', size: 62000000,   parentId: downloads.id }).id,
+  1636→    createNode({ name: 'project-archive.zip',       type: 'archive', size: 184000000,  parentId: downloads.id }).id,
+  1637→    createNode({ name: 'wallpapers-pack.tar.gz',    type: 'archive', size: 92000000,   parentId: downloads.id }).id,
+  1638→    createNode({ name: 'backup-2024-03.borg',       type: 'archive', size: 2400000000, parentId: downloads.id }).id,
+  1639→    createNode({ name: 'sublime-text_build.deb',     type: 'generic', size: 12000000,   parentId: downloads.id }).id,
+  1640→    createNode({ name: 'vim-config.tar.gz',         type: 'archive', size: 38000,      parentId: downloads.id }).id,
+  1641→  );
+  1642→
+  1643→  // Pictures
+  1644→  const screenshots = createNode({ name: 'Screenshots', type: 'folder', parentId: pictures.id });
+  1645→  const wallpapers  = createNode({ name: 'Wallpapers',   type: 'folder', parentId: pictures.id });
+  1646→  const photos      = createNode({ name: 'Photos',       type: 'folder', parentId: pictures.id });
+  1647→  pictures.children.push(screenshots.id, wallpapers.id, photos.id);
+  1648→
+  1649→  pictures.children.push(
+  1650→    createNode({ name: 'aurora-night.png',      type: 'image', size: 4800000, parentId: pictures.id, meta: { w: 3840, h: 2160 } }).id,
+  1651→    createNode({ name: 'mountain-vista.jpg',     type: 'image', size: 3200000, parentId: pictures.id, meta: { w: 3840, h: 2160 } }).id,
+  1652→    createNode({ name: 'portrait-001.jpg',       type: 'image', size: 2800000, parentId: pictures.id, meta: { w: 1080, h: 1620 } }).id,
+  1653→  );
+  1654→
+  1655→  screenshots.children.push(
+  1656→    createNode({ name: 'screenshot-001.png', type: 'image', size: 380000, parentId: screenshots.id }).id,
+  1657→    createNode({ name: 'screenshot-002.png', type: 'image', size: 420000, parentId: screenshots.id }).id,
+  1658→    createNode({ name: 'screenshot-003.png', type: 'image', size: 510000, parentId: screenshots.id }).id,
+  1659→    createNode({ name: 'screenshot-004.png', type: 'image', size: 460000, parentId: screenshots.id }).id,
+  1660→  );
+  1661→
+  1662→  wallpapers.children.push(
+  1663→    createNode({ name: 'gradient-mist.jpg',  type: 'image', size: 1800000, parentId: wallpapers.id }).id,
+  1664→    createNode({ name: 'minimal-dark.png',    type: 'image', size: 2100000, parentId: wallpapers.id }).id,
+  1665→    createNode({ name: 'forest-calm.jpg',     type: 'image', size: 3400000, parentId: wallpapers.id }).id,
+  1666→    createNode({ name: 'desert-dusk.jpg',     type: 'image', size: 2900000, parentId: wallpapers.id }).id,
+  1667→  );
+  1668→
+  1669→  // Music
+  1670→  const playlists = createNode({ name: 'Playlists', type: 'folder', parentId: music.id });
+  1671→  music.children.push(playlists.id);
+  1672→  music.children.push(
+  1673→    createNode({ name: 'ambient-mix.mp3',        type: 'audio', size: 8400000,  parentId: music.id }).id,
+  1674→    createNode({ name: 'podcast-ep42.ogg',       type: 'audio', size: 32000000, parentId: music.id }).id,
+  1675→    createNode({ name: 'live-recording.flac',    type: 'audio', size: 28000000, parentId: music.id }).id,
+  1676→    createNode({ name: 'symphony-no9.flac',      type: 'audio', size: 42000000, parentId: music.id }).id,
+  1677→  );
+  1678→
+  1679→  // Videos
+  1680→  videos.children.push(
+  1681→    createNode({ name: 'conference-talk.mp4',  type: 'video', size: 480000000, parentId: videos.id }).id,
+  1682→    createNode({ name: 'screen-recording.mkv', type: 'video', size: 184000000, parentId: videos.id }).id,
+  1683→    createNode({ name: 'holiday-clip.mov',     type: 'video', size: 920000000, parentId: videos.id }).id,
+  1684→  );
+  1685→
+  1686→  // Projects
+  1687→  const webApp  = createNode({ name: 'web-app',   type: 'folder', parentId: projects.id, expanded: true });
+  1688→  const dotfiles = createNode({ name: 'dotfiles', type: 'folder', parentId: projects.id });
+  1689→  const cliTool = createNode({ name: 'cli-tool', type: 'folder', parentId: projects.id });
+  1690→  projects.children.push(webApp.id, dotfiles.id, cliTool.id);
+  1691→
+  1692→  const srcDir = createNode({ name: 'src', type: 'folder', parentId: webApp.id, expanded: true });
+  1693→  webApp.children.push(srcDir.id);
+  1694→  webApp.children.push(
+  1695→    createNode({ name: 'package.json',  type: 'code', size: 1200, parentId: webApp.id }).id,
+  1696→    createNode({ name: 'README.md',     type: 'text', size: 3400, parentId: webApp.id }).id,
+  1697→    createNode({ name: 'tsconfig.json', type: 'code', size: 580,  parentId: webApp.id }).id,
+  1698→    createNode({ name: 'vite.config.ts', type: 'code', size: 820, parentId: webApp.id }).id,
+  1699→  );
+  1700→  srcDir.children.push(
+  1701→    createNode({ name: 'index.ts',   type: 'code', size: 4200, parentId: srcDir.id }).id,
+  1702→    createNode({ name: 'app.tsx',    type: 'code', size: 8900, parentId: srcDir.id }).id,
+  1703→    createNode({ name: 'utils.ts',   type: 'code', size: 2100, parentId: srcDir.id }).id,
+  1704→    createNode({ name: 'styles.css', type: 'code', size: 3400, parentId: srcDir.id }).id,
+  1705→  );
+  1706→
+  1707→  dotfiles.children.push(
+  1708→    createNode({ name: '.bashrc',     type: 'code', size: 4200, parentId: dotfiles.id }).id,
+  1709→    createNode({ name: '.gitconfig',  type: 'code', size: 320,  parentId: dotfiles.id }).id,
+  1710→    createNode({ name: '.tmux.conf',  type: 'code', size: 1800, parentId: dotfiles.id }).id,
+  1711→  );
+  1712→
+  1713→  // Desktop
+  1714→  desktop.children.push(
+  1715→    createNode({ name: 'README.txt',       type: 'text', size: 480, parentId: desktop.id }).id,
+  1716→    createNode({ name: 'project-links.url', type: 'generic', size: 120, parentId: desktop.id }).id,
+  1717→    createNode({ name: 'screenshot.png',   type: 'image', size: 280000, parentId: desktop.id }).id,
+  1718→  );
+  1719→
+  1720→  // Config
+  1721→  config.children.push(
+  1722→    createNode({ name: 'nvim',  type: 'folder', parentId: config.id }).id,
+  1723→    createNode({ name: 'fish',  type: 'folder', parentId: config.id }).id,
+  1724→    createNode({ name: 'gitconfig', type: 'code', size: 320, parentId: config.id }).id,
+  1725→  );
+  1726→
+  1727→  return home;
+  1728→}
+  1729→
+  1730→// ============================================================
+  1731→//  Application State
+  1732→// ============================================================
+  1733→
+  1734→const state = {
+  1735→  homeId: null,
+  1736→  dashboardId: 'dashboard',
+  1737→  tabs: [],
+  1738→  activeTabId: null,
+  1739→  clipboard: null,
+  1740→  selection: new Set(),
+  1741→  sortBy: 'name',
+  1742→  sortDir: 'asc',
+  1743→  viewMode: 'grid',
+  1744→  searchQuery: '',
+  1745→  sidebarWidth: 264,
+  1746→  nextTabId: 1,
+  1747→  widgets: {
+  1748→    imageGallery: { visible: true, orientation: 'vertical' }
+  1749→  }
+  1750→};
+  1751→
+  1752→// ============================================================
+  1753→//  Tab Management
+  1754→// ============================================================
+  1755→
+  1756→function createTab(nodeId) {
+  1757→  const tabId = 't' + (state.nextTabId++);
+  1758→  const tab = {
+  1759→    id: tabId,
+  1760→    nodeId: nodeId,
+  1761→    history: [nodeId],
+  1762→    historyIdx: 0,
+  1763→    selectedIds: new Set(),
+  1764→  };
+  1765→  state.tabs.push(tab);
+  1766→  state.activeTabId = tabId;
+  1767→  return tab;
+  1768→}
+  1769→
+  1770→function getActiveTab() {
+  1771→  return state.tabs.find(t => t.id === state.activeTabId);
+  1772→}
+  1773→
+  1774→function switchTab(tabId) {
+  1775→  state.activeTabId = tabId;
+  1776→  const tab = getActiveTab();
+  1777→  if (tab) {
+  1778→    state.selection = tab.selectedIds;
+  1779→    state.searchQuery = '';
+  1780→    document.getElementById('searchInput').value = '';
+  1781→    renderAll();
+  1782→  }
+  1783→}
+  1784→
+  1785→function closeTab(tabId) {
+  1786→  const idx = state.tabs.findIndex(t => t.id === tabId);
+  1787→  if (idx < 0) return;
+  1788→  state.tabs.splice(idx, 1);
+  1789→  if (state.tabs.length === 0) {
+  1790→    createTab(state.dashboardId);
+  1791→  } else if (state.activeTabId === tabId) {
+  1792→    const newTab = state.tabs[Math.min(idx, state.tabs.length - 1)];
+  1793→    state.activeTabId = newTab.id;
+  1794→    state.selection = newTab.selectedIds;
+  1795→  }
+  1796→  renderAll();
+  1797→}
+  1798→
+  1799→function navigateTo(nodeId) {
+  1800→  const tab = getActiveTab();
+  1801→  if (!tab || tab.nodeId === nodeId) return;
+  1802→  tab.history = tab.history.slice(0, tab.historyIdx + 1);
+  1803→  tab.history.push(nodeId);
+  1804→  tab.historyIdx = tab.history.length - 1;
+  1805→  tab.nodeId = nodeId;
+  1806→  tab.selectedIds = new Set();
+  1807→  state.selection = tab.selectedIds;
+  1808→  state.searchQuery = '';
+  1809→  document.getElementById('searchInput').value = '';
+  1810→  renderAll();
+  1811→}
+  1812→
+  1813→function goBack() {
+  1814→  const tab = getActiveTab();
+  1815→  if (!tab || tab.historyIdx <= 0) return;
+  1816→  tab.historyIdx--;
+  1817→  tab.nodeId = tab.history[tab.historyIdx];
+  1818→  tab.selectedIds = new Set();
+  1819→  state.selection = tab.selectedIds;
+  1820→  renderAll();
+  1821→}
+  1822→
+  1823→function goForward() {
+  1824→  const tab = getActiveTab();
+  1825→  if (!tab || tab.historyIdx >= tab.history.length - 1) return;
+  1826→  tab.historyIdx++;
+  1827→  tab.nodeId = tab.history[tab.historyIdx];
+  1828→  tab.selectedIds = new Set();
+  1829→  state.selection = tab.selectedIds;
+  1830→  renderAll();
+  1831→}
+  1832→
+  1833→function goUp() {
+  1834→  const tab = getActiveTab();
+  1835→  if (!tab) return;
+  1836→  const node = fsNodes.get(tab.nodeId);
+  1837→  if (node && node.parentId) {
+  1838→    navigateTo(node.parentId);
+  1839→  }
+  1840→}
+  1841→
+  1842→// ============================================================
+  1843→//  Sidebar Rendering
+  1844→// ============================================================
+  1845→
+  1846→function getSidebarSections() {
+  1847→  return [
+  1848→    { title: 'Favorites', items: [
+  1849→      { icon: 'layout-dashboard', label: 'Dashboard', nodeId: state.dashboardId },
+  1850→      { icon: 'clock',      label: 'Recent',    special: 'recent' },
+  1851→      { icon: 'star',       label: 'Starred',   special: 'starred' },
+  1852→      { icon: 'trash-2',    label: 'Trash',     special: 'trash' },
+  1853→    ]},
+  1854→    { title: 'Places', items: [
+  1855→      { icon: 'house',      label: 'Home',      nodeId: state.homeId },
+  1856→      { icon: 'monitor',    label: 'Desktop',   nodeId: findNodeByPath(['Home', 'Desktop']) },
+  1857→      { icon: 'file-text',  label: 'Documents', nodeId: findNodeByPath(['Home', 'Documents']) },
+  1858→      { icon: 'download',   label: 'Downloads', nodeId: findNodeByPath(['Home', 'Downloads']) },
+  1859→      { icon: 'image',      label: 'Pictures',  nodeId: findNodeByPath(['Home', 'Pictures']) },
+  1860→      { icon: 'music',      label: 'Music',     nodeId: findNodeByPath(['Home', 'Music']) },
+  1861→      { icon: 'film',       label: 'Videos',    nodeId: findNodeByPath(['Home', 'Videos']) },
+  1862→    ]},
+  1863→  ];
+  1864→}
+  1865→
+  1866→function getStorageItems() {
+  1867→  return [
+  1868→    { id: 'local',     name: 'Local SSD',       icon: 'hard-drive',   used: 380,   total: 500,  status: 'success' },
+  1869→    { id: 'home-vol',  name: 'home volume',     icon: 'database',     used: 124,   total: 200,  status: 'success' },
+  1870→    { id: 'usb',       name: 'USB Drive',       icon: 'usb',           used: 12,    total: 64,   status: 'success' },
+  1871→    { id: 'nas',       name: 'nas.lan',         icon: 'server',        used: 1800,  total: 4000, status: 'success' },
+  1872→    { id: 'nextcloud', name: 'Nextcloud',       icon: 'cloud',         used: 18,    total: 50,   status: 'success' },
+  1873→    { id: 'gdrive',    name: 'Google Drive',    icon: 'cloud',         used: 8.4,   total: 15,   status: 'syncing' },
+  1874→  ];
+  1875→}
+  1876→
+  1877→function renderSidebar() {
+  1878→  const root = document.getElementById('sidebarScroll');
+  1879→  const tab = getActiveTab();
+  1880→  const activeNodeId = tab ? tab.nodeId : null;
+  1881→
+  1882→  let html = '';
+  1883→
+  1884→  for (const section of getSidebarSections()) {
+  1885→    html += `<div class="nav-section">`;
+  1886→    html += `<div class="nav-section-title">${section.title}</div>`;
+  1887→    for (const item of section.items) {
+  1888→      const active = item.nodeId && item.nodeId === activeNodeId;
+  1889→      html += `<div class="nav-item ${active ? 'active' : ''}" data-node-id="${item.nodeId || ''}" data-special="${item.special || ''}">
+  1890→        <i data-lucide="${item.icon}" class="icon"></i>
+  1891→        <span class="label">${item.label}</span>
+  1892→      </div>`;
+  1893→    }
+  1894→    html += `</div>`;
+  1895→  }
+  1896→
+  1897→  // Directory tree
+  1898→  html += `<div class="nav-section">
+  1899→    <div class="nav-section-title">Directory Tree</div>
+  1900→    <div id="treeRoot">${renderTreeNode(state.homeId, 0, activeNodeId)}</div>
+  1901→  </div>`;
+  1902→
+  1903→  // Storage
+  1904→  html += `<div class="nav-section">
+  1905→    <div class="nav-section-title">Storage & Network</div>`;
+  1906→  for (const item of getStorageItems()) {
+  1907→    const pct = (item.used / item.total) * 100;
+  1908→    const fillColor = pct > 90 ? 'danger' : pct > 75 ? 'warn' : '';
+  1909→    const usedLabel = item.total >= 1000 ? `${(item.used/1000).toFixed(1)} TB` : `${item.used} GB`;
+  1910→    const totalLabel = item.total >= 1000 ? `${(item.total/1000).toFixed(0)} TB` : `${item.total} GB`;
+  1911→    html += `<div class="storage-item" data-storage="${item.id}">
+  1912→      <div class="storage-item-head">
+  1913→        <i data-lucide="${item.icon}" class="icon"></i>
+  1914→        <span class="name">${item.name}</span>
+  1915→        <span class="status-dot ${item.status === 'syncing' ? 'syncing' : ''}"></span>
+  1916→      </div>
+  1917→      <div class="storage-bar"><div class="storage-bar-fill ${fillColor}" style="width:${pct}%"></div></div>
+  1918→      <div class="storage-meta"><span>${usedLabel} of ${totalLabel}</span><span>${pct.toFixed(0)}%</span></div>
+  1919→    </div>`;
+  1920→  }
+  1921→  html += `</div>`;
+  1922→
+  1923→  root.innerHTML = html;
+  1924→
+  1925→  root.querySelectorAll('.nav-item').forEach(el => {
+  1926→    el.addEventListener('click', () => {
+  1927→      const nodeId = el.dataset.nodeId;
+  1928→      const special = el.dataset.special;
+  1929→      if (nodeId) {
+  1930→        navigateTo(nodeId);
+  1931→      } else if (special) {
+  1932→        showToast(`${special.charAt(0).toUpperCase() + special.slice(1)} view is illustrative in this demo`, 'info');
+  1933→      }
+  1934→    });
+  1935→  });
+  1936→
+  1937→  root.querySelectorAll('.tree-arrow').forEach(el => {
+  1938→    el.addEventListener('click', (e) => {
+  1939→      e.stopPropagation();
+  1940→      const nodeId = el.dataset.nodeId;
+  1941→      const node = fsNodes.get(nodeId);
+  1942→      if (node) {
+  1943→        node.expanded = !node.expanded;
+  1944→        renderSidebar();
+  1945→      }
+  1946→    });
+  1947→  });
+  1948→
+  1949→  root.querySelectorAll('.tree-item').forEach(el => {
+  1950→    el.addEventListener('click', () => {
+  1951→      const nodeId = el.dataset.nodeId;
+  1952→      if (nodeId) navigateTo(nodeId);
+  1953→    });
+  1954→  });
+  1955→
+  1956→  if (window.lucide) lucide.createIcons();
+  1957→}
+  1958→
+  1959→function renderTreeNode(nodeId, depth, activeNodeId) {
+  1960→  const node = fsNodes.get(nodeId);
+  1961→  if (!node) return '';
+  1962→
+  1963→  const hasChildren = node.children && node.children.length > 0 && node.children.some(cid => {
+  1964→    const c = fsNodes.get(cid);
+  1965→    return c && c.type === 'folder';
+  1966→  });
+  1967→  const isActive = nodeId === activeNodeId;
+  1968→  const padLeft = 8 + depth * 18;
+  1969→
+  1970→  let html = `<div class="tree-node">`;
+  1971→  html += `<div class="tree-item ${isActive ? 'active' : ''}" data-node-id="${nodeId}" style="padding-left:${padLeft}px">`;
+  1972→  html += `<span class="tree-arrow ${node.expanded ? 'expanded' : ''} ${hasChildren ? '' : 'empty'}" data-node-id="${nodeId}">
+  1973→    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  1974→  </span>`;
+  1975→  html += `<i data-lucide="${node.expanded ? 'folder-open' : 'folder'}" class="tree-icon"></i>`;
+  1976→  html += `<span class="tree-label">${escapeHtml(node.name)}</span>`;
+  1977→  html += `</div>`;
+  1978→
+  1979→  if (hasChildren && node.expanded) {
+  1980→    html += `<div class="tree-children expanded">`;
+  1981→    for (const cid of node.children) {
+  1982→      const child = fsNodes.get(cid);
+  1983→      if (child && child.type === 'folder') {
+  1984→        html += renderTreeNode(cid, depth + 1, activeNodeId);
+  1985→      }
+  1986→    }
+  1987→    html += `</div>`;
+  1988→  }
+  1989→
+  1990→  html += `</div>`;
+  1991→  return html;
+  1992→}
+  1993→
+  1994→// ============================================================
+  1995→//  Breadcrumb
+  1996→// ============================================================
+  1997→
+  1998→function renderBreadcrumb() {
+  1999→  const tab = getActiveTab();
+  2000→  if (!tab) return;
+
+[showing lines 1-2000 of 3593; use offset=2001 with limit to continue reading]

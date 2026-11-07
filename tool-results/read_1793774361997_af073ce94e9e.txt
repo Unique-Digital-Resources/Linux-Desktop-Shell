@@ -1,0 +1,1023 @@
+     1→     1→/**
+     2→     2→ * de-shell.js — <de-shell>
+     3→     3→ *
+     4→     4→ * The orchestrating host. Shadow tree contains: wallpaper, <de-music-widget>,
+     5→     5→ * a windows layer, <de-dock>, <de-launcher>, <de-quicksettings>, <de-calendar>.
+     6→     6→ *
+     7→     7→ * This is the ONLY component that owns the design tokens (the original
+     8→     8→ * :root {…} block is ported to :host {…}). Light-mode overrides become
+     9→     9→ * :host(.light). The html/body reset becomes :host. Children components inherit
+    10→    10→ * the tokens via custom-property inheritance across the shadow boundary.
+    11→    11→ *
+    12→    12→ * Subscriptions:
+    13→    13→ *   - window-service.onWindowsChange  → re-render <de-app-window> instances
+    14→    14→ *   - theme-service.onTheme           → write --accent-* on this.style, toggle
+    15→    15→ *                                       .light class, apply wallpaper image
+    16→    16→ *   - bus 'ui.popover'                → delegate to child popover components
+    17→    17→ *
+    18→    18→ * For each open window the shell creates a <de-app-window data-window-id=…
+    19→    19→ * title=… icon=…> containing <fe-app> (appId==='files') or
+    20→    20→ * <de-placeholder-app data-app-id=…>. Minimized windows get display:none.
+    21→    21→ * Focused window gets the .focused class; z-index applied from window.z.
+    22→    22→ */
+    23→    23→import { renderIcons } from '../core/icons.js';
+    24→    24→import { commands } from '../core/command-registry.js';
+    25→    25→import { bus } from '../core/event-bus.js';
+    26→    26→import { onWindowsChange, windowService } from '../services/window-service.js';
+    27→    27→import { onTheme, themeService } from '../services/theme-service.js';
+    28→    28→import { workspaceService, onWorkspacesChange } from '../services/workspace-service.js';
+    29→    29→import { widgetService, onWidgets } from '../services/widget-service.js';
+    30→    30→import { makeResizable } from '../core/resizable.js';
+    31→    31→import { startWidgetDrag } from '../core/widget-drag.js';
+    32→    32→import { snapToGrid, findSnapGuides, alignWidgets, distributeWidgets, GRID, SNAP_THRESHOLD } from '../core/desktop-tools.js';
+    33→    33→import './tf-widget.js';
+    34→    34→import './de-app-window.js';
+    35→    35→import './de-placeholder-app.js';
+    36→    36→import './de-dock.js';
+    37→    37→import './de-launcher.js';
+    38→    38→import './de-quicksettings.js';
+    39→    39→import './de-calendar.js';
+    40→    40→
+    41→    41→const CSS = `<style>
+    42→    42→  /* ═══ DESIGN TOKENS (port of :root) ═══ */
+    43→    43→  :host {
+    44→    44→    --accent:        #b4a0ff;
+    45→    45→    --accent-strong: #8b6fff;
+    46→    46→    --accent-light:  #d4c8ff;
+    47→    47→    --accent-glow:   rgba(180,160,255,0.35);
+    48→    48→
+    49→    49→    --tint-1: rgba(180,160,255,0.045);
+    50→    50→    --tint-2: rgba(180,160,255,0.08);
+    51→    51→    --tint-3: rgba(180,160,255,0.14);
+    52→    52→    --tint-4: rgba(180,160,255,0.22);
+    53→    53→    --tint-5: rgba(180,160,255,0.30);
+    54→    54→
+    55→    55→    --text-1: #f0ecff;
+    56→    56→    --text-2: #c5bfd8;
+    57→    57→    --text-3: #837ca0;
+    58→    58→    --text-4: #5a547a;
+    59→    59→
+    60→    60→    --surface-bar:   rgba(14, 10, 28, 0.65);
+    61→    61→    --surface-pop:   rgba(20, 14, 36, 0.85);
+    62→    62→    --surface-deep:  rgba(24, 18, 42, 0.96);
+    63→    63→
+    64→    64→    --border-1: rgba(180,160,255,0.08);
+    65→    65→    --border-2: rgba(180,160,255,0.15);
+    66→    66→    --border-3: rgba(180,160,255,0.28);
+    67→    67→
+    68→    68→    /* window-client / notification status colors (theme-aware) */
+    69→    69→    --client-opened:    #f0ecff;   /* visible window: white */
+    70→    70→    --client-collapsed: #837ca0;  /* minimized window: gray */
+    71→    71→    --info:    #5ab0ff;            /* notification: blue */
+    72→    72→    --success: #6ad1b3;           /* success: green */
+    73→    73→    --error:   #f0857a;           /* error: red */
+    74→    74→    --warning: #e8c46a;          /* warning: yellow */
+    75→    75→    --downloading: #4fd8e8;      /* downloading: cyan (progress arc) */
+    76→    76→
+    77→    77→    --r-xs: 5px;  --r-sm: 7px;  --r-md: 9px;  --r-lg: 11px;
+    78→    78→    --r-xl: 13px; --r-2xl: 16px; --r-3xl: 20px; --r-pill: 999px;
+    79→    79→
+    80→    80→    --el-1: 0 1px 2px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.10);
+    81→    81→    --el-2: 0 4px 14px rgba(0,0,0,0.26), 0 1px 4px rgba(0,0,0,0.14);
+    82→    82→    --el-3: 0 14px 40px rgba(0,0,0,0.40), 0 3px 10px rgba(0,0,0,0.20);
+    83→    83→    --el-4: 0 28px 64px rgba(0,0,0,0.52), 0 6px 18px rgba(0,0,0,0.28);
+    84→    84→
+    85→    85→    --ease:      cubic-bezier(0.32, 0.72, 0, 1);
+    86→    86→    --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+    87→    87→    --d-fast: 0.13s; --d-med: 0.20s; --d-slow: 0.30s;
+    88→    88→
+    89→    89→    --bar-h: 48px;
+    90→    90→    --icon-sm: 15px; --icon-md: 17px; --icon-lg: 22px;
+    91→    91→    --stroke: 1.75;
+    92→    92→
+    93→    93→    /* html, body reset */
+    94→    94→    display: block;
+    95→    95→    width: 100%; height: 100%; overflow: hidden;
+    96→    96→    position: fixed; inset: 0;
+    97→    97→    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    98→    98→    color: var(--text-1); user-select: none;
+    99→    99→    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+   100→   100→    background: #06040f; font-size: 14px;
+   101→   101→    transition: background 0.4s var(--ease);
+   102→   102→  }
+   103→   103→
+   104→   104→  /* Light Mode Overrides */
+   105→   105→  :host(.light) {
+   106→   106→    --accent:        #6549e0;
+   107→   107→    --accent-strong: #5034cc;
+   108→   108→    --accent-light:  #7760ea;
+   109→   109→    --accent-glow:   rgba(101, 73, 224, 0.25);
+   110→   110→
+   111→   111→    --tint-1: rgba(101, 73, 224, 0.04);
+   112→   112→    --tint-2: rgba(101, 73, 224, 0.08);
+   113→   113→    --tint-3: rgba(101, 73, 224, 0.14);
+   114→   114→    --tint-4: rgba(101, 73, 224, 0.22);
+   115→   115→    --tint-5: rgba(101, 73, 224, 0.30);
+   116→   116→
+   117→   117→    --text-1: #1a1530;
+   118→   118→    --text-2: #45405e;
+   119→   119→    --text-3: #6a6585;
+   120→   120→    --text-4: #9a95b0;
+   121→   121→
+   122→   122→    --surface-bar:   rgba(245, 245, 252, 0.65);
+   123→   123→    --surface-pop:   rgba(250, 250, 255, 0.88);
+   124→   124→    --surface-deep:  rgba(255, 255, 255, 0.98);
+   125→   125→
+   126→   126→    --border-1: rgba(50, 30, 100, 0.06);
+   127→   127→    --border-2: rgba(50, 30, 100, 0.12);
+   128→   128→    --border-3: rgba(101, 73, 224, 0.3);
+   129→   129→
+   130→   130→    /* status colors invert for light mode so they read on light surfaces */
+   131→   131→    --client-opened:    #1a1530;
+   132→   132→    --client-collapsed: #6a6585;
+   133→   133→    --info:    #1f6feb;
+   134→   134→    --success: #1f7a4d;
+   135→   135→    --error:   #b3261e;
+   136→   136→    --warning: #b2651c;
+   137→   137→    --downloading: #00838f;
+   138→   138→
+   139→   139→    background: #f0f0f7;
+   140→   140→  }
+   141→   141→
+   142→   142→  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+   143→   143→  :host button { font-family: inherit; color: inherit; border: none; background: none; cursor: pointer; }
+   144→   144→  :host input { font-family: inherit; color: inherit; }
+   145→   145→  :host img { display: block; }
+   146→   146→  :host ::selection { background: var(--tint-4); }
+   147→   147→
+   148→   148→  .desktop { position: fixed; inset: 0; overflow: hidden; }
+   149→   149→
+   150→   150→  /* ═══ WALLPAPER ═══ */
+   151→   151→  .wallpaper {
+   152→   152→    position: absolute; inset: 0; z-index: 0;
+   153→   153→    background:
+   154→   154→      radial-gradient(ellipse 70% 55% at 22% 28%, rgba(95, 65, 180, 0.22), transparent 65%),
+   155→   155→      radial-gradient(ellipse 55% 75% at 82% 78%, rgba(50, 35, 120, 0.28), transparent 60%),
+   156→   156→      linear-gradient(160deg, #07051a 0%, #120d2c 45%, #080614 100%);
+   157→   157→    transition: background 0.4s var(--ease);
+   158→   158→  }
+   159→   159→  :host(.light) .wallpaper {
+   160→   160→    background:
+   161→   161→      radial-gradient(ellipse 70% 55% at 22% 28%, rgba(180, 160, 255, 0.35), transparent 65%),
+   162→   162→      radial-gradient(ellipse 55% 75% at 82% 78%, rgba(120, 100, 200, 0.25), transparent 60%),
+   163→   163→      linear-gradient(160deg, #e8e6f5 0%, #d8d4ef 45%, #f0f0f8 100%);
+   164→   164→  }
+   165→   165→  .wallpaper img {
+   166→   166→    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0;
+   167→   167→    transition: opacity 0.5s var(--ease);
+   168→   168→  }
+   169→   169→  .wallpaper::after {
+   170→   170→    content: ''; position: absolute; inset: 0;
+   171→   171→    background:
+   172→   172→      radial-gradient(ellipse 90% 60% at 20% 25%, rgba(80, 55, 160, 0.10), transparent 60%),
+   173→   173→      radial-gradient(ellipse 80% 70% at 85% 80%, rgba(35, 25, 85, 0.12), transparent 60%),
+   174→   174→      linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 25%, transparent 70%, rgba(0,0,0,0.25) 100%);
+   175→   175→    pointer-events: none;
+   176→   176→  }
+   177→   177→  :host(.light) .wallpaper::after {
+   178→   178→    background:
+   179→   179→      radial-gradient(ellipse 90% 60% at 20% 25%, rgba(180, 160, 255, 0.20), transparent 60%),
+   180→   180→      radial-gradient(ellipse 80% 70% at 85% 80%, rgba(120, 100, 200, 0.15), transparent 60%),
+   181→   181→      linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 25%, transparent 70%, rgba(255,255,255,0.15) 100%);
+   182→   182→  }
+   183→   183→
+   184→   184→  #windows-layer { position: absolute; inset: 0; z-index: 12; pointer-events: none; }
+   185→   185→  /* desktop-form transformer widgets: floating glass panels on the desktop */
+   186→   186→  #desktop-widgets { position: absolute; inset: 0; z-index: 11; pointer-events: none; }
+   187→   187→  #desktop-widgets .dw-panel {
+   188→   188→    position: absolute; pointer-events: auto;
+   189→   189→    background: var(--surface-pop); border: 1px solid var(--border-2); border-radius: var(--r-2xl);
+   190→   190→    backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+   191→   191→    box-shadow: var(--el-3), inset 0 1px 0 rgba(255,255,255,0.05);
+   192→   192→    padding: 18px; cursor: grab;
+   193→   193→  }
+   194→   194→  #desktop-widgets .dw-panel:active { cursor: grabbing; }
+   195→   195→  /* auto-hide close button (top-right, appears on panel hover) */
+   196→   196→  #desktop-widgets .dw-close {
+   197→   197→    position: absolute; top: 6px; right: 8px; width: 20px; height: 20px; border-radius: 50%;
+   198→   198→    display: grid; place-items: center; font-size: 16px; color: var(--text-4); cursor: pointer;
+   199→   199→    opacity: 0; transition: opacity var(--d-fast); z-index: 10; background: transparent;
+   200→   200→  }
+   201→   201→  #desktop-widgets .dw-panel:hover .dw-close { opacity: 1; }
+   202→   202→  #desktop-widgets .dw-close:hover { color: var(--error); background: var(--tint-3); }
+   203→   203→  #desktop-widgets .dw-panel.selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+   204→   204→  /* grid overlay (Ctrl+drag) — main grid (20px) + sub-grid dots (10px) */
+   205→   205→  #grid-overlay {
+   206→   206→    position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none;
+   207→   207→    background-image:
+   208→   208→      radial-gradient(circle, var(--accent-glow) 1.5px, transparent 1.5px),
+   209→   209→      radial-gradient(circle, var(--border-2) 0.8px, transparent 0.8px);
+   210→   210→    background-size: 20px 20px, 10px 10px;
+   211→   211→    background-position: 0 0, 0 0;
+   212→   212→  }
+   213→   213→  #grid-overlay.visible { display: block; }
+   214→   214→  /* snap guides (Shift+drag) */
+   215→   215→  #snap-guides { position: absolute; inset: 0; z-index: 101; pointer-events: none; display: none; }
+   216→   216→  #snap-guides.visible { display: block; }
+   217→   217→  #snap-guides .guide-v { position: absolute; top: 0; bottom: 0; width: 1px; background: #ff5f56; }
+   218→   218→  #snap-guides .guide-h { position: absolute; left: 0; right: 0; height: 1px; background: #ff5f56; }
+   219→   219→  /* selection rectangle */
+   220→   220→  #selection-rect {
+   221→   221→    position: absolute; z-index: 99; pointer-events: none; display: none;
+   222→   222→    border: 1px solid var(--accent); background: var(--tint-2); border-radius: 2px;
+   223→   223→  }
+   224→   224→  #selection-rect.visible { display: block; }
+   225→   225→  /* widget context menu */
+   226→   226→  #widget-context-menu {
+   227→   227→    position: absolute; z-index: 200; pointer-events: auto; display: none;
+   228→   228→    background: var(--surface-pop); border: 1px solid var(--border-2); border-radius: var(--r-md);
+   229→   229→    backdrop-filter: blur(24px) saturate(180%); box-shadow: var(--el-3); padding: 4px; min-width: 160px;
+   230→   230→    font-size: 12px;
+   231→   231→  }
+   232→   232→  #widget-context-menu.visible { display: block; }
+   233→   233→  #widget-context-menu .cm-group { padding: 2px 0; }
+   234→   234→  #widget-context-menu .cm-label { font-size: 9px; font-weight: 600; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 10px 2px; }
+   235→   235→  #widget-context-menu .cm-item { padding: 5px 10px; border-radius: var(--r-xs); color: var(--text-2); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+   236→   236→  #widget-context-menu .cm-item:hover { background: var(--tint-3); color: var(--text-1); }
+   237→   237→  #widget-context-menu .cm-sep { height: 1px; background: var(--border-1); margin: 4px 6px; }
+   238→   238→  .desktop-drop-hover::after {
+   239→   239→    content: ''; position: absolute; inset: 0; z-index: 50; pointer-events: none;
+   240→   240→    background: var(--tint-1); border: 2px dashed var(--accent); border-radius: 8px;
+   241→   241→    margin-bottom: 84px;
+   242→   242→  }
+   243→   243→  /* se-corner resize handle (music widget panel) */
+   244→   244→  #desktop-widgets .dw-resize {
+   245→   245→    position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize;
+   246→   246→    z-index: 5; opacity: 0.5; transition: opacity var(--d-fast);
+   247→   247→  }
+   248→   248→  #desktop-widgets .dw-resize:hover { opacity: 1; }
+   249→   249→  #desktop-widgets .dw-resize::after {
+   250→   250→    content: ''; position: absolute; right: 3px; bottom: 3px; width: 8px; height: 8px;
+   251→   251→    border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); border-radius: 0 0 3px 0;
+   252→   252→  }
+   253→   253→  /* draggable dividers between tiled windows (horizontal/vertical layouts).
+   254→   254→     The windows layer is pointer-events:none, but dividers re-enable it so the
+   255→   255→     user can grab them. */
+   256→   256→  .tile-divider {
+   257→   257→    position: absolute; z-index: 100;
+   258→   258→    pointer-events: auto;
+   259→   259→    display: flex; align-items: center; justify-content: center;
+   260→   260→  }
+   261→   261→  .tile-divider::after {
+   262→   262→    content: '';
+   263→   263→    background: var(--border-2);
+   264→   264→    border-radius: 2px;
+   265→   265→    transition: background var(--d-fast), box-shadow var(--d-fast);
+   266→   266→  }
+   267→   267→  .tile-divider.h { cursor: ew-resize; }
+   268→   268→  .tile-divider.h::after { width: 2px; height: 60%; }
+   269→   269→  .tile-divider.v { cursor: ns-resize; }
+   270→   270→  .tile-divider.v::after { height: 2px; width: 60%; }
+   271→   271→  .tile-divider:hover::after { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+   272→   272→  .tile-divider:active::after { background: var(--accent-strong); }
+   273→   273→
+   274→   274→  ::-webkit-scrollbar { width: 5px; height: 5px; }
+   275→   275→  ::-webkit-scrollbar-track { background: transparent; }
+   276→   276→  ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+   277→   277→  ::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+   278→   278→
+   279→   279→  @media (prefers-reduced-motion: reduce) {
+   280→   280→    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+   281→   281→  }
+   282→   282→</style>`;
+   283→   283→
+   284→   284→const HTML = `
+   285→   285→<div class="desktop">
+   286→   286→  <div class="wallpaper">
+   287→   287→    <img id="wallpaperImg" src="" alt="" onerror="this.style.opacity='0'">
+   288→   288→  </div>
+   289→   289→  <!-- desktop-form transformer widgets (floating panels) -->
+   290→   290→  <div id="desktop-widgets"></div>
+   291→   291→  <!-- snapping/selection overlays -->
+   292→   292→  <div id="grid-overlay"></div>
+   293→   293→  <div id="snap-guides"></div>
+   294→   294→  <div id="selection-rect"></div>
+   295→   295→  <div id="widget-context-menu"></div>
+   296→   296→  <div id="windows-layer"></div>
+   297→   297→  <de-dock></de-dock>
+   298→   298→  <de-launcher></de-launcher>
+   299→   299→  <de-quicksettings></de-quicksettings>
+   300→   300→  <de-calendar></de-calendar>
+   301→   301→</div>`;
+   302→   302→
+   303→   303→// Theme data model (verbatim from original)
+   304→   304→const THEMES = {
+   305→   305→  Midnight: {
+   306→   306→    dark: { url: 'https://images.pexels.com/photos/31622977/pexels-photo-31622977.jpeg', bg: '#24283b', text: '#f0ecff', dots: ['#7aa2f7', '#bb9af7', '#c0caf5', '#8b6fff'] },
+   307→   307→    light: { url: 'https://images.pexels.com/photos/31622978/pexels-photo-31622978.jpeg', bg: '#e6e6fa', text: '#1a1530', dots: ['#7aa2f7', '#bb9af7', '#8b6fff', '#c0caf5'] },
+   308→   308→    accent: '#8b6fff'
+   309→   309→  },
+   310→   310→  Cyberpunk: {
+   311→   311→    dark: { url: 'https://images.pexels.com/photos/38184044/pexels-photo-38184044.jpeg', bg: '#1a0b1a', text: '#ffffff', dots: ['#ff0055', '#00e5ff', '#ffffff', '#ff007a'] },
+   312→   312→    light: { url: 'https://images.pexels.com/photos/38184045/pexels-photo-38184045.jpeg', bg: '#ffe6f0', text: '#1a0b1a', dots: ['#ff0055', '#00e5ff', '#ff007a', '#ffffff'] },
+   313→   313→    accent: '#ff007a'
+   314→   314→  },
+   315→   315→  Sunny: {
+   316→   316→    dark: { url: '', bg: '#333333', text: '#fdfcdc', dots: ['#ffb703', '#fb8500', '#fdfcdc', '#ffb703'] },
+   317→   317→    light: { url: '', bg: '#fdfcdc', text: '#333333', dots: ['#ffb703', '#fb8500', '#333333', '#ffb703'] },
+   318→   318→    accent: '#ffb703'
+   319→   319→  }
+   320→   320→};
+   321→   321→
+   322→   322→function hexToRgb(hex) {
+   323→   323→  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+   324→   324→  return result ? {
+   325→   325→    r: parseInt(result[1], 16),
+   326→   326→    g: parseInt(result[2], 16),
+   327→   327→    b: parseInt(result[3], 16)
+   328→   328→  } : null;
+   329→   329→}
+   330→   330→
+   331→   331→class DeShell extends HTMLElement {
+   332→   332→  connectedCallback() {
+   333→   333→    if (this.shadowRoot) return;
+   334→   334→    const root = this.attachShadow({ mode: 'open' });
+   335→   335→    root.innerHTML = CSS + HTML;
+   336→   336→    this._root = root;
+   337→   337→    requestAnimationFrame(() => this._init());
+   338→   338→  }
+   339→   339→
+   340→   340→  _init() {
+   341→   341→    this._initIcons = () => renderIcons(this._root);
+   342→   342→    this._initIcons();
+   343→   343→
+   344→   344→    // child refs
+   345→   345→    this._dock = this._root.querySelector('de-dock');
+   346→   346→    this._launcher = this._root.querySelector('de-launcher');
+   347→   347→    this._qs = this._root.querySelector('de-quicksettings');
+   348→   348→    this._cal = this._root.querySelector('de-calendar');
+   349→   349→    this._windowsLayer = this._root.getElementById('windows-layer');
+   350→   350→    this._desktopWidgets = this._root.getElementById('desktop-widgets');
+   351→   351→    this._gridOverlay = this._root.getElementById('grid-overlay');
+   352→   352→    this._snapGuides = this._root.getElementById('snap-guides');
+   353→   353→    this._selectionRect = this._root.getElementById('selection-rect');
+   354→   354→    this._contextMenu = this._root.getElementById('widget-context-menu');
+   355→   355→    this._selectedWidgets = new Set(); // selected desktop widget ids
+   356→   356→    this._widgetZTop = 10; // z-order counter for desktop widgets
+   357→   357→
+   358→   358→    // desktop-form transformer widgets (floating panels)
+   359→   359→    this._renderDesktopWidgets();
+   360→   360→    this._unsubDesktopWidgets = onWidgets(() => this._renderDesktopWidgets());
+   361→   361→    // desktop is a drop target for widgets (drag from the bento grid or the bar)
+   362→   362→    this._wireDesktopDrop();
+   363→   363→    // desktop selection rectangle (drag on empty desktop) + context menu close
+   364→   364→    this._wireDesktopSelection();
+   365→   365→
+   366→   366→    // subscribe to window-service
+   367→   367→    this._unsubWindows = onWindowsChange((state) => this._renderWindows(state));
+   368→   368→    this._renderWindows(windowService.state);
+   369→   369→
+   370→   370→    // re-render windows on viewport resize so tiling tiles recompute
+   371→   371→    this._resizeHandler = () => this._renderWindows(windowService.state);
+   372→   372→    window.addEventListener('resize', this._resizeHandler);
+   373→   373→
+   374→   374→    // subscribe to theme-service
+   375→   375→    this._unsubTheme = onTheme((state) => this._applyTheme(state));
+   376→   376→    this._applyTheme(themeService.state);
+   377→   377→
+   378→   378→    // subscribe to ui.popover bus
+   379→   379→    this._unsubBus = bus.on('ui.popover', (payload) => this._handlePopover(payload));
+   380→   380→
+   381→   381→    // escape closes any open popover
+   382→   382→    this._keyHandler = (e) => {
+   383→   383→      if (e.key === 'Escape') {
+   384→   384→        if (this._anyOpen()) commands.execute('ui.closeAllPopovers');
+   385→   385→      }
+   386→   386→    };
+   387→   387→    document.addEventListener('keydown', this._keyHandler);
+   388→   388→
+   389→   389→    // late icon refresh (CDN may load late)
+   390→   390→    setTimeout(() => this._initIcons(), 50);
+   391→   391→  }
+   392→   392→
+   393→   393→  _anyOpen() {
+   394→   394→    return (
+   395→   395→      (this._launcher && this._launcher.isOpen()) ||
+   396→   396→      (this._qs && this._qs.isOpen()) ||
+   397→   397→      (this._cal && this._cal.isOpen()) ||
+   398→   398→      (this._dock && this._dock.isThemePopupOpen()) ||
+   399→   399→      (this._dock && this._dock.isWidgetPopoverOpen())
+   400→   400→    );
+   401→   401→  }
+   402→   402→
+   403→   403→  _renderWindows(state) {
+   404→   404→    const layer = this._windowsLayer;
+   405→   405→    if (!layer) return;
+   406→   406→    // track only <de-app-window> elements (NOT tile-dividers) by windowId
+   407→   407→    const existing = new Map();
+   408→   408→    Array.from(layer.children).forEach((el) => {
+   409→   409→      if (el.dataset.windowId) existing.set(el.dataset.windowId, el);
+   410→   410→    });
+   411→   411→
+   412→   412→    const area = this._tilingArea();
+   413→   413→    const activeWs = workspaceService.activeId;
+   414→   414→    const layout = state.layoutMode;
+   415→   415→
+   416→   416→    // tiles are computed only for the ACTIVE workspace's non-minimized windows
+   417→   417→    const activeWindows = state.windows.filter((w) => !w.minimized);
+   418→   418→    const tiling = (layout === 'horizontal' || layout === 'vertical');
+   419→   419→    const tiles = tiling ? this._computeTiles(activeWindows, area, layout) : null;
+   420→   420→    let tileIdx = 0;
+   421→   421→
+   422→   422→    // iterate ALL windows (across every workspace) so elements persist on switch
+   423→   423→    for (const w of windowService.allWindows) {
+   424→   424→      let el = existing.get(w.id);
+   425→   425→      if (!el) {
+   426→   426→        el = document.createElement('de-app-window');
+   427→   427→        el.dataset.windowId = w.id;
+   428→   428→        el.dataset.appId = w.appId;
+   429→   429→        if (w.titlebar === false) el.setAttribute('data-notitlebar', '');
+   430→   430→        el.setAttribute('title', w.title || w.appId);
+   431→   431→        if (w.icon) el.setAttribute('icon', w.icon);
+   432→   432→        if (w.appId === 'files') {
+   433→   433→          el.appendChild(document.createElement('fe-app'));
+   434→   434→        } else {
+   435→   435→          const ph = document.createElement('de-placeholder-app');
+   436→   436→          ph.dataset.appId = w.appId;
+   437→   437→          el.appendChild(ph);
+   438→   438→        }
+   439→   439→        layer.appendChild(el);
+   440→   440→      } else {
+   441→   441→        existing.delete(w.id);
+   442→   442→        el.setAttribute('title', w.title || w.appId);
+   443→   443→        if (w.icon) el.setAttribute('icon', w.icon);
+   444→   444→      }
+   445→   445→
+   446→   446→      const inActiveWs = (w.workspaceId === activeWs);
+   447→   447→      // hide windows that belong to other workspaces (element is kept alive)
+   448→   448→      if (!inActiveWs) {
+   449→   449→        el.style.display = 'none';
+   450→   450→        continue;
+   451→   451→      }
+   452→   452→
+   453→   453→      el.style.zIndex = String(w.z);
+   454→   454→      el.classList.toggle('focused', state.focusedId === w.id);
+   455→   455→      el.setAttribute('data-layout', layout);
+   456→   456→      if (w.maximized) el.setAttribute('data-maximized', '');
+   457→   457→      else el.removeAttribute('data-maximized');
+   458→   458→      el.style.display = w.minimized ? 'none' : '';
+   459→   459→
+   460→   460→      let r;
+   461→   461→      if (w.maximized) {
+   462→   462→        r = { x: area.x, y: area.y, w: area.w, h: area.h };
+   463→   463→      } else if (tiling) {
+   464→   464→        if (w.minimized) { r = null; }
+   465→   465→        else { r = tiles[tileIdx] || { x: area.x, y: area.y, w: area.w, h: area.h }; tileIdx++; }
+   466→   466→      } else {
+   467→   467→        r = { x: w.x ?? 80, y: w.y ?? 24, w: w.w ?? 1000, h: w.h ?? 620 };
+   468→   468→      }
+   469→   469→      if (r) {
+   470→   470→        el.style.setProperty('--win-x', r.x + 'px');
+   471→   471→        el.style.setProperty('--win-y', r.y + 'px');
+   472→   472→        el.style.setProperty('--win-w', r.w + 'px');
+   473→   473→        el.style.setProperty('--win-h', r.h + 'px');
+   474→   474→      }
+   475→   475→    }
+   476→   476→
+   477→   477→    // remove <de-app-window> elements whose windows no longer exist anywhere
+   478→   478→    for (const [, el] of existing) el.remove();
+   479→   479→
+   480→   480→    // draggable dividers between adjacent tiles (horizontal / vertical only)
+   481→   481→    this._renderTilingDividers(tiling ? tiles : [], activeWindows, layout, area);
+   482→   482→
+   483→   483→    // mark active app on dock (active workspace only)
+   484→   484→    if (this._dock) {
+   485→   485→      const focused = state.windows.find((w) => w.id === state.focusedId);
+   486→   486→      if (focused) this._dock.setActiveApp(focused.appId);
+   487→   487→      else this._dock.clearActiveApp();
+   488→   488→    }
+   489→   489→  }
+   490→   490→
+   491→   491→  /** the area above the dock where tiled windows live */
+   492→   492→  _tilingArea() {
+   493→   493→    const vw = window.innerWidth, vh = window.innerHeight;
+   494→   494→    return { x: 8, y: 8, w: vw - 16, h: vh - 8 - 84 }; // 84 = dock + gap
+   495→   495→  }
+   496→   496→
+   497→   497→  /**
+   498→   498→   * Tiling tiles using each window's tileRatio (so dragging a divider resizes
+   499→   499→   * adjacent tiles). 'horizontal' = one row of N columns; 'vertical' = one
+   500→   500→   * column of N rows; small gaps between tiles.
+   501→   501→   */
+   502→   502→  _computeTiles(windows, area, layout) {
+   503→   503→    if (!windows.length) return [];
+   504→   504→    const gap = 6;
+   505→   505→    const ratios = windows.map((w) => w.tileRatio || 1);
+   506→   506→    const sumR = ratios.reduce((a, b) => a + b, 0) || 1;
+   507→   507→    const tiles = [];
+   508→   508→    if (layout === 'horizontal') {
+   509→   509→      const usableW = area.w - (windows.length - 1) * gap;
+   510→   510→      let cursor = area.x;
+   511→   511→      windows.forEach((w, i) => {
+   512→   512→        const tw = usableW * (ratios[i] / sumR);
+   513→   513→        tiles.push({ x: cursor, y: area.y, w: tw, h: area.h });
+   514→   514→        cursor += tw + gap;
+   515→   515→      });
+   516→   516→    } else { // vertical
+   517→   517→      const usableH = area.h - (windows.length - 1) * gap;
+   518→   518→      let cursor = area.y;
+   519→   519→      windows.forEach((w, i) => {
+   520→   520→        const th = usableH * (ratios[i] / sumR);
+   521→   521→        tiles.push({ x: area.x, y: cursor, w: area.w, h: th });
+   522→   522→        cursor += th + gap;
+   523→   523→      });
+   524→   524→    }
+   525→   525→    return tiles;
+   526→   526→  }
+   527→   527→
+   528→   528→  /**
+   529→   529→   * Render / update draggable dividers between adjacent tiles. Dividers are
+   530→   530→   * diffed by data-key (a|b) so they persist across re-renders (e.g. while
+   531→   531→   * dragging one, the ratios change and tiles recompute, but the divider
+   532→   532→   * element stays and just repositions).
+   533→   533→   */
+   534→   534→  _renderTilingDividers(tiles, activeWindows, layout, area) {
+   535→   535→    const layer = this._windowsLayer;
+   536→   536→    if (!layer) return;
+   537→   537→    const existing = new Map();
+   538→   538→    layer.querySelectorAll('.tile-divider').forEach((d) => existing.set(d.dataset.key, d));
+   539→   539→    const wanted = new Set();
+   540→   540→
+   541→   541→    for (let i = 0; i < activeWindows.length - 1; i++) {
+   542→   542→      const a = activeWindows[i], b = activeWindows[i + 1];
+   543→   543→      const key = a.id + '|' + b.id;
+   544→   544→      wanted.add(key);
+   545→   545→      let div = existing.get(key);
+   546→   546→      if (!div) {
+   547→   547→        div = document.createElement('div');
+   548→   548→        div.dataset.key = key;
+   549→   549→        div.dataset.a = a.id;
+   550→   550→        div.dataset.b = b.id;
+   551→   551→        this._wireDivider(div);
+   552→   552→        layer.appendChild(div);
+   553→   553→      }
+   554→   554→      div.className = 'tile-divider ' + (layout === 'horizontal' ? 'h' : 'v');
+   555→   555→      const ta = tiles[i];
+   556→   556→      const gap = 6;
+   557→   557→      if (layout === 'horizontal') {
+   558→   558→        div.style.left = (ta.x + ta.w + gap / 2 - 4) + 'px';
+   559→   559→        div.style.top = ta.y + 'px';
+   560→   560→        div.style.width = '8px';
+   561→   561→        div.style.height = ta.h + 'px';
+   562→   562→      } else {
+   563→   563→        div.style.top = (ta.y + ta.h + gap / 2 - 4) + 'px';
+   564→   564→        div.style.left = ta.x + 'px';
+   565→   565→        div.style.width = ta.w + 'px';
+   566→   566→        div.style.height = '8px';
+   567→   567→      }
+   568→   568→    }
+   569→   569→    for (const [key, div] of existing) if (!wanted.has(key)) div.remove();
+   570→   570→  }
+   571→   571→
+   572→   572→  /** wire a tile-divider drag → adjust the two adjacent windows' tileRatios */
+   573→   573→  _wireDivider(div) {
+   574→   574→    div.style.position = 'absolute';
+   575→   575→    div.style.zIndex = '100';
+   576→   576→    div.addEventListener('pointerdown', (e) => {
+   577→   577→      e.stopPropagation();
+   578→   578→      e.preventDefault();
+   579→   579→      const isH = div.classList.contains('h');
+   580→   580→      const aId = div.dataset.a, bId = div.dataset.b;
+   581→   581→      const ws = workspaceService.active;
+   582→   582→      const wa = ws.windows.find((w) => w.id === aId);
+   583→   583→      const wb = ws.windows.find((w) => w.id === bId);
+   584→   584→      if (!wa || !wb) return;
+   585→   585→      const ra0 = wa.tileRatio || 1, rb0 = wb.tileRatio || 1;
+   586→   586→      const sumR = ra0 + rb0;
+   587→   587→      const area = this._tilingArea();
+   588→   588→      const nVis = ws.windows.filter((w) => !w.minimized).length;
+   589→   589→      const usable = (isH ? area.w : area.h) - (nVis - 1) * 6;
+   590→   590→      const startX = e.clientX, startY = e.clientY;
+   591→   591→      const onMove = (ev) => {
+   592→   592→        const d = isH ? (ev.clientX - startX) : (ev.clientY - startY);
+   593→   593→        const delta = (d / usable) * sumR;
+   594→   594→        let na = ra0 + delta, nb = rb0 - delta;
+   595→   595→        const minR = 0.15 * sumR;
+   596→   596→        if (na < minR) { na = minR; nb = sumR - minR; }
+   597→   597→        if (nb < minR) { nb = minR; na = sumR - minR; }
+   598→   598→        commands.execute('window.setTileRatios', { list: [{ id: aId, ratio: na }, { id: bId, ratio: nb }] });
+   599→   599→      };
+   600→   600→      const onUp = () => {
+   601→   601→        document.removeEventListener('pointermove', onMove);
+   602→   602→        document.removeEventListener('pointerup', onUp);
+   603→   603→      };
+   604→   604→      document.addEventListener('pointermove', onMove);
+   605→   605→      document.addEventListener('pointerup', onUp);
+   606→   606→    });
+   607→   607→  }
+   608→   608→
+   609→   609→  /** render the desktop-placed transformer widgets as floating glass panels.
+   610→   610→   *  Desktop widgets are FIXED (not draggable/movable — only resizable). The
+   611→   611→   *  music panel is resizable from ANY edge/corner (8 handles). Panels are
+   612→   612→   *  positioned with left/top so the w/n handles can reposition while resizing. */
+   613→   613→  _renderDesktopWidgets() {
+   614→   614→    const layer = this._desktopWidgets;
+   615→   615→    if (!layer) return;
+   616→   616→    layer.innerHTML = '';
+   617→   617→    const ids = widgetService.listContainer('desktop');
+   618→   618→    const vw = window.innerWidth, vh = window.innerHeight;
+   619→   619→    ids.forEach((id, i) => {
+   620→   620→      const panel = document.createElement('div');
+   621→   621→      panel.className = 'dw-panel';
+   622→   622→      const g = widgetService.getDesktopSize(id);
+   623→   623→      if (g && g.left != null) {
+   624→   624→        // persisted geometry (size + position from a prior move/resize)
+   625→   625→        panel.style.left = g.left + 'px'; panel.style.top = g.top + 'px';
+   626→   626→        panel.style.width = g.w + 'px'; panel.style.height = g.h + 'px';
+   627→   627→      } else {
+   628→   628→        // first placement: cascade in the upper-right area
+   629→   629→        const w0 = g ? g.w : 320;
+   630→   630→        panel.style.left = (vw - w0 - 16 - i * 12) + 'px';
+   631→   631→        panel.style.top = (16 + i * 12) + 'px';
+   632→   632→        if (g) { panel.style.width = g.w + 'px'; panel.style.height = g.h + 'px'; }
+   633→   633→      }
+   634→   634→      panel.style.maxHeight = (vh - 120) + 'px';
+   635→   635→      panel.style.overflow = 'auto';
+   636→   636→      const w = document.createElement('tf-widget');
+   637→   637→      w.setAttribute('data-id', id);
+   638→   638→      w.setAttribute('data-container', 'desktop');
+   639→   639→      panel.appendChild(w);
+   640→   640→      // ALL desktop panels are resizable from any edge/corner (8 handles)
+   641→   641→      // with Ctrl grid-snap + Shift widget-snap (same as drag)
+   642→   642→      makeResizable(panel, {
+   643→   643→        minW: 200, minH: 100,
+   644→   644→        onChange: () => widgetService.setDesktopSize(id, panel.offsetWidth, panel.offsetHeight, panel.offsetLeft, panel.offsetTop),
+   645→   645→        snap: (geom, ev, dir) => this._snapResize(geom, ev, dir, panel),
+   646→   646→      });
+   647→   647→      // auto-hide close button (top-right, appears on panel hover) → remove widget
+   648→   648→      const close = document.createElement('div');
+   649→   649→      close.className = 'dw-close';
+   650→   650→      close.innerHTML = '×';
+   651→   651→      close.title = 'Remove widget';
+   652→   652→      close.addEventListener('click', (ev) => { ev.stopPropagation(); widgetService.removeFromContainer(id, 'desktop'); });
+   653→   653→      panel.appendChild(close);
+   654→   654→      // every desktop panel can be MOVED (repositioned) by dragging its body
+   655→   655→      // (not from a resize handle). Desktop widgets still can't be dragged to
+   656→   656→      // the bar — only moved within the desktop.
+   657→   657→      this._wirePanelMove(panel, id);
+   658→   658→      layer.appendChild(panel);
+   659→   659→    });
+   660→   660→  }
+   661→   661→
+   662→   662→  /** wire a desktop panel's body drag with Ctrl grid-snap + Shift widget-snap +
+   663→   663→   *  multi-selection (Ctrl+click) + context menu (right-click). */
+   664→   664→  _wirePanelMove(panel, id) {
+   665→   665→    panel.addEventListener('pointerdown', (e) => {
+   666→   666→      if (e.target.closest('.rz-handle, .dw-close, button, input, a')) return;
+   667→   667→      if (e.button === 2) return; // right-click handled by contextmenu
+   668→   668→      e.preventDefault();
+   669→   669→      const sx = e.clientX, sy = e.clientY;
+   670→   670→      const startLeft = panel.offsetLeft, startTop = panel.offsetTop;
+   671→   671→      const vw = window.innerWidth, vh = window.innerHeight;
+   672→   672→      const dockEl = this._root.querySelector('de-dock');
+   673→   673→      const dockContainer = dockEl && dockEl.shadowRoot && dockEl.shadowRoot.getElementById('dock-container');
+   674→   674→      const overBar = (y) => { if (!dockContainer) return false; const r = dockContainer.getBoundingClientRect(); return y >= r.top - 10 && y <= r.bottom + 10; };
+   675→   675→      let mode = 'idle';
+   676→   676→      const ctrlAtDown = e.ctrlKey || e.metaKey;
+   677→   677→
+   678→   678→      const move = (ev) => {
+   679→   679→        if (mode === 'idle') {
+   680→   680→          if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 4) return;
+   681→   681→          if (overBar(ev.clientY)) { mode = 'widget'; panel.classList.add('dragging'); startWidgetDrag(id, 'desktop'); return; }
+   682→   682→          mode = 'move';
+   683→   683→          if (!ctrlAtDown) this._clearSelection();
+   684→   684→          this._selectOnly(panel, id);
+   685→   685→        }
+   686→   686→        if (mode !== 'move') return;
+   687→   687→        let nx = startLeft + (ev.clientX - sx);
+   688→   688→        let ny = startTop + (ev.clientY - sy);
+   689→   689→        // Ctrl → grid snap + show dot grid
+   690→   690→        if (ev.ctrlKey || ev.metaKey) {
+   691→   691→          this._showGrid();
+   692→   692→          nx = snapToGrid(nx); ny = snapToGrid(ny);
+   693→   693→        } else this._hideGrid();
+   694→   694→        // Shift → snap to other widgets + show guides
+   695→   695→        if (ev.shiftKey) {
+   696→   696→          const others = this._getOtherPanels(panel);
+   697→   697→          const g = findSnapGuides({ left: nx, top: ny, w: panel.offsetWidth, h: panel.offsetHeight }, others);
+   698→   698→          nx += g.dx; ny += g.dy;
+   699→   699→          this._showGuides(g);
+   700→   700→        } else this._hideGuides();
+   701→   701→        nx = Math.max(4, Math.min(vw - panel.offsetWidth - 4, nx));
+   702→   702→        ny = Math.max(4, Math.min(vh - 100, ny));
+   703→   703→        panel.style.left = nx + 'px';
+   704→   704→        panel.style.top = ny + 'px';
+   705→   705→      };
+   706→   706→      const up = () => {
+   707→   707→        document.removeEventListener('pointermove', move);
+   708→   708→        document.removeEventListener('pointerup', up);
+   709→   709→        panel.classList.remove('dragging');
+   710→   710→        this._hideGrid(); this._hideGuides();
+   711→   711→        if (mode === 'move') widgetService.setDesktopSize(id, panel.offsetWidth, panel.offsetHeight, panel.offsetLeft, panel.offsetTop);
+   712→   712→        if (mode === 'idle') { // click without drag
+   713→   713→          if (ctrlAtDown) this._toggleSelection(panel, id);
+   714→   714→          else { this._clearSelection(); this._selectOnly(panel, id); }
+   715→   715→        }
+   716→   716→      };
+   717→   717→      document.addEventListener('pointermove', move);
+   718→   718→      document.addEventListener('pointerup', up);
+   719→   719→    });
+   720→   720→    // right-click → context menu (align/distribute)
+   721→   721→    panel.addEventListener('contextmenu', (e) => {
+   722→   722→      e.preventDefault();
+   723→   723→      if (!panel.classList.contains('selected')) { this._clearSelection(); this._selectOnly(panel, id); }
+   724→   724→      this._showContextMenu(e.clientX, e.clientY);
+   725→   725→    });
+   726→   726→  }
+   727→   727→
+   728→   728→  // --- grid / guides ---
+   729→   729→  _showGrid() { if (this._gridOverlay) this._gridOverlay.classList.add('visible'); }
+   730→   730→  _hideGrid() { if (this._gridOverlay) this._gridOverlay.classList.remove('visible'); }
+   731→   731→  _showGuides(g) {
+   732→   732→    const el = this._snapGuides; if (!el) return;
+   733→   733→    el.innerHTML = '';
+   734→   734→    el.classList.add('visible');
+   735→   735→    for (const x of g.v) { const d = document.createElement('div'); d.className = 'guide-v'; d.style.left = x + 'px'; el.appendChild(d); }
+   736→   736→    for (const y of g.h) { const d = document.createElement('div'); d.className = 'guide-h'; d.style.top = y + 'px'; el.appendChild(d); }
+   737→   737→  }
+   738→   738→  _hideGuides() { if (this._snapGuides) { this._snapGuides.classList.remove('visible'); this._snapGuides.innerHTML = ''; } }
+   739→   739→
+   740→   740→  /** snap a resize to the grid (Ctrl) or other widgets (Shift) */
+   741→   741→  _snapResize({ x, y, w, h }, ev, dir, panel) {
+   742→   742→    if (ev.ctrlKey || ev.metaKey) {
+   743→   743→      this._showGrid();
+   744→   744→      w = snapToGrid(w); h = snapToGrid(h);
+   745→   745→      if (dir.includes('w')) x = snapToGrid(x);
+   746→   746→      if (dir.includes('n')) y = snapToGrid(y);
+   747→   747→    } else this._hideGrid();
+   748→   748→    if (ev.shiftKey) {
+   749→   749→      const others = this._getOtherPanels(panel);
+   750→   750→      const g = findSnapGuides({ left: x, top: y, w, h }, others);
+   751→   751→      x += g.dx; y += g.dy;
+   752→   752→      if (dir.includes('w')) w -= g.dx;
+   753→   753→      if (dir.includes('n')) h -= g.dy;
+   754→   754→      this._showGuides(g);
+   755→   755→    } else this._hideGuides();
+   756→   756→    return { x, y, w: Math.max(200, w), h: Math.max(100, h) };
+   757→   757→  }
+   758→   758→
+   759→   759→  // --- selection ---
+   760→   760→  _getOtherPanels(exclude) {
+   761→   761→    return Array.from(this._desktopWidgets.children)
+   762→   762→      .filter((p) => p !== exclude)
+   763→   763→      .map((p) => ({ left: p.offsetLeft, top: p.offsetTop, w: p.offsetWidth, h: p.offsetHeight }));
+   764→   764→  }
+   765→   765→  _selectOnly(panel, id) {
+   766→   766→    this._clearSelection();
+   767→   767→    panel.classList.add('selected');
+   768→   768→    this._selectedWidgets.add(id);
+   769→   769→    // raise to top z-order
+   770→   770→    panel.style.zIndex = String(++this._widgetZTop);
+   771→   771→  }
+   772→   772→  _toggleSelection(panel, id) {
+   773→   773→    if (panel.classList.contains('selected')) { panel.classList.remove('selected'); this._selectedWidgets.delete(id); }
+   774→   774→    else { panel.classList.add('selected'); this._selectedWidgets.add(id); }
+   775→   775→  }
+   776→   776→  _clearSelection() {
+   777→   777→    this._desktopWidgets.querySelectorAll('.dw-panel.selected').forEach((p) => p.classList.remove('selected'));
+   778→   778→    this._selectedWidgets.clear();
+   779→   779→  }
+   780→   780→
+   781→   781→  // --- context menu (align / distribute) ---
+   782→   782→  _showContextMenu(x, y) {
+   783→   783→    const cm = this._contextMenu; if (!cm) return;
+   784→   784→    const n = this._selectedWidgets.size;
+   785→   785→    const items = [
+   786→   786→      { label: 'Align Left', fn: () => this._applyAlign('left') },
+   787→   787→      { label: 'Align Center H', fn: () => this._applyAlign('centerH') },
+   788→   788→      { label: 'Align Right', fn: () => this._applyAlign('right') },
+   789→   789→      { label: 'Align Top', fn: () => this._applyAlign('top') },
+   790→   790→      { label: 'Align Center V', fn: () => this._applyAlign('centerV') },
+   791→   791→      { label: 'Align Bottom', fn: () => this._applyAlign('bottom') },
+   792→   792→      { sep: true },
+   793→   793→      { label: 'Distribute Horizontally', fn: () => this._applyDistribute('h') },
+   794→   794→      { label: 'Distribute Vertically', fn: () => this._applyDistribute('v') },
+   795→   795→      { sep: true },
+   796→   796→      { label: 'Match Width', fn: () => this._applySizing('w') },
+   797→   797→      { label: 'Match Height', fn: () => this._applySizing('h') },
+   798→   798→      { label: 'Equal Size', fn: () => this._applySizing('wh') },
+   799→   799→    ];
+   800→   800→    cm.innerHTML = '';
+   801→   801→    const lbl = document.createElement('div'); lbl.className = 'cm-label'; lbl.textContent = `${n} selected`;
+   802→   802→    cm.appendChild(lbl);
+   803→   803→    const grp = document.createElement('div'); grp.className = 'cm-group';
+   804→   804→    for (const it of items) {
+   805→   805→      if (it.sep) { const s = document.createElement('div'); s.className = 'cm-sep'; grp.appendChild(s); continue; }
+   806→   806→      const d = document.createElement('div'); d.className = 'cm-item'; d.textContent = it.label;
+   807→   807→      d.addEventListener('click', () => { it.fn(); this._hideContextMenu(); });
+   808→   808→      grp.appendChild(d);
+   809→   809→    }
+   810→   810→    cm.appendChild(grp);
+   811→   811→    cm.style.left = x + 'px'; cm.style.top = y + 'px';
+   812→   812→    cm.classList.add('visible');
+   813→   813→  }
+   814→   814→  _hideContextMenu() { if (this._contextMenu) this._contextMenu.classList.remove('visible'); }
+   815→   815→
+   816→   816→  _getSelectedPanels() {
+   817→   817→    return Array.from(this._desktopWidgets.querySelectorAll('.dw-panel.selected'))
+   818→   818→      .map((p) => ({ el: p, id: p.querySelector('tf-widget')?.dataset.id, left: p.offsetLeft, top: p.offsetTop, w: p.offsetWidth, h: p.offsetHeight }));
+   819→   819→  }
+   820→   820→  _applyAlign(alignment) {
+   821→   821→    const panels = this._getSelectedPanels(); if (panels.length < 2) return;
+   822→   822→    const result = alignWidgets(panels, alignment);
+   823→   823→    panels.forEach((p, i) => {
+   824→   824→      p.el.style.left = result[i].left + 'px'; p.el.style.top = result[i].top + 'px';
+   825→   825→      widgetService.setDesktopSize(p.id, p.w, p.h, result[i].left, result[i].top);
+   826→   826→    });
+   827→   827→  }
+   828→   828→  _applyDistribute(axis) {
+   829→   829→    const panels = this._getSelectedPanels(); if (panels.length < 3) return;
+   830→   830→    const result = distributeWidgets(panels, axis);
+   831→   831→    panels.forEach((p, i) => {
+   832→   832→      p.el.style.left = result[i].left + 'px'; p.el.style.top = result[i].top + 'px';
+   833→   833→      widgetService.setDesktopSize(p.id, p.w, p.h, result[i].left, result[i].top);
+   834→   834→    });
+   835→   835→  }
+   836→   836→  /** match width/height/equal-size of selected panels to the first selected */
+   837→   837→  _applySizing(mode) {
+   838→   838→    const panels = this._getSelectedPanels(); if (panels.length < 2) return;
+   839→   839→    const ref = panels[0];
+   840→   840→    panels.forEach((p) => {
+   841→   841→      const nw = (mode === 'w' || mode === 'wh') ? ref.w : p.w;
+   842→   842→      const nh = (mode === 'h' || mode === 'wh') ? ref.h : p.h;
+   843→   843→      p.el.style.width = nw + 'px'; p.el.style.height = nh + 'px';
+   844→   844→      widgetService.setDesktopSize(p.id, nw, nh, p.left, p.top);
+   845→   845→    });
+   846→   846→  }
+   847→   847→
+   848→   848→  /** drag-select rectangle on empty desktop */
+   849→   849→  _wireDesktopSelection() {
+   850→   850→    const desktop = this._root.querySelector('.desktop');
+   851→   851→    const rect = this._selectionRect;
+   852→   852→    if (!desktop || !rect) return;
+   853→   853→    desktop.addEventListener('pointerdown', (e) => {
+   854→   854→      // only start selection on truly empty desktop (not on panels, dock, popovers)
+   855→   855→      if (e.target.closest('.dw-panel, de-dock, de-launcher, de-quicksettings, de-calendar, #widget-context-menu, .tile-divider, #widget-popover')) return;
+   856→   856→      const sx = e.clientX, sy = e.clientY;
+   857→   857→      let dragging = false;
+   858→   858→      const move = (ev) => {
+   859→   859→        if (!dragging && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 4) return;
+   860→   860→        dragging = true;
+   861→   861→        const x = Math.min(sx, ev.clientX), y = Math.min(sy, ev.clientY);
+   862→   862→        const w = Math.abs(ev.clientX - sx), h = Math.abs(ev.clientY - sy);
+   863→   863→        rect.style.left = x + 'px'; rect.style.top = y + 'px'; rect.style.width = w + 'px'; rect.style.height = h + 'px';
+   864→   864→        rect.classList.add('visible');
+   865→   865→      };
+   866→   866→      const up = (ev) => {
+   867→   867→        document.removeEventListener('pointermove', move);
+   868→   868→        document.removeEventListener('pointerup', up);
+   869→   869→        rect.classList.remove('visible'); rect.style.width = '0'; rect.style.height = '0';
+   870→   870→        if (!dragging) { this._clearSelection(); return; }
+   871→   871→        const rx = Math.min(sx, ev.clientX), ry = Math.min(sy, ev.clientY);
+   872→   872→        const rw = Math.abs(ev.clientX - sx), rh = Math.abs(ev.clientY - sy);
+   873→   873→        this._clearSelection();
+   874→   874→        this._desktopWidgets.querySelectorAll('.dw-panel').forEach((p) => {
+   875→   875→          const px = p.offsetLeft, py = p.offsetTop, pw = p.offsetWidth, ph = p.offsetHeight;
+   876→   876→          if (px < rx + rw && px + pw > rx && py < ry + rh && py + ph > ry) {
+   877→   877→            p.classList.add('selected');
+   878→   878→            this._selectedWidgets.add(p.querySelector('tf-widget')?.dataset.id);
+   879→   879→          }
+   880→   880→        });
+   881→   881→      };
+   882→   882→      document.addEventListener('pointermove', move);
+   883→   883→      document.addEventListener('pointerup', up);
+   884→   884→    });
+   885→   885→    // close context menu on outside click
+   886→   886→    document.addEventListener('click', (e) => {
+   887→   887→      if (this._contextMenu?.classList.contains('visible') && !e.composedPath().includes(this._contextMenu)) this._hideContextMenu();
+   888→   888→    });
+   889→   889→  }
+   890→   890→
+   891→   891→  /** make the desktop background a drop target for the pointer-based widget drag
+   892→   892→   *  (bus-coordinated). Shows a subtle highlight while dragging over it. */
+   893→   893→  _wireDesktopDrop() {
+   894→   894→    const desktop = this._root.querySelector('.desktop');
+   895→   895→    if (!desktop) return;
+   896→   896→    // the drop area = the desktop excluding the dock strip (bottom 84px) so a
+   897→   897→    // drop near the dock doesn't accidentally target the desktop.
+   898→   898→    const overDesktop = (x, y) => {
+   899→   899→      const r = desktop.getBoundingClientRect();
+   900→   900→      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom - 84;
+   901→   901→    };
+   902→   902→    this._unsubDeskDragMove = bus.on('widget.dragmove', ({ x, y }) => {
+   903→   903→      desktop.classList.toggle('desktop-drop-hover', overDesktop(x, y));
+   904→   904→    });
+   905→   905→    this._unsubDeskDragEnd = bus.on('widget.dragend', ({ x, y, id, from }) => {
+   906→   906→      desktop.classList.remove('desktop-drop-hover');
+   907→   907→      if (overDesktop(x, y)) {
+   908→   908→        if (from === 'palette') widgetService.addToContainer(id, 'desktop');
+   909→   909→        else if (from === 'bar') widgetService.moveWidget(id, 'bar', 'desktop');
+   910→   910→        else if (from === 'desktop') {
+   911→   911→          // reposition the desktop panel to the drop point (drag-to-move via the
+   912→   912→          // widget-drag ghost — same UX as dragging to the bar)
+   913→   913→          const tw = this._desktopWidgets.querySelector(`tf-widget[data-id="${id}"]`);
+   914→   914→          const panel = tw && tw.closest('.dw-panel');
+   915→   915→          if (panel) {
+   916→   916→            const w = panel.offsetWidth, h = panel.offsetHeight;
+   917→   917→            const nx = Math.max(4, Math.min(window.innerWidth - w - 4, x - w / 2));
+   918→   918→            const ny = Math.max(4, Math.min(window.innerHeight - 100, y - h / 2));
+   919→   919→            panel.style.left = nx + 'px';
+   920→   920→            panel.style.top = ny + 'px';
+   921→   921→            widgetService.setDesktopSize(id, w, h, nx, ny);
+   922→   922→          }
+   923→   923→        }
+   924→   924→      }
+   925→   925→    });
+   926→   926→  }
+   927→   927→
+   928→   928→  _applyTheme(state) {
+   929→   929→    const theme = THEMES[state.theme];
+   930→   930→    if (!theme) return;
+   931→   931→    const isLight = state.mode === 'light';
+   932→   932→    // toggle light class on host
+   933→   933→    this.classList.toggle('light', isLight);
+   934→   934→    // write --accent-* on this.style so children inherit
+   935→   935→    const accent = theme.accent;
+   936→   936→    this.style.setProperty('--accent-strong', accent);
+   937→   937→    const rgb = hexToRgb(accent);
+   938→   938→    if (rgb) {
+   939→   939→      this.style.setProperty('--accent', `rgba(${rgb.r},${rgb.g},${rgb.b},0.8)`);
+   940→   940→      this.style.setProperty('--accent-light', `rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
+   941→   941→      this.style.setProperty('--accent-glow', `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)`);
+   942→   942→    }
+   943→   943→    // wallpaper
+   944→   944→    this._updateWallpaper(theme, isLight);
+   945→   945→  }
+   946→   946→
+   947→   947→  _updateWallpaper(theme, isLight) {
+   948→   948→    const url = isLight ? theme.light.url : theme.dark.url;
+   949→   949→    const img = this._root.getElementById('wallpaperImg');
+   950→   950→    if (!img) return;
+   951→   951→    if (url) {
+   952→   952→      const temp = new Image();
+   953→   953→      temp.onload = () => {
+   954→   954→        img.src = url;
+   955→   955→        img.style.opacity = '0.85';
+   956→   956→      };
+   957→   957→      temp.src = url;
+   958→   958→    } else {
+   959→   959→      img.style.opacity = '0';
+   960→   960→    }
+   961→   961→  }
+   962→   962→
+   963→   963→  /** close every popover EXCEPT the one named `which` (null = close all) */
+   964→   964→  _closeAllExcept(which) {
+   965→   965→    if (which !== 'launcher' && this._launcher) this._launcher.close();
+   966→   966→    if (which !== 'qs' && this._qs) this._qs.close();
+   967→   967→    if (which !== 'cal' && this._cal) this._cal.close();
+   968→   968→    if (which !== 'theme' && this._dock) this._dock.closeThemePopup();
+   969→   969→    if (which !== 'widget' && this._dock) this._dock._closeWidgetPopover();
+   970→   970→  }
+   971→   971→
+   972→   972→  _handlePopover({ which, action, anchor } = {}) {
+   973→   973→    if (action === 'closeAll') { this._closeAllExcept(null); return; }
+   974→   974→    if (action === 'toggle') {
+   975→   975→      const wasOpen = this._isOpen(which);
+   976→   976→      this._closeAllExcept(which);
+   977→   977→      if (!wasOpen) this._open(which, anchor);
+   978→   978→    } else if (action === 'open') {
+   979→   979→      this._closeAllExcept(which);
+   980→   980→      this._open(which, anchor);
+   981→   981→    } else if (action === 'close') {
+   982→   982→      this._close(which);
+   983→   983→    }
+   984→   984→  }
+   985→   985→
+   986→   986→  _isOpen(which) {
+   987→   987→    if (which === 'launcher') return this._launcher && this._launcher.isOpen();
+   988→   988→    if (which === 'qs') return this._qs && this._qs.isOpen();
+   989→   989→    if (which === 'cal') return this._cal && this._cal.isOpen();
+   990→   990→    if (which === 'theme') return this._dock && this._dock.isThemePopupOpen();
+   991→   991→    if (which === 'widget') return this._dock && this._dock.isWidgetPopoverOpen();
+   992→   992→    return false;
+   993→   993→  }
+   994→   994→
+   995→   995→  _open(which, anchor) {
+   996→   996→    if (which === 'launcher' && this._launcher) this._launcher.open(anchor);
+   997→   997→    else if (which === 'qs' && this._qs) this._qs.open(anchor);
+   998→   998→    else if (which === 'cal' && this._cal) this._cal.open(anchor);
+   999→   999→    else if (which === 'theme' && this._dock) this._dock.toggleThemePopup();
+  1000→  1000→    // 'widget' is opened directly by the dock (which emits the bus event); the
+  1001→  1001→    // shell just closes others via _closeAllExcept.
+  1002→  1002→  }
+  1003→  1003→
+  1004→  1004→  _close(which) {
+  1005→  1005→    if (which === 'launcher' && this._launcher) this._launcher.close();
+  1006→  1006→    else if (which === 'qs' && this._qs) this._qs.close();
+  1007→  1007→    else if (which === 'cal' && this._cal) this._cal.close();
+  1008→  1008→    else if (which === 'theme' && this._dock) this._dock.closeThemePopup();
+  1009→  1009→    else if (which === 'widget' && this._dock) this._dock._closeWidgetPopover();
+  1010→  1010→  }
+  1011→  1011→
+  1012→  1012→  disconnectedCallback() {
+  1013→  1013→    if (this._unsubWindows) this._unsubWindows();
+  1014→  1014→    if (this._unsubTheme) this._unsubTheme();
+  1015→  1015→    if (this._unsubBus) this._unsubBus();
+  1016→  1016→    if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
+  1017→  1017→    if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
+  1018→  1018→  }
+  1019→  1019→}
+  1020→  1020→
+  1021→  1021→customElements.define('de-shell', DeShell);
+  1022→  1022→export default DeShell;
+  1023→  1023→

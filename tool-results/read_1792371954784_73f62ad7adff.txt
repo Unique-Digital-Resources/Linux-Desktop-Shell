@@ -1,0 +1,502 @@
+     1→   500→  transition: opacity var(--d-med) var(--ease), transform var(--d-med) var(--ease);
+     2→   501→}
+     3→   502→.popover.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+     4→   503→
+     5→   504→.section-title { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; padding: 0 4px; margin-bottom: 8px; }
+     6→   505→
+     7→   506→/* ═══ START MENU ═══ */
+     8→   507→.start-menu { width: 680px; height: 560px; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+     9→   508→.start-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border-1); flex-shrink: 0; }
+    10→   509→.start-tabs { display: flex; gap: 4px; }
+    11→   510→.start-tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r-sm); font-size: 12px; font-weight: 500; color: var(--text-3); transition: all var(--d-fast); }
+    12→   511→.start-tab:hover { background: var(--tint-2); color: var(--text-1); }
+    13→   512→.start-tab.active { background: var(--tint-3); color: var(--text-1); box-shadow: inset 0 0 0 0.5px var(--border-2); }
+    14→   513→.start-tab svg { width: 14px; height: 14px; }
+    15→   514→
+    16→   515→.start-header .search-box { width: 220px; margin-bottom: 0; padding: 6px 10px; background: var(--tint-2); border: 1px solid var(--border-1); }
+    17→   516→.search-box { display: flex; align-items: center; gap: 8px; border-radius: var(--r-lg); transition: border-color var(--d-fast); }
+    18→   517→.search-box:focus-within { border-color: var(--border-3); }
+    19→   518→.search-box svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; }
+    20→   519→.search-box input { flex: 1; background: transparent; border: none; outline: none; font-size: 12px; color: var(--text-1); }
+    21→   520→.search-box input::placeholder { color: var(--text-4); }
+    22→   521→
+    23→   522→.start-body { flex: 1; overflow-y: auto; padding: 14px; }
+    24→   523→.start-pane { display: none; height: 100%; }
+    25→   524→.start-pane.active { display: block; animation: fadeIn 0.2s ease; }
+    26→   525→@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    27→   526→
+    28→   527→/* App Groups Mosaic Layout */
+    29→   528→.app-groups-container {
+    30→   529→  display: grid;
+    31→   530→  grid-template-columns: repeat(6, 1fr);
+    32→   531→  gap: 12px;
+    33→   532→  align-items: start;
+    34→   533→}
+    35→   534→.app-group {
+    36→   535→  background: var(--tint-1);
+    37→   536→  border: 1px solid var(--border-1);
+    38→   537→  border-radius: var(--r-lg);
+    39→   538→  padding: 12px;
+    40→   539→  display: flex;
+    41→   540→  flex-direction: column;
+    42→   541→  gap: 8px;
+    43→   542→}
+    44→   543→.app-group.span-2 { grid-column: span 2; }
+    45→   544→.app-group.span-3 { grid-column: span 3; }
+    46→   545→.app-group-title {
+    47→   546→  font-size: 10.5px; font-weight: 500; color: var(--text-3);
+    48→   547→  text-transform: uppercase; letter-spacing: 0.07em; padding-left: 4px;
+    49→   548→}
+    50→   549→.app-group-items { display: grid; gap: 4px; }
+    51→   550→.app-group-items.layout-sq2 { grid-template-columns: repeat(2, 1fr); }
+    52→   551→.app-group-items.layout-h3 { grid-template-columns: repeat(3, 1fr); }
+    53→   552→.app-group-items.layout-v2 { grid-template-columns: 1fr; }
+    54→   553→
+    55→   554→.app-item {
+    56→   555→  display: flex; flex-direction: column; align-items: center; gap: 6px;
+    57→   556→  padding: 10px 4px; border-radius: var(--r-md);
+    58→   557→  transition: background var(--d-fast); text-align: center;
+    59→   558→}
+    60→   559→.app-item:hover { background: var(--tint-2); }
+    61→   560→.app-item img, .app-item svg { width: 28px; height: 28px; }
+    62→   561→.app-item span { font-size: 11px; font-weight: 450; color: var(--text-2); }
+    63→   562→.app-item-list {
+    64→   563→  display: flex; flex-direction: row; align-items: center; gap: 10px;
+    65→   564→  padding: 8px 10px; border-radius: var(--r-sm);
+    66→   565→  transition: background var(--d-fast); text-align: left;
+    67→   566→}
+    68→   567→.app-item-list:hover { background: var(--tint-2); }
+    69→   568→.app-item-list img, .app-item-list svg { width: 22px; height: 22px; }
+    70→   569→.app-item-list span { font-size: 12px; font-weight: 450; color: var(--text-2); }
+    71→   570→
+    72→   571→.start-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--border-1); flex-shrink: 0; gap: 10px; }
+    73→   572→.start-user-btn {
+    74→   573→  display: flex; align-items: center; gap: 10px;
+    75→   574→  padding: 6px 12px; border-radius: var(--r-md);
+    76→   575→  background: rgba(0, 0, 0, 0.2);
+    77→   576→  transition: background var(--d-fast);
+    78→   577→  flex: 1;
+    79→   578→}
+    80→   579→body.light .start-user-btn { background: rgba(0, 0, 0, 0.05); }
+    81→   580→.start-user-btn:hover { background: rgba(0, 0, 0, 0.3); }
+    82→   581→body.light .start-user-btn:hover { background: rgba(0, 0, 0, 0.1); }
+    83→   582→.start-user-btn img { width: 32px; height: 32px; border-radius: 50%; }
+    84→   583→.start-user-info { display: flex; flex-direction: column; }
+    85→   584→.start-user-name { font-size: 13px; font-weight: 500; color: var(--text-1); line-height: 1.2; }
+    86→   585→.start-user-sub { font-size: 10.5px; font-weight: 400; color: var(--text-3); }
+    87→   586→
+    88→   587→.start-power { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-3); transition: all var(--d-fast); flex-shrink: 0; }
+    89→   588→.start-power:hover { background: var(--tint-2); color: var(--text-1); }
+    90→   589→.start-power svg { width: 16px; height: 16px; }
+    91→   590→
+    92→   591→/* ═══ SETTINGS PANE ═══ */
+    93→   592→.settings-layout { display: flex; height: 100%; gap: 16px; }
+    94→   593→.settings-nav { display: flex; flex-direction: column; gap: 2px; width: 160px; border-right: 1px solid var(--border-1); padding-right: 12px; flex-shrink: 0; }
+    95→   594→.settings-tab { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-md); color: var(--text-3); font-size: 12px; transition: all var(--d-fast); text-align: left; }
+    96→   595→.settings-tab:hover { background: var(--tint-2); color: var(--text-1); }
+    97→   596→.settings-tab.active { background: var(--tint-3); color: var(--text-1); }
+    98→   597→.settings-tab svg { width: 14px; height: 14px; }
+    99→   598→
+   100→   599→.settings-content { flex: 1; overflow-y: auto; padding-right: 4px; }
+   101→   600→.settings-pane { display: none; flex-direction: column; gap: 14px; }
+   102→   601→.settings-pane.active { display: flex; animation: fadeIn 0.2s ease; }
+   103→   602→.settings-box { background: var(--tint-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+   104→   603→.settings-box-title { font-size: 13px; font-weight: 600; color: var(--text-1); }
+   105→   604→
+   106→   605→.theme-settings-layout { display: grid; grid-template-columns: 160px 1fr; gap: 16px; }
+   107→   606→.installed-themes-list { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--border-1); padding-right: 12px; }
+   108→   607→.settings-theme-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; transition: background var(--d-fast); }
+   109→   608→.settings-theme-item:hover { background: var(--tint-2); }
+   110→   609→.settings-theme-item.active { background: var(--tint-3); }
+   111→   610→.settings-theme-item .color-plate-preview { width: 20px; height: 20px; padding: 3px; }
+   112→   611→.settings-theme-item .theme-short-name { font-size: 11.5px; }
+   113→   612→
+   114→   613→.theme-config { display: flex; flex-direction: column; gap: 12px; }
+   115→   614→.theme-wallpaper {
+   116→   615→  width: 100%;
+   117→   616→  height: 120px;
+   118→   617→  object-fit: cover;
+   119→   618→  border-radius: var(--r-md);
+   120→   619→  border: 1px solid var(--border-1);
+   121→   620→  background: var(--surface-deep);
+   122→   621→}
+   123→   622→.mode-tabs { display: flex; gap: 2px; padding: 3px; background: var(--tint-2); border-radius: var(--r-md); align-self: flex-start; }
+   124→   623→.mode-tab { padding: 5px 14px; border-radius: var(--r-sm); font-size: 11px; font-weight: 500; color: var(--text-3); display: flex; align-items: center; gap: 6px; transition: all var(--d-fast); }
+   125→   624→.mode-tab.active { background: var(--surface-pop); color: var(--text-1); box-shadow: var(--el-1); }
+   126→   625→.mode-tab svg { width: 12px; height: 12px; }
+   127→   626→
+   128→   627→.mode-content { display: none; flex-direction: column; gap: 12px; }
+   129→   628→.mode-content.active { display: flex; }
+   130→   629→.config-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-1); gap: 10px; }
+   131→   630→.config-row:last-child { border-bottom: none; }
+   132→   631→.config-label { font-size: 11.5px; color: var(--text-2); font-weight: 500; }
+   133→   632→.config-value { font-size: 11.5px; color: var(--text-1); font-weight: 400; display: flex; align-items: center; gap: 6px; }
+   134→   633→.config-value svg { width: 12px; height: 12px; color: var(--text-3); }
+   135→   634→.palette-display { display: flex; gap: 4px; }
+   136→   635→.palette-color { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border-2); }
+   137→   636→
+   138→   637→/* Bar Settings Config */
+   139→   638→.bar-side-tabs { display: flex; gap: 2px; padding: 3px; background: var(--tint-2); border-radius: var(--r-md); width: fit-content; }
+   140→   639→.bar-side-tab { padding: 5px 14px; border-radius: var(--r-sm); font-size: 11px; font-weight: 500; color: var(--text-3); transition: all var(--d-fast); }
+   141→   640→.bar-side-tab.active { background: var(--surface-pop); color: var(--text-1); box-shadow: var(--el-1); }
+   142→   641→.bar-config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+   143→   642→.config-group { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface-bar); border-radius: var(--r-md); border: 1px solid var(--border-1); }
+   144→   643→.config-group-title { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+   145→   644→.mini-slider { flex: 1; height: 4px; background: var(--tint-2); border-radius: 2px; position: relative; margin: 0 10px; cursor: pointer; }
+   146→   645→.mini-slider-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+   147→   646→.mini-slider-thumb {
+   148→   647→  position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%;
+   149→   648→  top: 50%; left: 30%; transform: translate(-50%, -50%);
+   150→   649→  box-shadow: 0 1px 2px rgba(0,0,0,0.2); pointer-events: none;
+   151→   650→}
+   152→   651→.mini-val { font-size: 11px; color: var(--text-3); width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+   153→   652→.settings-toggle { width: 32px; height: 18px; background: var(--tint-2); border-radius: 9px; position: relative; cursor: pointer; transition: background var(--d-fast); flex-shrink: 0; }
+   154→   653→.settings-toggle.active { background: var(--accent); }
+   155→   654→.settings-toggle-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left var(--d-fast); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+   156→   655→.settings-toggle.active .settings-toggle-thumb { left: 16px; }
+   157→   656→.config-row-check { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 11.5px; color: var(--text-3); cursor: pointer; transition: color var(--d-fast); }
+   158→   657→.config-row-check svg { width: 14px; height: 14px; color: var(--text-4); transition: var(--d-fast); }
+   159→   658→.config-row-check.active { color: var(--text-1); }
+   160→   659→.config-row-check.active svg { color: var(--accent); }
+   161→   660→
+   162→   661→/* ═══ WIDGETS PANE ═══ */
+   163→   662→.widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+   164→   663→.widget { background: var(--tint-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+   165→   664→.widget-head { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; }
+   166→   665→.widget-time .time-big { font-size: 36px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+   167→   666→.widget-time .date-big { font-size: 12px; color: var(--text-2); }
+   168→   667→.widget-weather .weather-body { display: flex; align-items: center; gap: 14px; }
+   169→   668→.weather-icon { color: var(--accent-light); }
+   170→   669→.weather-icon svg { width: 40px; height: 40px; }
+   171→   670→.weather-temp { font-size: 28px; font-weight: 600; line-height: 1; }
+   172→   671→.weather-cond { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+   173→   672→.weather-loc { font-size: 10px; color: var(--text-4); margin-top: 2px; }
+   174→   673→.widget-stats { gap: 8px; }
+   175→   674→.stat-row { display: flex; align-items: center; gap: 10px; font-size: 11.5px; }
+   176→   675→.stat-label { width: 36px; color: var(--text-3); font-weight: 500; }
+   177→   676→.stat-bar { flex: 1; height: 5px; background: var(--tint-2); border-radius: 3px; overflow: hidden; }
+   178→   677→.stat-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+   179→   678→.stat-val { width: 38px; text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+   180→   679→.widget-proc { gap: 6px; }
+   181→   680→.proc-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 4px 0; border-bottom: 1px solid var(--border-1); }
+   182→   681→.widget-proc .proc-row:last-child { border-bottom: none; }
+   183→   682→.proc-row span:first-child { color: var(--text-2); }
+   184→   683→.proc-row span:last-child { color: var(--text-3); font-variant-numeric: tabular-nums; }
+   185→   684→.widget-music { grid-column: span 2; flex-direction: row; align-items: center; gap: 14px; }
+   186→   685→.wm-art { width: 48px; height: 48px; border-radius: var(--r-md); background: linear-gradient(135deg, #b4a0ff, #7c5fff); flex-shrink: 0; }
+   187→   686→.wm-info { flex: 1; min-width: 0; }
+   188→   687→.wm-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   189→   688→.wm-artist { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   190→   689→.wm-controls { display: flex; gap: 4px; flex-shrink: 0; }
+   191→   690→.wm-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-2); transition: all var(--d-fast); }
+   192→   691→.wm-btn:hover { background: var(--tint-2); color: var(--text-1); }
+   193→   692→.wm-btn.play { background: var(--tint-3); color: var(--accent-light); }
+   194→   693→.wm-btn svg { width: 16px; height: 16px; }
+   195→   694→
+   196→   695→/* ═══ QUICK SETTINGS ═══ */
+   197→   696→.qs-panel { width: 300px; padding: 14px; }
+   198→   697→.qs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+   199→   698→.qs-date { font-size: 12px; font-weight: 500; color: var(--text-1); font-variant-numeric: tabular-nums; }
+   200→   699→.qs-settings-btn { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-3); transition: all var(--d-fast); }
+   201→   700→.qs-settings-btn:hover { background: var(--tint-2); color: var(--text-1); }
+   202→   701→.qs-settings-btn svg { width: 15px; height: 15px; }
+   203→   702→
+   204→   703→.qs-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+   205→   704→.qs-tile { display: flex; align-items: center; gap: 9px; padding: 10px 11px; border-radius: var(--r-lg); background: var(--tint-1); border: 1px solid var(--border-1); transition: all var(--d-fast) var(--ease); text-align: left; position: relative; }
+   206→   705→.qs-tile:hover { background: var(--tint-2); }
+   207→   706→.qs-tile.active { background: var(--tint-3); border-color: var(--border-3); }
+   208→   707→.qs-tile-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--tint-2); color: var(--text-3); flex-shrink: 0; transition: all var(--d-fast); }
+   209→   708→.qs-tile.active .qs-tile-icon { background: var(--accent); color: #fff; box-shadow: 0 2px 6px var(--accent-glow); }
+   210→   709→.qs-tile-icon svg { width: 15px; height: 15px; stroke-width: 2; }
+   211→   710→.qs-tile-body { flex: 1; min-width: 0; }
+   212→   711→.qs-tile-label { font-size: 11.5px; font-weight: 500; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   213→   712→.qs-tile.active .qs-tile-label { color: var(--text-1); }
+   214→   713→.qs-tile-sub { font-size: 10px; color: var(--text-4); margin-top: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   215→   714→.qs-tile.active .qs-tile-sub { color: var(--text-3); }
+   216→   715→
+   217→   716→.qs-sliders { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+   218→   717→.slider-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-lg); transition: background var(--d-fast); }
+   219→   718→.slider-row:hover { background: var(--tint-1); }
+   220→   719→.slider-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-2); flex-shrink: 0; transition: all var(--d-fast); }
+   221→   720→.slider-icon:hover { background: var(--tint-2); color: var(--text-1); }
+   222→   721→.slider-icon svg { width: 16px; height: 16px; stroke-width: 1.85; }
+   223→   722→
+   224→   723→.slider { flex: 1; height: 5px; background: var(--tint-2); border-radius: 3px; position: relative; cursor: pointer; }
+   225→   724→.slider-fill { height: 100%; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); border-radius: 3px; width: 60%; box-shadow: 0 0 6px var(--accent-glow); }
+   226→   725→.slider-thumb { position: absolute; width: 13px; height: 13px; background: #fff; border-radius: 50%; top: 50%; left: 60%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(180,160,255,0.3); pointer-events: none; transition: transform 0.1s, box-shadow var(--d-fast); }
+   227→   726→.slider:hover .slider-thumb { transform: translate(-50%, -50%) scale(1.18); box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 0 0 2px var(--accent-glow); }
+   228→   727→.slider-value { font-size: 11px; font-weight: 500; color: var(--text-2); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+   229→   728→
+   230→   729→.qs-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 2px; border-top: 1px solid var(--border-1); }
+   231→   730→.qs-battery { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text-2); font-weight: 450; }
+   232→   731→.qs-battery svg { width: 16px; height: 16px; color: var(--text-2); }
+   233→   732→.qs-battery-time { color: var(--text-4); font-size: 10.5px; }
+   234→   733→
+   235→   734→/* ═══ CALENDAR & WEATHER POPOVER ═══ */
+   236→   735→.cal-pop { width: 460px; padding: 0; overflow: hidden; }
+   237→   736→.cal-split-layout { display: flex; align-items: stretch; height: 100%; }
+   238→   737→.cal-weather-side { width: 150px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+   239→   738→.weather-icon-lg { color: var(--accent-light); margin-bottom: 4px; }
+   240→   739→.weather-icon-lg svg { width: 56px; height: 56px; }
+   241→   740→.cw-temp { font-size: 28px; font-weight: 600; color: var(--text-1); line-height: 1; }
+   242→   741→.cw-cond { font-size: 12px; color: var(--text-2); }
+   243→   742→.cw-loc { font-size: 11px; color: var(--text-3); }
+   244→   743→
+   245→   744→.cal-vertical-bar { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px; border-left: 1px solid var(--border-1); border-right: 1px solid var(--border-1); gap: 6px; font-size: 10px; font-weight: 600; color: var(--text-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+   246→   745→.vbar-sep { width: 12px; height: 1px; background: var(--border-2); margin: 2px 0; }
+   247→   746→
+   248→   747→.cal-cal-side { flex: 1; padding: 16px; }
+   249→   748→.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+   250→   749→.cal-month { font-size: 12.5px; font-weight: 550; color: var(--text-1); }
+   251→   750→.cal-nav { display: flex; gap: 2px; }
+   252→   751→.cal-nav-btn { width: 26px; height: 26px; display: grid; place-items: center; border-radius: var(--r-xs); color: var(--text-3); transition: all var(--d-fast); }
+   253→   752→.cal-nav-btn:hover { background: var(--tint-2); color: var(--text-1); }
+   254→   753→.cal-nav-btn svg { width: 14px; height: 14px; }
+   255→   754→.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+   256→   755→.cal-day-head { text-align: center; font-size: 10px; font-weight: 500; color: var(--text-4); padding: 4px 0; text-transform: uppercase; letter-spacing: 0.04em; }
+   257→   756→.cal-day { aspect-ratio: 1; display: grid; place-items: center; font-size: 11.5px; font-weight: 450; color: var(--text-2); border-radius: var(--r-sm); transition: all var(--d-fast); cursor: pointer; }
+   258→   757→.cal-day:hover:not(.empty) { background: var(--tint-2); }
+   259→   758→.cal-day.other { color: var(--text-4); }
+   260→   759→.cal-day.today { background: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 2px 6px var(--accent-glow); }
+   261→   760→.cal-day.empty { cursor: default; }
+   262→   761→
+   263→   762→::-webkit-scrollbar { width: 5px; height: 5px; }
+   264→   763→::-webkit-scrollbar-track { background: transparent; }
+   265→   764→::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+   266→   765→::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+   267→   766→
+   268→   767→@media (max-width: 1100px) {
+   269→   768→  .capsule-input-wrapper input { width: 60px; }
+   270→   769→  #dock-container { gap: 4px; padding: 4px 6px; }
+   271→   770→}
+   272→   771→@media (max-width: 900px) {
+   273→   772→  .capsule-input-wrapper { display: none; }
+   274→   773→  .music-widget { min-width: 230px; }
+   275→   774→}
+   276→   775→@media (max-width: 780px) {
+   277→   776→  .office-group { display: none; }
+   278→   777→  .music-widget { display: none; }
+   279→   778→  .start-menu { width: calc(100vw - 20px); height: calc(100vh - 100px); }
+   280→   779→  .settings-layout { flex-direction: column; }
+   281→   780→  .settings-nav { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid var(--border-1); padding-right: 0; padding-bottom: 12px; overflow-x: auto; }
+   282→   781→}
+   283→   782→@media (max-width: 640px) {
+   284→   783→  .workspace-widget { display: none; }
+   285→   784→  .status-section .date-time .day, .status-section .date-time .date { display: none; }
+   286→   785→  .cal-pop { width: 320px; }
+   287→   786→  .cal-weather-side { display: none; }
+   288→   787→  .cal-vertical-bar { display: none; }
+   289→   788→  .app-groups-container { grid-template-columns: repeat(2, 1fr); }
+   290→   789→  .app-group.span-2, .app-group.span-3 { grid-column: span 2; }
+   291→   790→  .theme-settings-layout { grid-template-columns: 1fr; }
+   292→   791→  .installed-themes-list { border-right: none; border-bottom: 1px solid var(--border-1); padding-right: 0; padding-bottom: 12px; }
+   293→   792→  .bar-config-grid { grid-template-columns: 1fr; }
+   294→   793→}
+   295→   794→@media (max-width: 540px) {
+   296→   795→  #dock-container { width: calc(100vw - 20px); border-radius: var(--r-2xl); justify-content: center; }
+   297→   796→  .widgets-grid { grid-template-columns: 1fr; }
+   298→   797→}
+   299→   798→
+   300→   799→@media (prefers-reduced-motion: reduce) {
+   301→   800→  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+   302→   801→}
+   303→   802→</style>
+   304→   803→</head>
+   305→   804→<body>
+   306→   805→
+   307→   806→<div class="desktop">
+   308→   807→  <div class="wallpaper">
+   309→   808→    <img id="wallpaperImg" src="" alt="" onerror="this.style.opacity='0'">
+   310→   809→  </div>
+   311→   810→
+   312→   811→  <aside class="music-widget">
+   313→   812→    <div class="album-art">
+   314→   813→      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+   315→   814→    </div>
+   316→   815→    <div class="music-info">
+   317→   816→      <div class="track-name">Outro</div>
+   318→   817→      <div class="artist-name">M83 — Hurry Up, We're Dreaming</div>
+   319→   818→      <div class="progress-bar"><div class="progress-fill"></div></div>
+   320→   819→    </div>
+   321→   820→  </aside>
+   322→   821→
+   323→   822→  <div class="window" id="appWindow" role="dialog" aria-modal="true">
+   324→   823→    <div class="titlebar">
+   325→   824→      <div class="title">
+   326→   825→        <img id="winIcon" src="" alt="" style="display:none">
+   327→   826→        <span id="winTitle">Application</span>
+   328→   827→      </div>
+   329→   828→      <div class="win-controls">
+   330→   829→        <button class="win-ctrl min" aria-label="Minimize"></button>
+   331→   830→        <button class="win-ctrl max" aria-label="Maximize"></button>
+   332→   831→        <button class="win-ctrl close" id="closeWindow" aria-label="Close"></button>
+   333→   832→      </div>
+   334→   833→    </div>
+   335→   834→    <div class="window-content">
+   336→   835→      <div class="placeholder">
+   337→   836→        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+   338→   837→        <span>empty workspace</span>
+   339→   838→      </div>
+   340→   839→    </div>
+   341→   840→  </div>
+   342→   841→
+   343→   842→  <!-- ═══ START MENU ═══ -->
+   344→   843→  <div class="popover start-menu" id="launcherPop">
+   345→   844→    <div class="start-header">
+   346→   845→      <div class="start-tabs">
+   347→   846→        <button class="start-tab active" data-tab="apps"><i data-lucide="grid"></i> Apps</button>
+   348→   847→        <button class="start-tab" data-tab="widgets"><i data-lucide="layout-dashboard"></i> Widgets</button>
+   349→   848→        <button class="start-tab" data-tab="settings"><i data-lucide="settings"></i> Settings</button>
+   350→   849→      </div>
+   351→   850→      <div class="search-box">
+   352→   851→        <i data-lucide="search"></i>
+   353→   852→        <input type="text" id="searchInput" placeholder="Search..." autocomplete="off">
+   354→   853→      </div>
+   355→   854→    </div>
+   356→   855→    <div class="start-body">
+   357→   856→      <div class="start-pane active" id="pane-apps">
+   358→   857→        <div class="app-groups-container">
+   359→   858→          <!-- Row 1: Three 2x2 Squares -->
+   360→   859→          <div class="app-group span-2">
+   361→   860→            <div class="app-group-title">Internet</div>
+   362→   861→            <div class="app-group-items layout-sq2">
+   363→   862→              <button class="app-item" data-app="firefox" data-name="Firefox"><img src="https://cdn.simpleicons.org/firefox" alt=""><span>Firefox</span></button>
+   364→   863→              <button class="app-item" data-app="discord" data-name="Discord"><img src="https://cdn.simpleicons.org/discord" alt=""><span>Discord</span></button>
+   365→   864→              <button class="app-item" data-app="telegram" data-name="Telegram"><img src="https://cdn.simpleicons.org/telegram" alt=""><span>Telegram</span></button>
+   366→   865→              <button class="app-item" data-app="slack" data-name="Slack"><img src="https://cdn.simpleicons.org/slack" alt=""><span>Slack</span></button>
+   367→   866→            </div>
+   368→   867→          </div>
+   369→   868→          <div class="app-group span-2">
+   370→   869→            <div class="app-group-title">Development</div>
+   371→   870→            <div class="app-group-items layout-sq2">
+   372→   871→              <button class="app-item" data-app="code" data-name="VS Code"><img src="https://cdn.simpleicons.org/vscode" alt=""><span>VS Code</span></button>
+   373→   872→              <button class="app-item" data-app="terminal" data-name="Terminal"><i data-lucide="terminal-square"></i><span>Terminal</span></button>
+   374→   873→              <button class="app-item" data-app="docker" data-name="Docker"><img src="https://cdn.simpleicons.org/docker" alt=""><span>Docker</span></button>
+   375→   874→              <button class="app-item" data-app="github" data-name="GitHub"><img src="https://cdn.simpleicons.org/github" alt=""><span>GitHub</span></button>
+   376→   875→            </div>
+   377→   876→          </div>
+   378→   877→          <div class="app-group span-2">
+   379→   878→            <div class="app-group-title">Graphics</div>
+   380→   879→            <div class="app-group-items layout-sq2">
+   381→   880→              <button class="app-item" data-app="gimp" data-name="GIMP"><img src="https://cdn.simpleicons.org/gimp" alt=""><span>GIMP</span></button>
+   382→   881→              <button class="app-item" data-app="inkscape" data-name="Inkscape"><img src="https://cdn.simpleicons.org/inkscape" alt=""><span>Inkscape</span></button>
+   383→   882→              <button class="app-item" data-app="blender" data-name="Blender"><img src="https://cdn.simpleicons.org/blender" alt=""><span>Blender</span></button>
+   384→   883→              <button class="app-item" data-app="figma" data-name="Figma"><img src="https://cdn.simpleicons.org/figma" alt=""><span>Figma</span></button>
+   385→   884→            </div>
+   386→   885→          </div>
+   387→   886→
+   388→   887→          <!-- Row 2: Two 1x3 Horizontals -->
+   389→   888→          <div class="app-group span-3">
+   390→   889→            <div class="app-group-title">Office</div>
+   391→   890→            <div class="app-group-items layout-h3">
+   392→   891→              <button class="app-item" data-app="writer" data-name="Writer"><img src="https://cdn.simpleicons.org/libreofficewriter" alt=""><span>Writer</span></button>
+   393→   892→              <button class="app-item" data-app="calc" data-name="Calc"><img src="https://cdn.simpleicons.org/libreofficecalc" alt=""><span>Calc</span></button>
+   394→   893→              <button class="app-item" data-app="impress" data-name="Impress"><img src="https://cdn.simpleicons.org/libreofficeimpress" alt=""><span>Impress</span></button>
+   395→   894→            </div>
+   396→   895→          </div>
+   397→   896→          <div class="app-group span-3">
+   398→   897→            <div class="app-group-title">Media</div>
+   399→   898→            <div class="app-group-items layout-h3">
+   400→   899→              <button class="app-item" data-app="spotify" data-name="Spotify"><img src="https://cdn.simpleicons.org/spotify" alt=""><span>Spotify</span></button>
+   401→   900→              <button class="app-item" data-app="obs" data-name="OBS"><img src="https://cdn.simpleicons.org/obsstudio" alt=""><span>OBS</span></button>
+   402→   901→              <button class="app-item" data-app="vlc" data-name="VLC"><img src="https://cdn.simpleicons.org/vlc" alt=""><span>VLC</span></button>
+   403→   902→            </div>
+   404→   903→          </div>
+   405→   904→
+   406→   905→          <!-- Row 3: Three 2x1 Verticals -->
+   407→   906→          <div class="app-group span-2">
+   408→   907→            <div class="app-group-title">System</div>
+   409→   908→            <div class="app-group-items layout-v2">
+   410→   909→              <button class="app-item app-item-list" data-app="settings" data-name="Settings"><i data-lucide="settings"></i><span>Settings</span></button>
+   411→   910→              <button class="app-item app-item-list" data-app="files" data-name="Files"><i data-lucide="folder"></i><span>Files</span></button>
+   412→   911→            </div>
+   413→   912→          </div>
+   414→   913→          <div class="app-group span-2">
+   415→   914→            <div class="app-group-title">Utilities</div>
+   416→   915→            <div class="app-group-items layout-v2">
+   417→   916→              <button class="app-item app-item-list" data-app="calc_app" data-name="Calculator"><i data-lucide="calculator"></i><span>Calculator</span></button>
+   418→   917→              <button class="app-item app-item-list" data-app="text_editor" data-name="Text Editor"><i data-lucide="file-text"></i><span>Text Editor</span></button>
+   419→   918→            </div>
+   420→   919→          </div>
+   421→   920→          <div class="app-group span-2">
+   422→   921→            <div class="app-group-title">Notes</div>
+   423→   922→            <div class="app-group-items layout-v2">
+   424→   923→              <button class="app-item app-item-list" data-app="obsidian" data-name="Obsidian"><img src="https://cdn.simpleicons.org/obsidian" alt=""><span>Obsidian</span></button>
+   425→   924→              <button class="app-item app-item-list" data-app="notion" data-name="Notion"><img src="https://cdn.simpleicons.org/notion" alt=""><span>Notion</span></button>
+   426→   925→            </div>
+   427→   926→          </div>
+   428→   927→        </div>
+   429→   928→      </div>
+   430→   929→      <div class="start-pane" id="pane-widgets">
+   431→   930→        <div class="widgets-grid">
+   432→   931→          <div class="widget widget-time">
+   433→   932→            <div class="widget-head">Local Time</div>
+   434→   933→            <div class="time-big" id="widgetTime">14:32</div>
+   435→   934→            <div class="date-big" id="widgetDate">Thursday, 24 October</div>
+   436→   935→          </div>
+   437→   936→          <div class="widget widget-weather">
+   438→   937→            <div class="widget-head">Weather</div>
+   439→   938→            <div class="weather-body">
+   440→   939→              <div class="weather-icon"><i data-lucide="cloud-sun"></i></div>
+   441→   940→              <div class="weather-info">
+   442→   941→                <div class="weather-temp">18°</div>
+   443→   942→                <div class="weather-cond">Partly Cloudy</div>
+   444→   943→                <div class="weather-loc">Reykjavík</div>
+   445→   944→              </div>
+   446→   945→            </div>
+   447→   946→          </div>
+   448→   947→          <div class="widget widget-stats">
+   449→   948→            <div class="widget-head">System</div>
+   450→   949→            <div class="stat-row"><span class="stat-label">CPU</span><div class="stat-bar"><div class="stat-fill" style="width: 24%"></div></div><span class="stat-val">24%</span></div>
+   451→   950→            <div class="stat-row"><span class="stat-label">RAM</span><div class="stat-bar"><div class="stat-fill" style="width: 62%"></div></div><span class="stat-val">9.8G</span></div>
+   452→   951→            <div class="stat-row"><span class="stat-label">DISK</span><div class="stat-bar"><div class="stat-fill" style="width: 41%"></div></div><span class="stat-val">205G</span></div>
+   453→   952→          </div>
+   454→   953→          <div class="widget widget-proc">
+   455→   954→            <div class="widget-head">TopProcesses</div>
+   456→   955→            <div class="proc-row"><span>firefox</span><span>12.4%</span></div>
+   457→   956→            <div class="proc-row"><span>code</span><span>8.1%</span></div>
+   458→   957→            <div class="proc-row"><span>node</span><span>4.2%</span></div>
+   459→   958→            <div class="proc-row"><span>wayfire</span><span>2.1%</span></div>
+   460→   959→          </div>
+   461→   960→          <div class="widget widget-music">
+   462→   961→            <div class="wm-art"></div>
+   463→   962→            <div class="wm-info">
+   464→   963→              <div class="wm-title">Outro</div>
+   465→   964→              <div class="wm-artist">M83 — Hurry Up, We're Dreaming</div>
+   466→   965→            </div>
+   467→   966→            <div class="wm-controls">
+   468→   967→              <button class="wm-btn"><i data-lucide="skip-back"></i></button>
+   469→   968→              <button class="wm-btn play"><i data-lucide="play"></i></button>
+   470→   969→              <button class="wm-btn"><i data-lucide="skip-forward"></i></button>
+   471→   970→            </div>
+   472→   971→          </div>
+   473→   972→        </div>
+   474→   973→      </div>
+   475→   974→      <div class="start-pane" id="pane-settings">
+   476→   975→        <div class="settings-layout">
+   477→   976→          <div class="settings-nav">
+   478→   977→            <button class="settings-tab active" data-settings-tab="looks"><i data-lucide="palette"></i> Looks & Feel</button>
+   479→   978→            <button class="settings-tab" data-settings-tab="system"><i data-lucide="cpu"></i> System</button>
+   480→   979→            <button class="settings-tab" data-settings-tab="network"><i data-lucide="wifi"></i> Network</button>
+   481→   980→            <button class="settings-tab" data-settings-tab="accounts"><i data-lucide="user"></i> Accounts</button>
+   482→   981→          </div>
+   483→   982→          <div class="settings-content">
+   484→   983→            <div class="settings-pane active" id="settings-pane-looks">
+   485→   984→              <div class="settings-box">
+   486→   985→                <div class="settings-box-title">Appearance & Themes</div>
+   487→   986→                <div class="theme-settings-layout">
+   488→   987→                  <div class="installed-themes-list" id="settingsThemeList">
+   489→   988→                    <!-- Populated by JS -->
+   490→   989→                  </div>
+   491→   990→                  <div class="theme-config" id="themeConfigArea">
+   492→   991→                     <!-- Populated by JS -->
+   493→   992→                  </div>
+   494→   993→                </div>
+   495→   994→              </div>
+   496→   995→              <div class="settings-box">
+   497→   996→                <div class="settings-box-title">Shell Bar Configuration</div>
+   498→   997→                <div class="bar-side-tabs">
+   499→   998→                  <button class="bar-side-tab" data-side="top">Top</button>
+   500→   999→                  <button class="bar-side-tab active" data-side="bottom">Bottom</button>
+   501→
+   502→[showing lines 500-999 of 1975; use offset=1000 with limit to continue reading]

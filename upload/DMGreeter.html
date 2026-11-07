@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aether — Display Manager</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+/* =====================================================================
+   1. DESIGN TOKENS
+   ===================================================================== */
+:root{
+  --accent: #6ad1b3;
+  --accent-soft: rgba(106,209,179,.16);
+  --accent-strong: #8fe3cc;
+  --accent-press: #4cb89a;
+
+  --bg-fallback-1: #0b1016;
+  --bg-fallback-2: #131a22;
+  --surface: rgba(18,24,32,.55);
+  --surface-strong: rgba(20,27,37,.82);
+  --surface-hover: rgba(30,40,52,.62);
+  --surface-input: rgba(10,14,20,.42);
+
+  --text: #eef3f7;
+  --text-soft: rgba(238,243,247,.72);
+  --text-mute: rgba(238,243,247,.48);
+  --text-faint: rgba(238,243,247,.30);
+
+  --hairline: rgba(255,255,255,.10);
+  --hairline-strong: rgba(255,255,255,.18);
+  --ring: rgba(106,209,179,.55);
+
+  --error: #f0857a;
+  --error-soft: rgba(240,133,122,.14);
+  --success: #6ad1b3;
+  --warn: #e8c46a;
+
+  --r-sm: 9px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+  --pad-input: 13px 16px;
+  --blur: 22px;
+  --dur-fast: 130ms;
+  --dur: 220ms;
+  --dur-slow: 420ms;
+  --ease: cubic-bezier(.22,.61,.36,1);
+  --ease-out: cubic-bezier(.16,1,.3,1);
+
+  --shadow-panel: 0 18px 50px -22px rgba(0,0,0,.75), 0 2px 8px -2px rgba(0,0,0,.5);
+  --shadow-float: 0 8px 30px -12px rgba(0,0,0,.6);
+}
+
+[data-theme="light"]{
+  --accent: #0f766e;
+  --accent-soft: rgba(15,118,110,.14);
+  --accent-strong: #0d6b62;
+  --accent-press: #0a544d;
+
+  --bg-fallback-1: #d7dde3;
+  --bg-fallback-2: #e9edf1;
+  --surface: rgba(255,255,255,.62);
+  --surface-strong: rgba(255,255,255,.84);
+  --surface-hover: rgba(255,255,255,.78);
+  --surface-input: rgba(255,255,255,.55);
+
+  --text: #15202a;
+  --text-soft: rgba(21,32,42,.74);
+  --text-mute: rgba(21,32,42,.55);
+  --text-faint: rgba(21,32,42,.34);
+
+  --hairline: rgba(15,32,42,.10);
+  --hairline-strong: rgba(15,32,42,.18);
+  --ring: rgba(15,118,110,.55);
+
+  --error: #c0443a;
+  --error-soft: rgba(192,68,58,.12);
+  --success: #0f766e;
+  --warn: #b67e1a;
+
+  --shadow-panel: 0 18px 50px -24px rgba(15,32,42,.40), 0 2px 8px -2px rgba(15,32,42,.18);
+  --shadow-float: 0 8px 30px -12px rgba(15,32,42,.28);
+}
+
+/* =====================================================================
+   2. RESET & BASE
+   ===================================================================== */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Inter",system-ui,sans-serif;
+  color:var(--text);
+  background:var(--bg-fallback-1);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+input{font-family:inherit;color:inherit;border:none;background:none;outline:none}
+::selection{background:var(--accent-soft)}
+
+button:focus-visible,
+.method-tab:focus-visible,
+.indicator:focus-visible,
+.session-indicator:focus-visible,
+.pin-key:focus-visible,
+.vol-toggle:focus-visible,
+.drawer-btn:focus-visible,
+.grid-avatar:focus-visible{
+  outline:2px solid var(--ring);outline-offset:2px;border-radius:6px;
+}
+.field input:focus,.field input:focus-visible{outline:none}
+
+/* =====================================================================
+   3. WALLPAPER & ATMOSPHERE
+   ===================================================================== */
+.wallpaper{
+  position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(120% 90% at 12% 8%, rgba(106,209,179,.10), transparent 55%),
+    radial-gradient(120% 100% at 88% 92%, rgba(60,90,140,.18), transparent 60%),
+    linear-gradient(160deg, var(--bg-fallback-1), var(--bg-fallback-2));
+  background-size:cover;
+}
+.wallpaper-img{
+  position:fixed;inset:0;z-index:0;
+  background-image:url("https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80");
+  background-size:cover;
+  background-position:center;
+  opacity:0;
+  transition:opacity var(--dur-slow) var(--ease);
+}
+.wallpaper-img.loaded{opacity:1}
+.veil{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(6,10,16,.55) 0%, rgba(6,10,16,.18) 38%, rgba(6,10,16,.10) 62%, rgba(6,10,16,.42) 100%),
+    linear-gradient(0deg, rgba(6,10,16,.48) 0%, transparent 32%);
+}
+[data-theme="light"] .veil{
+  background:
+    linear-gradient(90deg, rgba(220,228,236,.42) 0%, rgba(220,228,236,.10) 38%, rgba(220,228,236,.06) 62%, rgba(220,228,236,.32) 100%),
+    linear-gradient(0deg, rgba(220,228,236,.40) 0%, transparent 32%);
+}
+
+/* =====================================================================
+   4. STAGE LAYOUT
+   ===================================================================== */
+.stage{
+  position:relative;z-index:2;
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  padding: clamp(28px,5vh,64px) clamp(28px,6vw,96px);
+}
+.auth-wrapper{
+  display:flex;flex-direction:column;
+  gap:16px;align-items:stretch;
+  width:max-content;
+  max-width:calc(100% - 32px);
+}
+.auth-container{
+  display:flex;gap:16px;align-items:stretch;
+  width:100%;
+}
+
+/* =====================================================================
+   5. USER BOX (left) — drawer inside, expands
+   ===================================================================== */
+.user-box{
+  position:relative;
+  display:flex;align-items:stretch;
+  flex:0 0 auto;
+  background:var(--surface);
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(120%);
+  backdrop-filter:blur(var(--blur)) saturate(120%);
+  border:1px solid var(--hairline);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow-panel);
+  transition:width var(--dur) var(--ease-out);
+}
+.user-box::before{
+  content:"";position:absolute;inset:1px;border-radius:calc(var(--r-lg) - 1px);pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 18%);
+}
+
+/* drawer panel — embedded inside user-box */
+.drawer-panel{
+  display:none;
+  margin:14px 8px 14px 14px;
+  padding:16px 12px;
+  border-radius:var(--r-md);
+  background:rgba(8,12,18,.5);
+  border:1px solid var(--hairline);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  flex-direction:column;justify-content:center;align-items:center;
+  gap:14px;flex:0 0 auto;
+}
+.user-box.drawer-open .drawer-panel{
+  display:flex;
+}
+.drawer-label{
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-faint);font-weight:600;
+}
+
+/* avatar grid — fills by columns */
+.avatar-grid{
+  display:grid;
+  grid-template-rows:repeat(3,1fr);
+  grid-auto-flow:column;
+  gap:10px;justify-items:center;
+}
+.grid-avatar{
+  width:44px;height:44px;border-radius:50%;overflow:hidden;
+  border:2px solid transparent;cursor:pointer;padding:0;background:none;
+  transition:all var(--dur-fast) var(--ease);
+}
+.grid-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.grid-avatar:hover{border-color:var(--accent);transform:scale(1.08)}
+.grid-avatar.selected{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+
+/* user-box content */
+.user-box-content{
+  width:220px;flex:0 0 220px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:clamp(24px,4vh,40px) 16px;
+  gap:6px;z-index:1;
+}
+.large-avatar{
+  width:128px;height:128px;border-radius:50%;object-fit:cover;
+  border:3px solid var(--hairline-strong);
+  box-shadow:0 8px 30px -8px rgba(0,0,0,.6);
+  background:var(--surface-input);
+  margin-bottom:10px;
+}
+.user-name{
+  font-family:"Space Grotesk",sans-serif;
+  font-size:22px;font-weight:500;letter-spacing:-.01em;
+  color:var(--text);text-align:center;
+}
+.user-handle{
+  font-size:13px;color:var(--text-mute);font-family:"Space Grotesk";
+}
+
+/* drawer button */
+.drawer-btn{
+  position:absolute;left:-16px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border-radius:50%;
+  background:var(--surface-strong);
+  border:1px solid var(--hairline-strong);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:21;
+  color:var(--text-soft);
+  transition:all var(--dur-fast) var(--ease);
+  box-shadow:var(--shadow-float);
+}
+.drawer-btn:hover{
+  background:var(--accent);color:#08130f;border-color:var(--accent);
+}
+[data-theme="light"] .drawer-btn:hover{color:#fff}
+.drawer-btn svg{
+  width:16px;height:16px;
+  transition:transform var(--dur) var(--ease);
+}
+.user-box.drawer-open .drawer-btn svg{transform:rotate(180deg)}
+
+/* =====================================================================
+   6. AUTH CARD (right)
+   ===================================================================== */
+.auth-card{
+  position:relative;
+  flex:0 0 440px;
+  width:440px;
+  display:flex;flex-direction:column;align-items:center;
+  padding:clamp(22px,3vh,34px) clamp(20px,2.6vw,30px) clamp(20px,2.6vh,28px);
+  background:var(--surface);
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(120%);
+  backdrop-filter:blur(var(--blur)) saturate(120%);
+  border:1px solid var(--hairline);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow-panel);
+}
+.auth-card::before{
+  content:"";position:absolute;inset:1px;border-radius:calc(var(--r-lg) - 1px);pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 18%);
+}
+
+/* method tabs */
+.method-tabs{
+  display:flex;gap:2px;margin-bottom:6px;
+  padding:3px;border-radius:var(--r-pill);
+  background:var(--surface-input);border:1px solid var(--hairline);
+  flex-wrap:nowrap;justify-content:center;
+}
+.method-tab{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 10px;border-radius:var(--r-pill);
+  font-size:11.5px;font-weight:500;color:var(--text-mute);
+  transition:all var(--dur-fast) var(--ease);
+  white-space:nowrap;
+}
+.method-tab svg{width:14px;height:14px}
+.method-tab:hover{color:var(--text)}
+.method-tab.active{background:var(--accent);color:#08130f}
+[data-theme="light"] .method-tab.active{color:#fff}
+
+/* step indicator */
+.step-indicator{
+  display:none;flex-direction:column;align-items:center;gap:8px;
+  margin-bottom:6px;
+}
+.step-indicator.show{display:flex}
+.step-label{
+  font-size:12px;color:var(--text-mute);font-family:"Space Grotesk";
+  letter-spacing:.02em;text-transform:capitalize;
+}
+.step-dots{display:flex;gap:6px}
+.step-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--hairline-strong);
+  transition:all var(--dur) var(--ease);
+}
+.step-dot.active{background:var(--accent);transform:scale(1.3);box-shadow:0 0 6px var(--accent-soft)}
+.step-dot.completed{background:var(--success)}
+
+/* method body */
+.method-body{width:100%;position:relative;margin-top:12px}
+.method-panel{display:none;width:100%}
+.method-panel.active{display:block;animation:fadeUp var(--dur) var(--ease-out)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* shared field */
+.field{
+  position:relative;display:flex;align-items:center;
+  background:var(--surface-input);
+  border:1px solid var(--hairline);
+  border-radius:var(--r-md);
+  transition:border-color var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease);
+}
+.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field.error{border-color:var(--error);box-shadow:0 0 0 3px var(--error-soft);animation:shake var(--dur) var(--ease)}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}
+  40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}
+}
+.field > svg.lead{
+  width:17px;height:17px;color:var(--text-mute);margin-left:15px;flex:none;
+}
+.field input{
+  flex:1;padding:var(--pad-input);font-size:15px;letter-spacing:.02em;min-width:0;
+}
+.field input::placeholder{color:var(--text-faint)}
+
+.field .user-input{display:none}
+.field .user-input.show{
+  display:block;flex:0 0 35%;min-width:0;
+}
+.field .field-sep{display:none}
+.field .field-sep.show{
+  display:block;width:1px;align-self:stretch;margin:9px 0;
+  background:var(--hairline);flex:none;opacity:.6;
+}
+.field .eye{
+  display:flex;align-items:center;justify-content:center;
+  width:38px;height:100%;color:var(--text-mute);
+  transition:color var(--dur-fast) var(--ease);flex:none;
+}
+.field .eye:hover{color:var(--text)}
+.field .eye svg{width:17px;height:17px}
+
+.primary-action{
+  margin-top:12px;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 16px;border-radius:var(--r-md);
+  background:var(--accent);color:#08130f;
+  font-weight:600;font-size:14.5px;letter-spacing:.01em;
+  transition:background var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),opacity var(--dur-fast) var(--ease);
+}
+[data-theme="light"] .primary-action{color:#fff}
+.primary-action:hover{background:var(--accent-strong)}
+.primary-action:active{transform:scale(.985)}
+.primary-action[disabled]{opacity:.55;cursor:not-allowed}
+.primary-action svg{width:17px;height:17px}
+.primary-action.loading .label,.primary-action.loading svg{display:none}
+.primary-action.loading .spinner{display:block}
+.spinner{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid rgba(8,19,15,.18);border-top-color:#08130f;
+  animation:spin .8s linear infinite;display:none;
+}
+[data-theme="light"] .spinner{border-color:rgba(255,255,255,.3);border-top-color:#fff}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.field-foot{
+  margin-top:10px;display:flex;align-items:center;justify-content:space-between;min-height:18px;
+}
+.error-msg{
+  font-size:12.5px;color:var(--error);font-weight:500;
+  opacity:0;transform:translateY(-2px);transition:all var(--dur-fast) var(--ease);
+}
+.error-msg.show{opacity:1;transform:none}
+.demo-hint{
+  font-size:11.5px;color:var(--text-faint);font-family:"Space Grotesk";
+  letter-spacing:.01em;text-align:right;
+}
+.demo-hint b{color:var(--text-mute);font-weight:500}
+
+/* PIN */
+.pin-display{display:flex;justify-content:center;gap:14px;margin:6px 0 18px}
+.pin-dot{
+  width:12px;height:12px;border-radius:50%;
+  border:1.5px solid var(--hairline-strong);
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.08)}
+.pin-dot.error{border-color:var(--error);background:var(--error-soft)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pin-key{
+  height:50px;border-radius:var(--r-md);
+  background:var(--surface-input);border:1px solid var(--hairline);
+  font-family:"Space Grotesk";font-size:19px;font-weight:400;color:var(--text);
+  transition:all var(--dur-fast) var(--ease);
+}
+.pin-key:hover{background:var(--surface-hover);border-color:var(--hairline-strong)}
+.pin-key:active{transform:scale(.95);background:var(--accent-soft)}
+.pin-key.fn{color:var(--text-mute);font-size:14px}
+.pin-key.fn svg{width:18px;height:18px}
+.pin-key.loading{opacity:.5;pointer-events:none}
+
+/* Pattern */
+.pattern-wrap{display:flex;flex-direction:column;align-items:center}
+.pattern-canvas{position:relative;width:220px;height:220px;margin:6px 0 14px;touch-action:none}
+.pattern-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.pattern-dot{
+  position:absolute;width:14px;height:14px;border-radius:50%;
+  transform:translate(-50%,-50%);
+  border:2px solid var(--hairline-strong);
+  background:var(--surface-input);
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.pattern-dot.active{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 6px var(--accent-soft)}
+.pattern-dot.error{border-color:var(--error);background:var(--error);box-shadow:0 0 0 6px var(--error-soft)}
+.pattern-hint{font-size:12.5px;color:var(--text-mute);min-height:18px;font-family:"Space Grotesk"}
+
+/* Fingerprint */
+.fp-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 0 4px}
+.fp-btn{
+  width:92px;height:92px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--hairline-strong);
+  background:var(--surface-input);color:var(--text-soft);
+  transition:all var(--dur) var(--ease-out);position:relative;
+}
+.fp-btn svg{width:46px;height:46px;transition:color var(--dur) var(--ease)}
+.fp-btn:hover{color:var(--accent);border-color:var(--accent)}
+.fp-btn.scanning{border-color:var(--accent);color:var(--accent);animation:pulse 1.1s var(--ease) infinite}
+.fp-btn.scanning::after{
+  content:"";position:absolute;inset:-6px;border-radius:50%;
+  border:2px solid var(--accent);opacity:.5;animation:ripple 1.1s var(--ease) infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-soft)}50%{box-shadow:0 0 0 12px transparent}}
+@keyframes ripple{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.25);opacity:0}}
+.fp-btn.success{color:var(--success);border-color:var(--success)}
+.fp-label{margin-top:16px;font-size:13px;color:var(--text-mute);font-family:"Space Grotesk";min-height:18px}
+
+/* Question */
+.question-box{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 14px;margin-bottom:14px;
+  background:var(--accent-soft);
+  border-radius:var(--r-md);border:1px solid var(--hairline);
+}
+.question-box svg{width:18px;height:18px;color:var(--accent);flex-shrink:0;margin-top:1px}
+.question-text{
+  font-size:13.5px;color:var(--text-soft);font-family:"Space Grotesk";
+  line-height:1.45;font-weight:500;
+}
+
+/* =====================================================================
+   7. STATUS BAR — under auth-container, full width
+   ===================================================================== */
+.statusbar{
+  position:relative;z-index:5;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 8px 6px 6px;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  -webkit-backdrop-filter:blur(var(--blur));
+  backdrop-filter:blur(var(--blur));
+  border:1px solid var(--hairline);
+  box-shadow:var(--shadow-float);
+  min-height:46px;
+  width:100%;
+}
+
+/* session indicator — left side of statusbar */
+.session-indicator{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 14px;border-radius:var(--r-pill);
+  font-size:12.5px;color:var(--text-soft);
+  background:var(--surface-input);
+  border:1px solid var(--hairline);
+  transition:all var(--dur-fast) var(--ease);
+  white-space:nowrap;
+}
+.session-indicator:hover{background:var(--surface-hover);color:var(--text)}
+.session-indicator svg{width:16px;height:16px;color:var(--text-mute)}
+.session-indicator .session-label{color:var(--text-mute);font-weight:500}
+.session-indicator .session-val{color:var(--text);font-weight:500}
+.session-indicator .chev{width:14px;height:14px;color:var(--text-faint);transition:transform var(--dur-fast) var(--ease)}
+.session-indicator.active .chev{transform:rotate(180deg)}
+
+/* system indicators — right side */
+.system-indicators{
+  display:flex;align-items:center;gap:4px;
+}
+.indicator{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  height:34px;min-width:34px;padding:0 9px;
+  border-radius:var(--r-pill);gap:6px;color:var(--text-soft);
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+}
+.indicator:hover{background:var(--surface-hover);color:var(--text)}
+.indicator svg{width:17px;height:17px}
+.indicator .lvl-text{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+.indicator .pill{
+  display:inline-flex;align-items:center;gap:5px;padding:0 10px 0 8px;
+  border-radius:var(--r-pill);border:1px solid var(--hairline);
+}
+.bat-case{width:23px;height:13px;border:1.5px solid currentColor;border-radius:3px;position:relative;opacity:.9}
+.bat-case::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:currentColor;border-radius:0 1.5px 1.5px 0}
+.bat-fill{position:absolute;left:1px;top:1px;bottom:1px;background:currentColor;border-radius:1.5px}
+.tip{
+  position:absolute;bottom:calc(100% + 10px);left:50%;
+  transform:translateX(-50%) translateY(4px);
+  padding:6px 10px;border-radius:var(--r-sm);
+  background:var(--surface-strong);border:1px solid var(--hairline);
+  font-size:11.5px;color:var(--text-soft);white-space:nowrap;
+  opacity:0;pointer-events:none;transition:all var(--dur-fast) var(--ease);
+  box-shadow:var(--shadow-float);
+}
+.indicator:hover .tip{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* =====================================================================
+   8. POPOVER PANELS
+   ===================================================================== */
+.popover{
+  position:fixed;z-index:30;min-width:240px;padding:8px;
+  background:var(--surface-strong);
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(130%);
+  backdrop-filter:blur(var(--blur)) saturate(130%);
+  border:1px solid var(--hairline-strong);
+  border-radius:var(--r-md);box-shadow:var(--shadow-panel);
+  opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;
+  transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out);
+  pointer-events:none;
+}
+.popover.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.popover.origin-tl{transform-origin:top left}
+.popover.origin-bl{transform-origin:bottom left}
+
+.pop-section{padding:6px 4px}
+.pop-section + .pop-section{border-top:1px solid var(--hairline)}
+.pop-label{
+  font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-faint);font-weight:600;padding:4px 10px 6px;
+}
+.pop-item{
+  display:flex;align-items:center;gap:11px;width:100%;
+  padding:9px 10px;border-radius:var(--r-sm);
+  font-size:13.5px;color:var(--text-soft);text-align:left;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+}
+.pop-item:hover{background:var(--surface-hover);color:var(--text)}
+.pop-item svg{width:17px;height:17px;color:var(--text-mute);flex:none}
+.pop-item .meta{margin-left:auto;font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.pop-item.danger{color:var(--error)}
+.pop-item.danger svg{color:var(--error)}
+.pop-item.danger:hover{background:var(--error-soft)}
+.pop-item.selected{color:var(--text)}
+.pop-item.selected .pop-check{color:var(--accent)}
+.pop-check{margin-left:auto;width:16px;height:16px;color:var(--accent)}
+
+.session-logo{width:18px;height:18px;flex:none;display:flex;align-items:center;justify-content:center}
+.session-logo svg{width:18px;height:18px}
+.session-desc{display:block;font-size:11.5px;color:var(--text-faint);margin-top:1px;font-weight:400}
+
+/* network read-only */
+.net-info-row{display:flex;align-items:center;gap:12px;padding:6px 10px}
+.net-info-icon{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.net-info-icon svg{width:18px;height:18px}
+.net-info-text{flex:1}
+.net-info-name{font-size:14px;font-weight:500;color:var(--text)}
+.net-info-detail{font-size:12px;color:var(--text-mute);margin-top:1px}
+.net-stat{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 10px;font-size:12.5px;color:var(--text-mute);
+}
+.net-stat-val{color:var(--text-soft);font-variant-numeric:tabular-nums;font-family:"Space Grotesk"}
+
+/* volume */
+.vol-row{display:flex;align-items:center;gap:12px;padding:8px 12px 4px}
+.vol-toggle{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-soft);transition:all var(--dur-fast) var(--ease);flex-shrink:0;
+}
+.vol-toggle:hover{background:var(--surface-hover);color:var(--text)}
+.vol-toggle.muted{color:var(--error)}
+.vol-toggle svg{width:18px;height:18px}
+.vol-slider{flex:1;accent-color:var(--accent);height:4px;cursor:pointer;min-width:0}
+.vol-value{
+  font-size:12px;color:var(--text-mute);font-variant-numeric:tabular-nums;
+  min-width:40px;text-align:right;font-family:"Space Grotesk";
+}
+
+/* =====================================================================
+   9. DIALOG / OVERLAY
+   ===================================================================== */
+.scrim{
+  position:fixed;inset:0;z-index:40;
+  background:rgba(4,8,12,.5);
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;transition:opacity var(--dur) var(--ease);
+}
+.scrim.open{opacity:1;pointer-events:auto}
+.dialog{
+  position:fixed;z-index:41;top:50%;left:50%;transform:translate(-50%,-46%) scale(.96);
+  width:min(380px,90vw);padding:24px 24px 18px;
+  background:var(--surface-strong);
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(130%);
+  backdrop-filter:blur(var(--blur)) saturate(130%);
+  border:1px solid var(--hairline-strong);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-panel);
+  opacity:0;pointer-events:none;
+  transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out);
+}
+.dialog.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.dialog-icon{
+  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:var(--error-soft);color:var(--error);margin-bottom:14px;
+}
+.dialog-icon svg{width:23px;height:23px}
+.dialog h3{font-family:"Space Grotesk";font-size:18px;font-weight:500;letter-spacing:-.01em}
+.dialog p{font-size:13.5px;color:var(--text-soft);margin-top:6px;line-height:1.5}
+.dialog-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.btn{padding:9px 16px;border-radius:var(--r-sm);font-size:13.5px;font-weight:500;transition:all var(--dur-fast) var(--ease)}
+.btn-ghost{color:var(--text-soft)}
+.btn-ghost:hover{background:var(--surface-hover);color:var(--text)}
+.btn-danger{background:var(--error);color:#1a0805}
+.btn-danger:hover{filter:brightness(1.08)}
+.btn-primary{background:var(--accent);color:#08130f}
+[data-theme="light"] .btn-primary{color:#fff}
+.btn-primary:hover{background:var(--accent-strong)}
+
+/* success / power overlays */
+.overlay-screen{
+  position:fixed;inset:0;z-index:60;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(5,9,14,.0);opacity:0;pointer-events:none;
+  transition:background var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease);
+  text-align:center;
+}
+.overlay-screen.show{opacity:1;pointer-events:auto;background:rgba(5,9,14,.55)}
+.overlay-screen.power{background:rgba(2,4,7,.92)}
+.overlay-icon{
+  width:64px;height:64px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--accent);color:#06120d;
+  transform:scale(.6);opacity:0;transition:all var(--dur-slow) var(--ease-out);
+}
+[data-theme="light"] .overlay-icon{color:#fff}
+.overlay-screen.show .overlay-icon{transform:scale(1);opacity:1}
+.overlay-icon svg{width:30px;height:30px}
+.overlay-title{
+  font-family:"Space Grotesk";font-size:30px;font-weight:400;letter-spacing:-.01em;
+  margin-top:22px;color:#fff;opacity:0;transform:translateY(8px);
+  transition:all var(--dur-slow) var(--ease-out) .08s;
+}
+.overlay-screen.show .overlay-title{opacity:1;transform:none}
+.overlay-sub{
+  font-size:13.5px;color:rgba(255,255,255,.6);margin-top:8px;font-family:"Space Grotesk";
+  opacity:0;transition:all var(--dur-slow) var(--ease-out) .16s;
+}
+.overlay-screen.show .overlay-sub{opacity:1}
+.overlay-back{
+  margin-top:28px;padding:9px 18px;border-radius:var(--r-pill);
+  border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.8);
+  font-size:13px;opacity:0;
+  transition:all var(--dur-slow) var(--ease-out) .24s,background var(--dur-fast) var(--ease);
+}
+.overlay-screen.show .overlay-back{opacity:1}
+.overlay-back:hover{background:rgba(255,255,255,.08);color:#fff}
+
+/* =====================================================================
+   10. RESPONSIVE
+   ===================================================================== */
+@media (max-width:980px){
+  .stage{padding:clamp(20px,5vh,40px) clamp(20px,5vw,36px)}
+  .auth-wrapper{width:100%;max-width:440px}
+  .auth-container{flex-direction:column;gap:12px;width:100%}
+  .user-box{width:100%}
+  .user-box-content{width:100%;flex-direction:row;justify-content:center;padding:20px}
+  .large-avatar{width:72px;height:72px;margin-bottom:0;margin-right:16px}
+  .user-box-content .user-name{font-size:20px}
+  .drawer-panel{
+    margin:12px;
+    border-radius:var(--r-md);
+    padding:16px;flex-direction:row;justify-content:center;
+    width:auto;flex:1 1 auto;
+  }
+  .avatar-grid{grid-template-rows:repeat(2,1fr);grid-auto-flow:column}
+  .drawer-btn{left:50%;top:auto;bottom:-16px;transform:translateX(-50%)}
+  .user-box.drawer-open .drawer-btn svg{transform:rotate(90deg)}
+  .auth-card{width:100%;flex:1 1 auto}
+  .statusbar{flex-wrap:wrap;gap:8px;justify-content:center}
+}
+@media (max-width:620px){
+  .method-tab{padding:6px 8px;font-size:11px}
+  .session-indicator{padding:6px 10px;font-size:11.5px}
+  .indicator .pill{padding:0 8px 0 6px}
+}
+
+/* =====================================================================
+   11. REDUCED MOTION
+   ===================================================================== */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="wallpaper"></div>
+<div class="wallpaper-img" id="wallImg"></div>
+<div class="veil"></div>
+
+<main class="stage" id="stage">
+  <div class="auth-wrapper">
+    
+    <div class="auth-container">
+      
+      <!-- ===== USER BOX (left) ===== -->
+      <div class="user-box" id="userBox">
+        <button class="drawer-btn" id="drawerBtn" aria-label="Switch user">
+          <i data-lucide="chevron-right"></i>
+        </button>
+        
+        <div class="drawer-panel" id="drawerPanel">
+          <div class="drawer-label">Switch User</div>
+          <div class="avatar-grid" id="avatarGrid"></div>
+        </div>
+        
+        <div class="user-box-content">
+          <img class="large-avatar" id="avatar" alt="" />
+          <div>
+            <div class="user-name" id="userName">Aria Voss</div>
+            <div class="user-handle" id="userHandle">@aria</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ===== AUTH CARD (right) ===== -->
+      <div class="auth-card" id="authCard">
+        <div class="method-tabs" role="tablist" aria-label="Authentication method">
+          <button class="method-tab active" data-method="password" title="Password" role="tab"><i data-lucide="key-round"></i>Password</button>
+          <button class="method-tab" data-method="pin" title="PIN" role="tab"><i data-lucide="grid-2x2"></i>PIN</button>
+          <button class="method-tab" data-method="pattern" title="Pattern" role="tab"><i data-lucide="git-fork"></i>Pattern</button>
+          <button class="method-tab" data-method="fingerprint" title="Fingerprint" role="tab"><i data-lucide="fingerprint"></i>Finger</button>
+          <button class="method-tab" data-method="question" title="Security Question" role="tab"><i data-lucide="help-circle"></i>Question</button>
+        </div>
+
+        <div class="step-indicator" id="stepIndicator">
+          <div class="step-label" id="stepLabel">Step 1 of 2 · Password</div>
+          <div class="step-dots" id="stepDots"></div>
+        </div>
+
+        <div class="method-body">
+          <div class="method-panel active" data-panel="password">
+            <form id="pwForm" autocomplete="off">
+              <div class="field" id="pwField">
+                <i data-lucide="lock" class="lead"></i>
+                <input type="text" id="userInput" class="user-input" placeholder="Username" aria-label="Username" autocomplete="off" />
+                <span class="field-sep" id="fieldSep"></span>
+                <input type="password" id="pwInput" placeholder="Password" aria-label="Password" autocomplete="off" />
+                <button type="button" class="eye" id="pwEye" aria-label="Show password" tabindex="-1">
+                  <i data-lucide="eye"></i>
+                </button>
+              </div>
+              <button type="submit" class="primary-action" id="pwSubmit">
+                <span class="label">Sign in</span>
+                <i data-lucide="arrow-right"></i>
+                <span class="spinner"></span>
+              </button>
+              <div class="field-foot">
+                <span class="error-msg" id="pwError">Incorrect password. Try again.</span>
+                <span class="demo-hint" id="pwHint"></span>
+              </div>
+            </form>
+          </div>
+
+          <div class="method-panel" data-panel="pin">
+            <div class="pin-display" id="pinDisplay">
+              <span class="pin-dot"></span><span class="pin-dot"></span>
+              <span class="pin-dot"></span><span class="pin-dot"></span>
+            </div>
+            <div class="pin-pad" id="pinPad">
+              <button class="pin-key" data-k="1">1</button>
+              <button class="pin-key" data-k="2">2</button>
+              <button class="pin-key" data-k="3">3</button>
+              <button class="pin-key" data-k="4">4</button>
+              <button class="pin-key" data-k="5">5</button>
+              <button class="pin-key" data-k="6">6</button>
+              <button class="pin-key" data-k="7">7</button>
+              <button class="pin-key" data-k="8">8</button>
+              <button class="pin-key" data-k="9">9</button>
+              <button class="pin-key fn" data-k="clear" aria-label="Clear"><i data-lucide="delete"></i></button>
+              <button class="pin-key" data-k="0">0</button>
+              <button class="pin-key fn" data-k="enter" aria-label="Submit" id="pinEnter"><i data-lucide="corner-down-left"></i></button>
+            </div>
+            <div class="field-foot">
+              <span class="error-msg" id="pinError">Incorrect PIN.</span>
+              <span class="demo-hint" id="pinHint"></span>
+            </div>
+          </div>
+
+          <div class="method-panel" data-panel="pattern">
+            <div class="pattern-wrap">
+              <div class="pattern-canvas" id="patternCanvas">
+                <svg class="pattern-svg" id="patternSvg"></svg>
+              </div>
+              <div class="pattern-hint" id="patternHint">Draw a pattern of 4 or more points</div>
+              <div class="field-foot" style="width:100%;justify-content:space-between;margin-top:8px">
+                <span class="error-msg" id="patternError">Pattern too short.</span>
+                <span class="demo-hint" id="patternHintDemo"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="method-panel" data-panel="fingerprint">
+            <div class="fp-wrap">
+              <button class="fp-btn" id="fpBtn" aria-label="Scan fingerprint">
+                <i data-lucide="fingerprint"></i>
+              </button>
+              <div class="fp-label" id="fpLabel">Touch the sensor to scan</div>
+              <div class="field-foot" style="margin-top:10px">
+                <span class="error-msg" id="fpError">Scan failed. Try again.</span>
+                <span class="demo-hint" id="fpHint"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="method-panel" data-panel="question">
+            <div class="question-box">
+              <i data-lucide="help-circle"></i>
+              <div class="question-text" id="questionText">What is the name of your first pet?</div>
+            </div>
+            <div class="field" id="qField">
+              <i data-lucide="message-circle" class="lead"></i>
+              <input type="text" id="qInput" placeholder="Your answer" aria-label="Security answer" autocomplete="off" />
+            </div>
+            <button type="button" class="primary-action" id="qSubmit">
+              <span class="label">Verify answer</span>
+              <i data-lucide="check"></i>
+              <span class="spinner"></span>
+            </button>
+            <div class="field-foot">
+              <span class="error-msg" id="qError">Incorrect answer.</span>
+              <span class="demo-hint" id="qHint"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- ===== STATUS BAR (under boxes, full width) ===== -->
+    <nav class="statusbar" aria-label="System status">
+      <button class="session-indicator" id="sessionBtn" data-pop="session" aria-label="Select session">
+        <i data-lucide="layout-grid"></i>
+        <span class="session-label">Session</span>
+        <span class="session-val" id="sessionVal">Hyprland</span>
+        <i data-lucide="chevron-down" class="chev"></i>
+      </button>
+      
+      <div class="system-indicators">
+        <button class="indicator" id="netBtn" data-pop="network" aria-label="Network">
+          <i data-lucide="wifi"></i>
+          <span class="pill"><span class="lvl-text" id="netText">Aether-5G</span></span>
+          <span class="tip">Connected · Aether-5G</span>
+        </button>
+        <button class="indicator" id="volBtn" data-pop="volume" aria-label="Volume">
+          <i data-lucide="volume-2"></i>
+          <span class="pill"><span class="lvl-text" id="volText">45%</span></span>
+          <span class="tip" id="volTip">Volume 45%</span>
+        </button>
+        <button class="indicator" id="batBtn" aria-label="Battery">
+          <span class="bat-case"><span class="bat-fill" id="batFill" style="width:78%"></span></span>
+          <span class="lvl-text" id="batText">78%</span>
+          <span class="tip" id="batTip">78% remaining</span>
+        </button>
+        <button class="indicator" id="themeBtn" aria-label="Toggle theme">
+          <i data-lucide="sun-moon"></i>
+          <span class="tip">Switch theme</span>
+        </button>
+        <button class="indicator" id="powerBtn" data-pop="power" aria-label="Power and system options">
+          <i data-lucide="power"></i>
+          <span class="tip">Power options</span>
+        </button>
+      </div>
+    </nav>
+    
+  </div>
+</main>
+
+<!-- Popovers -->
+<div class="popover" id="pop-session" role="menu" aria-label="Select session">
+  <div class="pop-label">Desktop Session</div>
+  <div id="sessionList"></div>
+</div>
+
+<div class="popover" id="pop-network" role="menu" aria-label="Network status" style="min-width:260px">
+  <div class="pop-section">
+    <div class="pop-label">Connection</div>
+    <div class="net-info-row">
+      <div class="net-info-icon"><i data-lucide="wifi"></i></div>
+      <div class="net-info-text">
+        <div class="net-info-name">Aether-5G</div>
+        <div class="net-info-detail">Connected · Secured · 5 GHz</div>
+      </div>
+    </div>
+  </div>
+  <div class="pop-section">
+    <div class="pop-label">Details</div>
+    <div class="net-stat"><span>Interface</span><span class="net-stat-val">wlan0</span></div>
+    <div class="net-stat"><span>Signal strength</span><span class="net-stat-val">Excellent</span></div>
+    <div class="net-stat"><span>IP address</span><span class="net-stat-val">192.168.1.42</span></div>
+    <div class="net-stat"><span>Gateway</span><span class="net-stat-val">192.168.1.1</span></div>
+  </div>
+</div>
+
+<div class="popover" id="pop-volume" role="menu" aria-label="Volume" style="min-width:260px">
+  <div class="pop-section">
+    <div class="pop-label">Output volume</div>
+    <div class="vol-row">
+      <button class="vol-toggle" id="volToggle" aria-label="Toggle mute">
+        <i data-lucide="volume-2"></i>
+      </button>
+      <input type="range" id="volSlider" min="0" max="100" value="45" class="vol-slider" aria-label="Volume level" />
+      <span class="vol-value" id="volValue">45%</span>
+    </div>
+  </div>
+</div>
+
+<div class="popover origin-bl" id="pop-power" role="menu" aria-label="Power options">
+  <div class="pop-section">
+    <button class="pop-item" data-power="suspend"><i data-lucide="moon"></i><span>Suspend</span></button>
+    <button class="pop-item" data-power="restart"><i data-lucide="rotate-cw"></i><span>Restart</span></button>
+    <button class="pop-item danger" data-power="shutdown"><i data-lucide="power"></i><span>Shut down</span></button>
+  </div>
+  <div class="pop-section">
+    <button class="pop-item" id="lockBtn"><i data-lucide="lock-keyhole"></i><span>Lock screen</span></button>
+    <button class="pop-item" id="aboutBtn"><i data-lucide="info"></i><span>About this system</span></button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dialog-icon" id="dlgIcon"><i data-lucide="triangle-alert"></i></div>
+  <h3 id="dlgTitle">Shut down?</h3>
+  <p id="dlgBody">This will close all running sessions and power off the device. Any unsaved work will be lost.</p>
+  <div class="dialog-actions">
+    <button class="btn btn-ghost" id="dlgCancel">Cancel</button>
+    <button class="btn btn-danger" id="dlgConfirm">Shut down</button>
+  </div>
+</div>
+
+<div class="overlay-screen" id="successOverlay">
+  <div class="overlay-icon" id="successIcon"><i data-lucide="check"></i></div>
+  <div class="overlay-title" id="successTitle">Welcome back, Aria</div>
+  <div class="overlay-sub" id="successSub">Starting Hyprland session…</div>
+  <button class="overlay-back" id="successBack">Return to greeter</button>
+</div>
+
+<div class="overlay-screen power" id="powerOverlay">
+  <div class="overlay-icon" id="powerIcon"><i data-lucide="power"></i></div>
+  <div class="overlay-title" id="powerTitle">Shutting down</div>
+  <div class="overlay-sub" id="powerSub">It is now safe to power off the device.</div>
+  <button class="overlay-back" id="powerBack">Return to greeter</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const WALLPAPER_URL = "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80";
+  const DEMO = { password:"demo", pin:"1234", patternMinLen:4 };
+
+  const SESSIONS = [
+    { id:"hyprland", name:"Hyprland", desc:"Dynamic tiling Wayland compositor",
+      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18M7 3v18M14 3v18"/></svg>` },
+    { id:"kde", name:"KDE Plasma", desc:"Flexible desktop by KDE",
+      logo:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.6 3.2c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6 0-.9-.7-1.6-1.6-1.6-.9 0-1.6.7-1.6 1.6zM8.8 6.4c.5 0 1 .1 1.4.4.4.2.7.2 1.1.1.7-.2 1.4-.2 2.1 0 .4.1.7.1 1.1-.1.4-.3.9-.4 1.4-.4 1.2 0 2.1.9 2.1 2.1 0 .8-.4 1.5-.9 2.2-.4.5-.5 1.1-.4 1.7.1.5.2 1 .2 1.5 0 1.5-1.2 2.7-2.7 2.7-.5 0-1-.1-1.4-.4-.4-.2-.9-.3-1.4-.3-.5 0-1 .1-1.4.3-.4.3-.9.4-1.4.4-1.5 0-2.7-1.2-2.7-2.7 0-.5.1-1 .2-1.5.1-.6 0-1.2-.4-1.7-.5-.7-.9-1.4-.9-2.2 0-1.2.9-2.1 2.1-2.1z"/></svg>` },
+    { id:"gnome", name:"GNOME", desc:"Clean, focused Wayland desktop",
+      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3.2"/><path d="M12 5.5v-2M12 20.5v-2M5.5 12h-2M20.5 12h-2M7 7 5.5 5.5M18.5 18.5 17 17M17 7l1.5-1.5M5.5 18.5 7 17"/></svg>` },
+    { id:"sway", name:"Sway", desc:"i3-compatible Wayland tiler",
+      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h7v12H4zM13 6h7v6h-7zM13 14h7v4h-7z"/></svg>` },
+    { id:"xfce", name:"Xfce", desc:"Lightweight, stable desktop",
+      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 14 4-9 3 5 2-3 7 11"/><path d="M4 14h16"/></svg>` },
+    { id:"custom", name:"Custom Wayland", desc:"User-defined session script",
+      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M17.7 6.3l-2.1 2.1M8.4 15.6l-2.1 2.1"/><circle cx="12" cy="12" r="3"/></svg>` }
+  ];
+
+  const USERS = [
+    { name:"Aria Voss",   handle:"aria",   img:"https://i.pravatar.cc/160?img=5",  auth:"password", pw:"demo",
+      question:"What city were you born in?", answer:"cairo" },
+    { name:"Kenji Sato",  handle:"kenji",   img:"https://i.pravatar.cc/160?img=11", auth:"password", pw:"demo", requiresUsername:true,
+      question:"What is your favorite book?", answer:"dune" },
+    { name:"Mira Sol",   handle:"mira",    img:"https://i.pravatar.cc/160?img=47", auth:"pin",
+      question:"What is your mother's maiden name?", answer:"rivera" },
+    { name:"Devon Hart", handle:"devon",   img:"https://i.pravatar.cc/160?img=33", auth:"pattern",
+      question:"What was the name of your first school?", answer:"maplewood" },
+    { name:"Yuki Tanaka",handle:"yuki",    img:"https://i.pravatar.cc/160?img=20", auth:"question",
+      question:"What is the name of your first pet?", answer:"mochi" },
+    { name:"Sage Lin",   handle:"sage",    img:"https://i.pravatar.cc/160?img=16", auth:"multi-step",
+      steps:[ { type:"password", pw:"demo" }, { type:"pattern" } ],
+      question:"What is your favorite color?", answer:"teal" }
+  ];
+
+  const state = {
+    userIndex: 0,
+    method: "password",
+    authStatus: "idle",
+    multiStep: { active:false, current:0, total:0 },
+    session: "hyprland",
+    theme: "dark",
+    openPop: null,
+    drawerOpen: false,
+    powerAction: null,
+    net: { name:"Aether-5G", online:true },
+    battery: { level:78, charging:false },
+    volume: { level:45, muted:false },
+    pin: "",
+    pattern: [],
+    patternDrawing: false
+  };
+
+  const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const user = () => USERS[state.userIndex];
+  const session = () => SESSIONS.find(s => s.id === state.session);
+
+  function refreshIcons(){ if (window.lucide && lucide.createIcons) lucide.createIcons(); }
+
+  function swapIcon(el, iconName) {
+    if (typeof el === "string") el = $(el);
+    if (!el) return;
+    const old = el.querySelector("svg, [data-lucide]") || el;
+    const newI = document.createElement("i");
+    newI.setAttribute("data-lucide", iconName);
+    let cls = old.className;
+    if (typeof cls === "object" && cls.baseVal !== undefined) cls = cls.baseVal;
+    const keep = cls.split(/\s+/).filter(c => c && !c.startsWith("lucide"));
+    newI.className = keep.join(" ");
+    old.replaceWith(newI);
+    refreshIcons();
+  }
+
+  function renderIdentity(){
+    const u = user();
+    const av = $("#avatar");
+    av.src = u.img;
+    av.onerror = () => { av.style.background = "linear-gradient(135deg,var(--accent),var(--accent-press))"; av.removeAttribute("src"); };
+    $("#userName").textContent = u.name;
+    $("#userHandle").textContent = "@" + u.handle;
+  }
+
+  function renderSession(){
+    const s = session();
+    $("#sessionVal").textContent = s.name;
+    $$("#sessionList .pop-item").forEach(b => {
+      const on = b.dataset.session === state.session;
+      b.classList.toggle("selected", on);
+      const chk = b.querySelector(".pop-check");
+      if (chk) chk.style.opacity = on ? "1" : "0";
+    });
+  }
+
+  function renderVolume(){
+    const muted = state.volume.muted || state.volume.level === 0;
+    const volIcon = muted ? "volume-x" : state.volume.level < 35 ? "volume-1" : "volume-2";
+    $("#volText").textContent = muted ? "Muted" : state.volume.level + "%";
+    $("#volTip").textContent = muted ? "Muted" : `Volume ${state.volume.level}%`;
+    swapIcon("#volBtn", volIcon);
+    const volToggle = $("#volToggle");
+    if (volToggle){
+      swapIcon("#volToggle", volIcon);
+      volToggle.classList.toggle("muted", muted);
+    }
+    if ($("#volSlider")) $("#volSlider").value = state.volume.level;
+    if ($("#volValue")) $("#volValue").textContent = muted ? "Muted" : state.volume.level + "%";
+  }
+
+  function renderBattery(){
+    const lvl = state.battery.level;
+    $("#batFill").style.width = Math.max(0, Math.min(100, lvl)) + "%";
+    $("#batText").textContent = lvl + "%";
+    $("#batTip").textContent = state.battery.charging ? `Charging · ${lvl}%` : `${lvl}% remaining`;
+  }
+
+  function renderNetwork(){ $("#netText").textContent = state.net.name; }
+
+  function renderAll(){
+    renderIdentity();
+    renderSession();
+    renderVolume();
+    renderBattery();
+    renderNetwork();
+  }
+
+  function updateAuthChrome(){
+    const u = user();
+    const isMulti = u.auth === "multi-step";
+    state.multiStep.active = isMulti;
+    state.multiStep.current = 0;
+    state.multiStep.total = isMulti ? u.steps.length : 0;
+    $(".method-tabs").style.display = isMulti ? "none" : "flex";
+    $("#stepIndicator").classList.toggle("show", isMulti);
+    const showUser = !!u.requiresUsername && !isMulti;
+    $("#userInput").classList.toggle("show", showUser);
+    $("#fieldSep").classList.toggle("show", showUser);
+    swapIcon("#pwField .lead", showUser ? "user-round" : "lock");
+    if (isMulti) renderStep();
+    else setMethod(u.auth);
+    updateDemoHints();
+  }
+
+  function setMethod(m){
+    state.method = m;
+    $$(".method-tab").forEach(t => t.classList.toggle("active", t.dataset.method === m));
+    $$(".method-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === m));
+    clearErrors();
+    if (m === "pattern") setTimeout(buildPattern, 50);
+  }
+
+  function clearErrors(){
+    $("#pwField").classList.remove("error");
+    $("#pwError").classList.remove("show");
+    $("#pinError").classList.remove("show");
+    $("#patternError").classList.remove("show");
+    $("#qField").classList.remove("error");
+    $("#qError").classList.remove("show");
+    $("#fpError").classList.remove("show");
+    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.remove("error"));
+  }
+
+  function stepLabel(type){
+    return { password:"Password", pin:"PIN", pattern:"Pattern", fingerprint:"Fingerprint", question:"Security Question" }[type] || type;
+  }
+  function renderStep(){
+    if (!state.multiStep.active) return;
+    const u = user();
+    const step = u.steps[state.multiStep.current];
+    $("#stepLabel").textContent = `Step ${state.multiStep.current+1} of ${state.multiStep.total} · ${stepLabel(step.type)}`;
+    const dotsEl = $("#stepDots");
+    dotsEl.innerHTML = "";
+    u.steps.forEach((_, i) => {
+      const dot = document.createElement("span");
+      dot.className = "step-dot";
+      if (i === state.multiStep.current) dot.classList.add("active");
+      if (i < state.multiStep.current) dot.classList.add("completed");
+      dotsEl.appendChild(dot);
+    });
+    setMethod(step.type);
+    updateDemoHints();
+  }
+  function advanceStep(){
+    const u = user();
+    const stepType = u.steps[state.multiStep.current].type;
+    if (stepType === "password") $("#pwInput").value = "";
+    if (stepType === "pin") { state.pin = ""; renderPin(); }
+    if (stepType === "pattern") clearPattern();
+    if (stepType === "question") $("#qInput").value = "";
+    state.multiStep.current++;
+    renderStep();
+  }
+  function onAuthSuccess(){
+    if (state.multiStep.active && state.multiStep.current < state.multiStep.total - 1){
+      state.authStatus = "idle";
+      setTimeout(advanceStep, 450);
+    } else {
+      showSuccess();
+    }
+  }
+
+  function updateDemoHints(){
+    const u = user();
+    if (u.requiresUsername && !state.multiStep.active){
+      $("#pwHint").innerHTML = `<b>demo:</b> any user · pass = <b>demo</b>`;
+    } else {
+      $("#pwHint").innerHTML = `<b>demo:</b> password = <b>demo</b>`;
+    }
+    $("#pinHint").innerHTML = `<b>demo:</b> PIN = <b>1234</b>`;
+    $("#patternHintDemo").innerHTML = `<b>demo:</b> any 4+ dots`;
+    $("#fpHint").innerHTML = `<b>demo:</b> tap to scan`;
+    if (u.question){
+      $("#qHint").innerHTML = `<b>demo:</b> answer = <b>${u.answer}</b>`;
+      $("#questionText").textContent = u.question;
+    } else {
+      $("#qHint").innerHTML = `<b>demo:</b> no question set`;
+      $("#questionText").textContent = "No security question configured for this user.";
+    }
+  }
+
+  function setBtnLoading(btn, on){
+    btn.classList.toggle("loading", on);
+    btn.disabled = on;
+    state.authStatus = on ? "loading" : "idle";
+  }
+  function showSuccess(){
+    const u = user();
+    $("#successTitle").textContent = `Welcome back, ${u.name.split(" ")[0]}`;
+    $("#successSub").textContent = `Starting ${session().name} session…`;
+    $("#successIcon").innerHTML = `<i data-lucide="check"></i>`;
+    refreshIcons();
+    $("#successOverlay").classList.add("show");
+    state.authStatus = "success";
+  }
+  function returnToGreeter(){
+    $("#successOverlay").classList.remove("show");
+    $("#powerOverlay").classList.remove("show");
+    state.authStatus = "idle";
+    state.multiStep.current = 0;
+    if (state.multiStep.active) renderStep();
+    $("#pwInput").value = "";
+    $("#userInput").value = "";
+    $("#qInput").value = "";
+    state.pin = ""; renderPin();
+    clearPattern();
+    clearErrors();
+  }
+  function flashError(fieldEl, msgEl, msg){
+    fieldEl && fieldEl.classList.add("error");
+    if (msg){ msgEl.textContent = msg; msgEl.classList.add("show"); }
+    setTimeout(()=>{ fieldEl && fieldEl.classList.remove("error"); }, 420);
+  }
+
+  function submitPassword(e){
+    e.preventDefault();
+    if (state.authStatus === "loading") return;
+    const u = user();
+    const pwVal = $("#pwInput").value;
+    const userVal = u.requiresUsername ? $("#userInput").value.trim() : "";
+    if (u.requiresUsername && !userVal){
+      flashError($("#pwField"), $("#pwError"), "Enter username.");
+      $("#userInput").focus(); return;
+    }
+    if (!pwVal){
+      flashError($("#pwField"), $("#pwError"), "Enter password.");
+      $("#pwInput").focus(); return;
+    }
+    setBtnLoading($("#pwSubmit"), true);
+    setTimeout(()=>{
+      setBtnLoading($("#pwSubmit"), false);
+      const expectedPw = state.multiStep.active
+        ? (u.steps[state.multiStep.current].pw || DEMO.password)
+        : (u.pw || DEMO.password);
+      if (pwVal === expectedPw) onAuthSuccess();
+      else flashError($("#pwField"), $("#pwError"), "Incorrect credentials. Try again.");
+    }, 850);
+  }
+
+  function renderPin(){
+    const dots = $$("#pinDisplay .pin-dot");
+    dots.forEach((d,i)=>{ d.classList.toggle("filled", i < state.pin.length); d.classList.remove("error"); });
+  }
+  function pinError(msg){
+    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.add("error"));
+    $("#pinError").textContent = msg || "Incorrect PIN.";
+    $("#pinError").classList.add("show");
+    setTimeout(()=>{ $("#pinError").classList.remove("show"); renderPin(); }, 700);
+  }
+  function pinPress(k){
+    if (state.authStatus === "loading") return;
+    if (k === "clear"){ state.pin = ""; renderPin(); $("#pinError").classList.remove("show"); return; }
+    if (k === "enter"){ submitPin(); return; }
+    if (state.pin.length >= 4) return;
+    state.pin += k; renderPin();
+    $("#pinError").classList.remove("show");
+    if (state.pin.length === 4) setTimeout(submitPin, 160);
+  }
+  function submitPin(){
+    if (state.authStatus === "loading") return;
+    const enterBtn = $("#pinEnter");
+    enterBtn.classList.add("loading"); enterBtn.disabled = true; state.authStatus = "loading";
+    setTimeout(()=>{
+      enterBtn.classList.remove("loading"); enterBtn.disabled = false; state.authStatus = "idle";
+      if (state.pin === DEMO.pin){ state.pin = ""; renderPin(); onAuthSuccess(); }
+      else pinError("Incorrect PIN.");
+    }, 700);
+  }
+
+  const PAT_SIZE = 3;
+  const patCanvas = $("#patternCanvas");
+  const patSvg = $("#patternSvg");
+  let patDots = [];
+  function buildPattern(){
+    patCanvas.querySelectorAll(".pattern-dot").forEach(d=>d.remove());
+    patSvg.innerHTML = ""; patDots = [];
+    const cs = patCanvas.getBoundingClientRect();
+    if (cs.width === 0) return;
+    const n = PAT_SIZE, pad = 24;
+    for (let r=0;r<n;r++){
+      for (let c=0;c<n;c++){
+        const x = pad + (cs.width-2*pad) * (c/(n-1));
+        const y = pad + (cs.height-2*pad) * (r/(n-1));
+        const el = document.createElement("div");
+        el.className = "pattern-dot";
+        el.style.left = x+"px"; el.style.top = y+"px";
+        el.dataset.idx = r*n+c;
+        patCanvas.appendChild(el); patDots.push(el);
+      }
+    }
+  }
+  function clearPattern(){
+    state.pattern = []; state.patternDrawing=false;
+    patDots.forEach(d=>d.classList.remove("active","error"));
+    patSvg.innerHTML = "";
+    $("#patternError").classList.remove("show");
+    $("#patternHint").textContent = "Draw a pattern of 4 or more points";
+  }
+  function addPatternDot(idx){
+    if (state.pattern.includes(idx)) return;
+    state.pattern.push(idx);
+    patDots[idx].classList.add("active");
+    drawPatternLines();
+    $("#patternHint").textContent = `${state.pattern.length} point${state.pattern.length>1?"s":""} selected`;
+  }
+  function drawPatternLines(){
+    if (state.pattern.length < 2) return;
+    const cs = patCanvas.getBoundingClientRect();
+    patSvg.setAttribute("viewBox", `0 0 ${cs.width} ${cs.height}`);
+    let d = "";
+    state.pattern.forEach((idx,i)=>{
+      const dot = patDots[idx];
+      const x = parseFloat(dot.style.left), y = parseFloat(dot.style.top);
+      d += (i===0?"M":"L") + x + " " + y + " ";
+    });
+    patSvg.innerHTML = `<path d="${d}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>`;
+  }
+  function dotAt(x,y){
+    for (let i=0;i<patDots.length;i++){
+      const r = patDots[i].getBoundingClientRect();
+      if (x >= r.left-14 && x <= r.right+14 && y >= r.top-14 && y <= r.bottom+14) return i;
+    }
+    return -1;
+  }
+  function submitPattern(){
+    if (state.pattern.length >= DEMO.patternMinLen){
+      $("#patternHint").textContent = "Verifying…";
+      setTimeout(()=>{
+        if (state.pattern.length >= DEMO.patternMinLen) onAuthSuccess();
+        else patternFail();
+      }, 500);
+    } else patternFail();
+  }
+  function patternFail(){
+    patDots.forEach(d=>d.classList.add("error"));
+    const path = patSvg.querySelector("path");
+    if (path) path.setAttribute("stroke","var(--error)");
+    $("#patternError").classList.add("show");
+    $("#patternHint").textContent = "Pattern too short";
+    setTimeout(clearPattern, 800);
+  }
+
+  function scanFingerprint(){
+    const btn = $("#fpBtn");
+    if (btn.classList.contains("scanning")) return;
+    btn.classList.add("scanning");
+    $("#fpLabel").textContent = "Scanning…";
+    $("#fpError").classList.remove("show");
+    setTimeout(()=>{
+      btn.classList.remove("scanning");
+      btn.classList.add("success");
+      $("#fpLabel").textContent = "Identity verified";
+      setTimeout(()=>{ btn.classList.remove("success"); onAuthSuccess(); }, 480);
+    }, 1200);
+  }
+
+  function submitQuestion(){
+    if (state.authStatus === "loading") return;
+    const u = user();
+    const val = $("#qInput").value.trim().toLowerCase();
+    if (!val){ flashError($("#qField"), $("#qError"), "Enter an answer."); return; }
+    setBtnLoading($("#qSubmit"), true);
+    setTimeout(()=>{
+      setBtnLoading($("#qSubmit"), false);
+      if (val === (u.answer || "").toLowerCase()) onAuthSuccess();
+      else flashError($("#qField"), $("#qError"), "Incorrect answer.");
+    }, 850);
+  }
+
+  function closeAllPops(){
+    $$(".popover.open").forEach(p => p.classList.remove("open"));
+    $("#sessionBtn").classList.remove("active");
+    state.openPop = null;
+  }
+  function openPop(name, anchorEl){
+    closeAllPops();
+    const pop = $("#pop-" + name);
+    if (!pop) return;
+    state.openPop = name;
+    if (name === "session") $("#sessionBtn").classList.add("active");
+    pop.style.visibility = "hidden";
+    pop.classList.add("open");
+    requestAnimationFrame(()=>{
+      const pr = pop.getBoundingClientRect();
+      const ar = anchorEl.getBoundingClientRect();
+      let left, top;
+      if (name === "power"){
+        left = ar.right - pr.width;
+        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+        top = ar.top - pr.height - 12;
+        if (top < 12) top = ar.bottom + 12;
+      } else {
+        left = ar.left;
+        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+        top = ar.top - pr.height - 12;
+        if (top < 12) top = ar.bottom + 12;
+      }
+      pop.style.left = left + "px";
+      pop.style.top = top + "px";
+      pop.style.visibility = "visible";
+    });
+  }
+  function togglePop(name, anchorEl){
+    if (state.openPop === name) closeAllPops();
+    else openPop(name, anchorEl);
+  }
+
+  function buildAvatarGrid(){
+    const grid = $("#avatarGrid");
+    grid.innerHTML = "";
+    USERS.forEach((u, i) => {
+      const btn = document.createElement("button");
+      btn.className = "grid-avatar" + (i === state.userIndex ? " selected" : "");
+      btn.setAttribute("aria-label", u.name);
+      btn.innerHTML = `<img src="${u.img}" alt="${u.name}" onerror="this.style.background='linear-gradient(135deg,var(--accent),var(--accent-press))';this.removeAttribute('src')"/>`;
+      btn.addEventListener("click", () => {
+        selectUser(i);
+        closeDrawer();
+      });
+      grid.appendChild(btn);
+    });
+  }
+  function openDrawer(){
+    state.drawerOpen = true;
+    $("#userBox").classList.add("drawer-open");
+  }
+  function closeDrawer(){
+    state.drawerOpen = false;
+    $("#userBox").classList.remove("drawer-open");
+  }
+  function toggleDrawer(){
+    if (state.drawerOpen) closeDrawer();
+    else openDrawer();
+  }
+
+  function selectUser(index){
+    state.userIndex = index;
+    state.pin = "";
+    state.pattern = [];
+    state.authStatus = "idle";
+    $("#pwInput").value = "";
+    $("#userInput").value = "";
+    $("#qInput").value = "";
+    clearErrors();
+    renderIdentity();
+    updateAuthChrome();
+    buildAvatarGrid();
+    closeAllPops();
+    setTimeout(()=>{
+      if (state.method === "password") $("#pwInput").focus();
+      else if (state.method === "question") $("#qInput").focus();
+    }, 200);
+  }
+
+  function buildSessionList(){
+    const wrap = $("#sessionList");
+    wrap.innerHTML = "";
+    SESSIONS.forEach(s=>{
+      const b = document.createElement("button");
+      b.className = "pop-item" + (s.id === state.session ? " selected" : "");
+      b.dataset.session = s.id;
+      b.innerHTML = `
+        <span class="session-logo">${s.logo}</span>
+        <span><span>${s.name}</span><span class="session-desc">${s.desc}</span></span>
+        <i data-lucide="check" class="pop-check" style="opacity:${s.id===state.session?1:0}"></i>`;
+      b.addEventListener("click", ()=>{
+        state.session = s.id;
+        renderSession();
+        closeAllPops();
+      });
+      wrap.appendChild(b);
+    });
+    refreshIcons();
+  }
+
+  const dialog = $("#dialog"), scrim = $("#scrim");
+  function openDialog(action){
+    const titles = {
+      shutdown:["Shut down?","This will close all running sessions and power off the device. Any unsaved work will be lost.","Shut down","power"],
+      restart:  ["Restart?","The system will reboot. Any unsaved work will be lost.","Restart","rotate-cw"],
+      suspend:  ["Suspend?","The system will enter sleep mode and can be resumed with a key press.","Suspend","moon"]
+    };
+    const [title,body,confirm,icon] = titles[action] || titles.shutdown;
+    $("#dlgTitle").textContent = title;
+    $("#dlgBody").textContent = body;
+    $("#dlgConfirm").textContent = confirm;
+    state.powerAction = action;
+    const di = $("#dlgIcon");
+    di.innerHTML = `<i data-lucide="${icon}"></i>`;
+    refreshIcons();
+    di.style.background = action === "shutdown" ? "var(--error-soft)" : "var(--accent-soft)";
+    di.style.color = action === "shutdown" ? "var(--error)" : "var(--accent)";
+    const conf = $("#dlgConfirm");
+    conf.className = "btn " + (action === "shutdown" ? "btn-danger" : "btn-primary");
+    closeAllPops();
+    scrim.classList.add("open");
+    dialog.classList.add("open");
+  }
+  function closeDialog(){
+    scrim.classList.remove("open");
+    dialog.classList.remove("open");
+    state.powerAction = null;
+  }
+  function confirmPower(){
+    const action = state.powerAction || "shutdown";
+    closeDialog();
+    const titles = { shutdown:"Shutting down", restart:"Restarting", suspend:"Suspending" };
+    const subs = {
+      shutdown:"It is now safe to power off the device.",
+      restart:"The system is restarting…",
+      suspend:"System suspended. Press any key to resume."
+    };
+    $("#powerTitle").textContent = titles[action];
+    $("#powerSub").textContent = subs[action];
+    $("#powerIcon").innerHTML = `<i data-lucide="${action==='suspend'?'moon':action==='restart'?'rotate-cw':'power'}"></i>`;
+    refreshIcons();
+    $("#powerOverlay").classList.add("show");
+  }
+
+  function setTheme(t){
+    state.theme = t;
+    document.documentElement.setAttribute("data-theme", t);
+    swapIcon("#themeBtn", t === "dark" ? "sun-moon" : "sun");
+  }
+
+  function wire(){
+    const img = new Image();
+    img.onload = ()=>{ $("#wallImg").classList.add("loaded"); };
+    img.onerror = ()=>{};
+    img.src = WALLPAPER_URL;
+
+    $("#themeBtn").addEventListener("click", ()=> setTheme(state.theme === "dark" ? "light" : "dark"));
+
+    $("#drawerBtn").addEventListener("click", e=>{
+      e.stopPropagation();
+      toggleDrawer();
+    });
+
+    $$(".method-tab").forEach(t => t.addEventListener("click", ()=> {
+      if (!state.multiStep.active) setMethod(t.dataset.method);
+    }));
+
+    $("#pwForm").addEventListener("submit", submitPassword);
+    let pwShown = false;
+    $("#pwEye").addEventListener("click", ()=>{
+      pwShown = !pwShown;
+      $("#pwInput").type = pwShown ? "text" : "password";
+      swapIcon("#pwEye", pwShown ? "eye-off" : "eye");
+    });
+    $("#pwInput").addEventListener("input", ()=>{
+      $("#pwField").classList.remove("error");
+      $("#pwError").classList.remove("show");
+    });
+    $("#userInput").addEventListener("input", ()=>{
+      $("#pwField").classList.remove("error");
+      $("#pwError").classList.remove("show");
+    });
+    $("#userInput").addEventListener("keydown", e=>{
+      if (e.key === "Enter"){ e.preventDefault(); $("#pwInput").focus(); }
+    });
+
+    $$("#pinPad .pin-key").forEach(k => k.addEventListener("click", ()=> pinPress(k.dataset.k)));
+
+    patCanvas.addEventListener("pointerdown", e=>{
+      if (state.authStatus==="loading") return;
+      clearPattern();
+      state.patternDrawing = true;
+      patCanvas.setPointerCapture(e.pointerId);
+      const i = dotAt(e.clientX, e.clientY);
+      if (i>=0) addPatternDot(i);
+    });
+    patCanvas.addEventListener("pointermove", e=>{
+      if (!state.patternDrawing) return;
+      const i = dotAt(e.clientX, e.clientY);
+      if (i>=0) addPatternDot(i);
+    });
+    function endPattern(){
+      if (!state.patternDrawing) return;
+      state.patternDrawing = false;
+      submitPattern();
+    }
+    patCanvas.addEventListener("pointerup", endPattern);
+    patCanvas.addEventListener("pointercancel", endPattern);
+
+    $("#fpBtn").addEventListener("click", scanFingerprint);
+
+    $("#qSubmit").addEventListener("click", submitQuestion);
+    $("#qInput").addEventListener("keydown", e=>{
+      if (e.key === "Enter"){ e.preventDefault(); submitQuestion(); }
+    });
+    $("#qInput").addEventListener("input", ()=>{
+      $("#qField").classList.remove("error");
+      $("#qError").classList.remove("show");
+    });
+
+    $("#sessionBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("session", $("#sessionBtn")); });
+    $("#netBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("network", $("#netBtn")); });
+    $("#volBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("volume", $("#volBtn")); });
+    $("#powerBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("power", $("#powerBtn")); });
+
+    $("#volToggle").addEventListener("click", ()=>{
+      state.volume.muted = !state.volume.muted;
+      renderVolume();
+    });
+    $("#volSlider").addEventListener("input", e=>{
+      state.volume.level = parseInt(e.target.value, 10);
+      if (state.volume.level > 0) state.volume.muted = false;
+      renderVolume();
+    });
+
+    $$("#pop-power [data-power]").forEach(b => b.addEventListener("click", ()=> openDialog(b.dataset.power)));
+    $("#lockBtn").addEventListener("click", ()=>{
+      closeAllPops();
+      $("#powerTitle").textContent = "Locking";
+      $("#powerSub").textContent = "Screen locked.";
+      $("#powerIcon").innerHTML = `<i data-lucide="lock-keyhole"></i>`;
+      refreshIcons();
+      $("#powerOverlay").classList.add("show");
+    });
+    $("#aboutBtn").addEventListener("click", ()=>{
+      closeAllPops();
+      $("#successTitle").textContent = "Aether Greeter";
+      $("#successSub").textContent = "Custom Wayland display manager · v1.7 · mock environment";
+      $("#successIcon").innerHTML = `<i data-lucide="info"></i>`;
+      refreshIcons();
+      $("#successOverlay").classList.add("show");
+    });
+
+    $("#dlgCancel").addEventListener("click", closeDialog);
+    $("#dlgConfirm").addEventListener("click", confirmPower);
+    scrim.addEventListener("click", closeDialog);
+
+    $("#successBack").addEventListener("click", returnToGreeter);
+    $("#powerBack").addEventListener("click", returnToGreeter);
+
+    document.addEventListener("click", e=>{
+      const t = e.target;
+      if (state.drawerOpen && !t.closest(".drawer-panel") && !t.closest(".drawer-btn")){
+        closeDrawer();
+      }
+      if (!state.openPop) return;
+      if (t.closest(".popover") || t.closest("[data-pop]")) return;
+      closeAllPops();
+    });
+
+    document.addEventListener("keydown", e=>{
+      if (e.key === "Escape"){
+        if (dialog.classList.contains("open")){ closeDialog(); return; }
+        if (state.drawerOpen){ closeDrawer(); return; }
+        if (state.openPop){ closeAllPops(); return; }
+      }
+    });
+
+    window.addEventListener("resize", ()=>{
+      if (state.openPop) closeAllPops();
+      if (state.drawerOpen) closeDrawer();
+      if (state.method === "pattern") buildPattern();
+    });
+  }
+
+  function init(){
+    refreshIcons();
+    renderAll();
+    buildAvatarGrid();
+    buildSessionList();
+    updateAuthChrome();
+    wire();
+    setTimeout(()=>{ $("#pwInput").focus(); }, 400);
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>

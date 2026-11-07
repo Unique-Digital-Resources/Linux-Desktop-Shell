@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>caelestia · wayland shell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+/* ════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ════════════════════════════════════════════════════════════ */
+:root {
+  --accent:        #b4a0ff;
+  --accent-strong: #8b6fff;
+  --accent-light:  #d4c8ff;
+  --accent-glow:   rgba(180,160,255,0.35);
+
+  --tint-1: rgba(180,160,255,0.045);
+  --tint-2: rgba(180,160,255,0.08);
+  --tint-3: rgba(180,160,255,0.14);
+  --tint-4: rgba(180,160,255,0.22);
+  --tint-5: rgba(180,160,255,0.30);
+
+  --text-1: #f0ecff;
+  --text-2: #c5bfd8;
+  --text-3: #837ca0;
+  --text-4: #5a547a;
+
+  --surface-bar:   rgba(14, 10, 28, 0.65);
+  --surface-pop:   rgba(20, 14, 36, 0.85);
+  --surface-deep:  rgba(24, 18, 42, 0.96);
+
+  --border-1: rgba(180,160,255,0.08);
+  --border-2: rgba(180,160,255,0.15);
+  --border-3: rgba(180,160,255,0.28);
+
+  --r-xs: 5px;  --r-sm: 7px;  --r-md: 9px;  --r-lg: 11px;
+  --r-xl: 13px; --r-2xl: 16px; --r-3xl: 20px; --r-pill: 999px;
+
+  --el-1: 0 1px 2px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.10);
+  --el-2: 0 4px 14px rgba(0,0,0,0.26), 0 1px 4px rgba(0,0,0,0.14);
+  --el-3: 0 14px 40px rgba(0,0,0,0.40), 0 3px 10px rgba(0,0,0,0.20);
+  --el-4: 0 28px 64px rgba(0,0,0,0.52), 0 6px 18px rgba(0,0,0,0.28);
+
+  --ease:      cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --d-fast: 0.13s; --d-med: 0.20s; --d-slow: 0.30s;
+
+  --bar-h: 48px;
+  --icon-sm: 15px; --icon-md: 17px; --icon-lg: 22px;
+  --stroke: 1.75;
+}
+
+/* Light Mode Overrides */
+body.light {
+  --accent:        #6549e0;
+  --accent-strong: #5034cc;
+  --accent-light:  #7760ea;
+  --accent-glow:   rgba(101, 73, 224, 0.25);
+
+  --tint-1: rgba(101, 73, 224, 0.04);
+  --tint-2: rgba(101, 73, 224, 0.08);
+  --tint-3: rgba(101, 73, 224, 0.14);
+  --tint-4: rgba(101, 73, 224, 0.22);
+  --tint-5: rgba(101, 73, 224, 0.30);
+
+  --text-1: #1a1530;
+  --text-2: #45405e;
+  --text-3: #6a6585;
+  --text-4: #9a95b0;
+
+  --surface-bar:   rgba(245, 245, 252, 0.65);
+  --surface-pop:   rgba(250, 250, 255, 0.88);
+  --surface-deep:  rgba(255, 255, 255, 0.98);
+
+  --border-1: rgba(50, 30, 100, 0.06);
+  --border-2: rgba(50, 30, 100, 0.12);
+  --border-3: rgba(101, 73, 224, 0.3);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-1); user-select: none;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  background: #06040f; font-size: 14px;
+  transition: background 0.4s var(--ease);
+}
+body.light { background: #f0f0f7; }
+button { font-family: inherit; color: inherit; border: none; background: none; cursor: pointer; }
+input { font-family: inherit; color: inherit; }
+img { display: block; }
+::selection { background: var(--tint-4); }
+
+.desktop { position: fixed; inset: 0; overflow: hidden; }
+
+/* ═══ WALLPAPER ═══ */
+.wallpaper {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 22% 28%, rgba(95, 65, 180, 0.22), transparent 65%),
+    radial-gradient(ellipse 55% 75% at 82% 78%, rgba(50, 35, 120, 0.28), transparent 60%),
+    linear-gradient(160deg, #07051a 0%, #120d2c 45%, #080614 100%);
+  transition: background 0.4s var(--ease);
+}
+body.light .wallpaper {
+  background:
+    radial-gradient(ellipse 70% 55% at 22% 28%, rgba(180, 160, 255, 0.35), transparent 65%),
+    radial-gradient(ellipse 55% 75% at 82% 78%, rgba(120, 100, 200, 0.25), transparent 60%),
+    linear-gradient(160deg, #e8e6f5 0%, #d8d4ef 45%, #f0f0f8 100%);
+}
+.wallpaper img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0;
+  transition: opacity 0.5s var(--ease);
+}
+.wallpaper::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 20% 25%, rgba(80, 55, 160, 0.10), transparent 60%),
+    radial-gradient(ellipse 80% 70% at 85% 80%, rgba(35, 25, 85, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 25%, transparent 70%, rgba(0,0,0,0.25) 100%);
+  pointer-events: none;
+}
+body.light .wallpaper::after {
+  background:
+    radial-gradient(ellipse 90% 60% at 20% 25%, rgba(180, 160, 255, 0.20), transparent 60%),
+    radial-gradient(ellipse 80% 70% at 85% 80%, rgba(120, 100, 200, 0.15), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 25%, transparent 70%, rgba(255,255,255,0.15) 100%);
+}
+
+/* ═══ MUSIC WIDGET ═══ */
+.music-widget {
+  position: absolute; top: 20px; right: 20px; z-index: 5;
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 16px 9px 9px;
+  background: var(--surface-bar);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-xl);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: var(--el-2), inset 0 1px 0 rgba(255,255,255,0.04);
+  min-width: 260px;
+  animation: fadeDown 0.6s var(--ease-soft) 0.15s both;
+}
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.album-art {
+  width: 42px; height: 42px; border-radius: var(--r-md); flex-shrink: 0;
+  background: linear-gradient(135deg, #b4a0ff 0%, #7c5fff 50%, #4a2bd9 100%);
+  display: grid; place-items: center; color: rgba(255,255,255,0.88);
+  box-shadow: 0 3px 10px rgba(124,95,255,0.32), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.album-art svg { width: 19px; height: 19px; }
+.music-info { flex: 1; min-width: 0; }
+.track-name { font-size: 12.5px; font-weight: 500; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.artist-name { font-size: 10.5px; color: var(--text-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.progress-bar { margin-top: 5px; height: 2px; background: var(--tint-2); border-radius: 1px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 1px; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); animation: progress 214s linear infinite; }
+@keyframes progress { from { width: 0%; } to { width: 100%; } }
+
+/* ═══ TASKBAR (CUSTOM DOCK CONTAINER) ═══ */
+#dock-container {
+  position: absolute;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex; align-items: center;
+  gap: 6px;
+  height: var(--bar-h);
+  padding: 4px 8px;
+  background: var(--surface-bar);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3xl);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 3px 8px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
+  max-width: calc(100vw - 24px);
+  animation: barRise 0.65s var(--ease-soft) both;
+  transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), backdrop-filter 0.3s var(--ease), gap 0.3s var(--ease), padding 0.3s var(--ease);
+}
+@keyframes barRise { from { opacity: 0; transform: translateX(-50%) translateY(16px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* Disconnected Bar State */
+#dock-container.disconnected {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0;
+}
+
+/* Separators */
+.separator {
+  width: 1px;
+  height: 24px;
+  background: linear-gradient(180deg, transparent, var(--border-2) 30%, var(--border-2) 70%, transparent);
+  flex-shrink: 0;
+  transition: background 0.3s var(--ease);
+}
+#dock-container.disconnected .separator {
+  background: transparent;
+}
+
+/* Bar Groups (Wrappers for items) */
+.bar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--r-xl);
+  transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), backdrop-filter 0.3s var(--ease), padding 0.3s var(--ease);
+}
+
+/* Disconnected + In Box State (Each group in its own shell box) */
+#dock-container.disconnected.in-box .bar-group {
+  background: var(--surface-bar);
+  border: 1px solid var(--border-1);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 3px 8px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  padding: 4px 8px;
+}
+
+/* App Icons */
+.app-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--r-md);
+  color: var(--text-2);
+  transition: background var(--d-fast) var(--ease), transform 0.08s var(--ease);
+  position: relative; flex-shrink: 0;
+}
+.app-icon:hover { background: var(--tint-2); }
+.app-icon:active { transform: scale(0.92); }
+.app-icon img, .app-icon svg:not(.app-indicator):not([data-lucide]) {
+  width: 20px; height: 20px; pointer-events: none;
+}
+.app-icon[data-lucide] i, .app-icon[data-lucide] svg {
+  width: 18px; height: 18px; color: var(--text-2);
+}
+.app-icon.active { background: var(--tint-3); }
+
+/* AI Input Capsule */
+.capsule-input-wrapper {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px;
+  height: 34px;
+  background: var(--tint-2);
+  border: 1px solid var(--border-1);
+  border-radius: 17px;
+  transition: border-color var(--d-fast);
+}
+.capsule-input-wrapper:focus-within { border-color: var(--border-3); }
+.capsule-input-wrapper svg { width: 14px; height: 14px; color: var(--accent-light); flex-shrink: 0; }
+.capsule-input-wrapper input {
+  background: transparent; border: none; outline: none;
+  font-size: 12px; color: var(--text-1); width: 100px;
+}
+.capsule-input-wrapper input::placeholder { color: var(--text-3); }
+
+/* Firefox Indicator (SVG Ring) */
+.app-indicator {
+  position: absolute;
+  top: -2px; left: -2px;
+  width: 38px; height: 38px;
+  pointer-events: none;
+  transform: rotate(-90deg);
+}
+
+/* Office Group */
+.office-group {
+  display: flex; gap: 2px;
+  padding: 2px;
+  background: var(--tint-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-lg);
+}
+.office-group .app-icon { width: 28px; height: 28px; border-radius: var(--r-sm); }
+.office-group .app-icon img { width: 18px; height: 18px; }
+
+/* Workspace Widget */
+.workspace-widget {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 8px;
+  background: var(--tint-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-lg);
+}
+
+/* Layout Indicator */
+.layout-box {
+  width: 22px; height: 22px;
+  border: 1px solid var(--text-3);
+  border-radius: 4px;
+  display: flex; padding: 2px; gap: 2px;
+  cursor: pointer;
+  transition: border-color var(--d-fast);
+}
+.layout-box:hover { border-color: var(--accent); }
+.mini-win-container { display: flex; gap: 2px; width: 100%; height: 100%; }
+.mini-float { flex-direction: row; }
+.mini-stack { flex-direction: column; }
+.m-win { flex: 1; background: var(--text-3); border-radius: 1px; opacity: 0.6; transition: var(--d-fast); }
+.m-win.solid { background: var(--accent); opacity: 1; box-shadow: 0 0 4px var(--accent-glow); }
+
+/* Theme Widget */
+.theme-widget { position: relative; display: flex; align-items: center; gap: 6px; }
+.theme-dock-controls { display: flex; gap: 4px; align-items: center; }
+
+.theme-trigger-btn {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-2);
+  transition: transform var(--d-fast);
+  padding: 3px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.theme-trigger-btn:hover { transform: scale(1.1); }
+.color-dot { border-radius: 2px; width: 100%; height: 100%; }
+
+/* Vertical Custom Toggle Switch */
+.custom-toggle {
+  width: 16px; height: 28px;
+  background: var(--tint-2);
+  border: 1px solid var(--border-1);
+  border-radius: 8px;
+  position: relative;
+  cursor: pointer;
+  transition: background var(--d-med) var(--ease);
+}
+.custom-toggle.active { background: var(--accent); border-color: var(--accent); }
+.custom-toggle-thumb {
+  position: absolute; top: 1px; left: 1px;
+  width: 12px; height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  transition: top var(--d-med) var(--ease);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.custom-toggle.active .custom-toggle-thumb { top: 13px; }
+.custom-toggle-thumb i, .custom-toggle-thumb svg {
+  width: 9px; height: 9px;
+  color: #999;
+  transition: color var(--d-med);
+}
+.custom-toggle.active .custom-toggle-thumb i,
+.custom-toggle.active .custom-toggle-thumb svg { color: var(--accent); }
+
+/* Theme Popup Menu */
+.theme-popup-menu {
+  position: absolute;
+  bottom: calc(100% + 8px); right: 0;
+  width: 200px;
+  background: var(--surface-pop);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-lg);
+  padding: 4px;
+  display: none;
+  flex-direction: column; gap: 2px;
+  z-index: 100;
+  box-shadow: var(--el-3);
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity var(--d-med), transform var(--d-med);
+}
+.theme-popup-menu.open { display: flex; opacity: 1; transform: translateY(0); }
+.theme-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--d-fast);
+}
+.theme-item:hover { background: var(--tint-2); }
+.theme-item.active { background: var(--tint-3); }
+.color-plate-preview {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  border: 1px solid var(--border-2);
+  flex-shrink: 0;
+}
+.dots-grid { display: contents; }
+.font-info-text { font-size: 10px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+.theme-separator { width: 1px; height: 14px; background: var(--border-2); }
+.theme-short-name { font-size: 12px; font-weight: 500; color: var(--text-1); }
+
+/* Workspace Dots */
+.ws-dots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.ws-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--text-4);
+  transition: var(--d-fast);
+  cursor: pointer;
+}
+.ws-dot:hover { background: var(--text-2); }
+.ws-dot.active { background: var(--accent); box-shadow: 0 0 4px var(--accent-glow); }
+
+/* 2x2 Grid System Tray (Device States) */
+.sys-tray-stacked {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 5px 7px;
+  height: 38px;
+  width: 44px;
+  border-radius: var(--r-md);
+  color: var(--text-2);
+  background: rgba(0, 0, 0, 0.2);
+  transition: background var(--d-fast);
+  place-items: center;
+}
+body.light .sys-tray-stacked { background: rgba(0, 0, 0, 0.05); }
+.sys-tray-stacked:hover { background: rgba(0, 0, 0, 0.3); }
+body.light .sys-tray-stacked:hover { background: rgba(0, 0, 0, 0.1); }
+.sys-tray-stacked svg { width: 14px; height: 14px; stroke-width: 2; }
+
+/* Status Section (Globe State) */
+.status-section {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 4px 12px;
+  height: 38px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.2);
+  transition: background var(--d-fast);
+}
+body.light .status-section { background: rgba(0, 0, 0, 0.05); }
+.status-section:hover { background: rgba(0, 0, 0, 0.3); }
+body.light .status-section:hover { background: rgba(0, 0, 0, 0.1); }
+.weather-icon-only { color: var(--accent-light); width: 24px; height: 24px; }
+.vertical-separator { width: 1px; height: 24px; background: var(--border-2); }
+.date-time { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.time { font-size: 12px; font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.day { font-size: 10px; color: var(--text-2); }
+.date { font-size: 9px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* ═══ TOOLTIPS ═══ */
+[data-tip] { position: relative; }
+[data-tip]::before {
+  content: attr(data-tip); position: absolute;
+  bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(3px);
+  background: var(--surface-deep); border: 1px solid var(--border-2); color: var(--text-1);
+  padding: 4px 8px; border-radius: var(--r-xs); font-size: 11px; font-weight: 500;
+  white-space: nowrap; pointer-events: none; opacity: 0;
+  transition: opacity var(--d-fast), transform var(--d-fast); z-index: 50;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--el-1);
+}
+[data-tip]:hover::before { opacity: 1; transform: translateX(-50%) translateY(0); transition-delay: 0.45s; }
+
+/* ═══ WINDOW ═══ */
+.window {
+  position: absolute; top: 50%; left: 50%;
+  width: 720px; max-width: calc(100vw - 48px);
+  height: 460px; max-height: calc(100vh - 120px);
+  z-index: 12;
+  background: var(--surface-pop); border: 1px solid var(--border-2); border-radius: var(--r-xl);
+  backdrop-filter: blur(36px) saturate(180%); -webkit-backdrop-filter: blur(36px) saturate(180%);
+  box-shadow: var(--el-4), inset 0 1px 0 rgba(255,255,255,0.05);
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0.96);
+  transition: opacity var(--d-med) var(--ease), transform var(--d-med) var(--ease); overflow: hidden;
+}
+.window.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+.titlebar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border-1); flex-shrink: 0; background: linear-gradient(180deg, rgba(255,255,255,0.025), transparent); }
+.titlebar .title { flex: 1; display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--text-2); font-weight: 450; }
+.titlebar .title img, .titlebar .title svg { width: 15px; height: 15px; }
+.win-controls { display: flex; gap: 7px; }
+.win-ctrl { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; transition: filter var(--d-fast); }
+.win-ctrl:hover { filter: brightness(1.18); }
+.win-ctrl.close { background: #ff5f57; } .win-ctrl.min { background: #febc2e; } .win-ctrl.max { background: #28c840; }
+.window-content { flex: 1; display: grid; place-items: center; }
+.window-content .placeholder { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--text-4); }
+.window-content .placeholder svg { width: 42px; height: 42px; stroke-width: 1.2; }
+.window-content .placeholder span { font-size: 11.5px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em; }
+
+/* ═══ POPOVER BASE ═══ */
+.popover {
+  position: absolute; z-index: 20;
+  background: var(--surface-pop); border: 1px solid var(--border-2); border-radius: var(--r-xl);
+  backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: var(--el-3), inset 0 1px 0 rgba(255,255,255,0.04);
+  opacity: 0; pointer-events: none; transform: translateY(8px) scale(0.97);
+  transform-origin: bottom center;
+  transition: opacity var(--d-med) var(--ease), transform var(--d-med) var(--ease);
+}
+.popover.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+
+.section-title { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; padding: 0 4px; margin-bottom: 8px; }
+
+/* ═══ START MENU ═══ */
+.start-menu { width: 680px; height: 560px; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.start-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border-1); flex-shrink: 0; }
+.start-tabs { display: flex; gap: 4px; }
+.start-tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r-sm); font-size: 12px; font-weight: 500; color: var(--text-3); transition: all var(--d-fast); }
+.start-tab:hover { background: var(--tint-2); color: var(--text-1); }
+.start-tab.active { background: var(--tint-3); color: var(--text-1); box-shadow: inset 0 0 0 0.5px var(--border-2); }
+.start-tab svg { width: 14px; height: 14px; }
+
+.start-header .search-box { width: 220px; margin-bottom: 0; padding: 6px 10px; background: var(--tint-2); border: 1px solid var(--border-1); }
+.search-box { display: flex; align-items: center; gap: 8px; border-radius: var(--r-lg); transition: border-color var(--d-fast); }
+.search-box:focus-within { border-color: var(--border-3); }
+.search-box svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; }
+.search-box input { flex: 1; background: transparent; border: none; outline: none; font-size: 12px; color: var(--text-1); }
+.search-box input::placeholder { color: var(--text-4); }
+
+.start-body { flex: 1; overflow-y: auto; padding: 14px; }
+.start-pane { display: none; height: 100%; }
+.start-pane.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* App Groups Mosaic Layout */
+.app-groups-container {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.app-group {
+  background: var(--tint-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-lg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.app-group.span-2 { grid-column: span 2; }
+.app-group.span-3 { grid-column: span 3; }
+.app-group-title {
+  font-size: 10.5px; font-weight: 500; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.07em; padding-left: 4px;
+}
+.app-group-items { display: grid; gap: 4px; }
+.app-group-items.layout-sq2 { grid-template-columns: repeat(2, 1fr); }
+.app-group-items.layout-h3 { grid-template-columns: repeat(3, 1fr); }
+.app-group-items.layout-v2 { grid-template-columns: 1fr; }
+
+.app-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 4px; border-radius: var(--r-md);
+  transition: background var(--d-fast); text-align: center;
+}
+.app-item:hover { background: var(--tint-2); }
+.app-item img, .app-item svg { width: 28px; height: 28px; }
+.app-item span { font-size: 11px; font-weight: 450; color: var(--text-2); }
+.app-item-list {
+  display: flex; flex-direction: row; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  transition: background var(--d-fast); text-align: left;
+}
+.app-item-list:hover { background: var(--tint-2); }
+.app-item-list img, .app-item-list svg { width: 22px; height: 22px; }
+.app-item-list span { font-size: 12px; font-weight: 450; color: var(--text-2); }
+
+.start-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--border-1); flex-shrink: 0; gap: 10px; }
+.start-user-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 12px; border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.2);
+  transition: background var(--d-fast);
+  flex: 1;
+}
+body.light .start-user-btn { background: rgba(0, 0, 0, 0.05); }
+.start-user-btn:hover { background: rgba(0, 0, 0, 0.3); }
+body.light .start-user-btn:hover { background: rgba(0, 0, 0, 0.1); }
+.start-user-btn img { width: 32px; height: 32px; border-radius: 50%; }
+.start-user-info { display: flex; flex-direction: column; }
+.start-user-name { font-size: 13px; font-weight: 500; color: var(--text-1); line-height: 1.2; }
+.start-user-sub { font-size: 10.5px; font-weight: 400; color: var(--text-3); }
+
+.start-power { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-3); transition: all var(--d-fast); flex-shrink: 0; }
+.start-power:hover { background: var(--tint-2); color: var(--text-1); }
+.start-power svg { width: 16px; height: 16px; }
+
+/* ═══ SETTINGS PANE ═══ */
+.settings-layout { display: flex; height: 100%; gap: 16px; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; width: 160px; border-right: 1px solid var(--border-1); padding-right: 12px; flex-shrink: 0; }
+.settings-tab { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-md); color: var(--text-3); font-size: 12px; transition: all var(--d-fast); text-align: left; }
+.settings-tab:hover { background: var(--tint-2); color: var(--text-1); }
+.settings-tab.active { background: var(--tint-3); color: var(--text-1); }
+.settings-tab svg { width: 14px; height: 14px; }
+
+.settings-content { flex: 1; overflow-y: auto; padding-right: 4px; }
+.settings-pane { display: none; flex-direction: column; gap: 14px; }
+.settings-pane.active { display: flex; animation: fadeIn 0.2s ease; }
+.settings-box { background: var(--tint-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.settings-box-title { font-size: 13px; font-weight: 600; color: var(--text-1); }
+
+.theme-settings-layout { display: grid; grid-template-columns: 160px 1fr; gap: 16px; }
+.installed-themes-list { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--border-1); padding-right: 12px; }
+.settings-theme-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; transition: background var(--d-fast); }
+.settings-theme-item:hover { background: var(--tint-2); }
+.settings-theme-item.active { background: var(--tint-3); }
+.settings-theme-item .color-plate-preview { width: 20px; height: 20px; padding: 3px; }
+.settings-theme-item .theme-short-name { font-size: 11.5px; }
+
+.theme-config { display: flex; flex-direction: column; gap: 12px; }
+.theme-wallpaper {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-1);
+  background: var(--surface-deep);
+}
+.mode-tabs { display: flex; gap: 2px; padding: 3px; background: var(--tint-2); border-radius: var(--r-md); align-self: flex-start; }
+.mode-tab { padding: 5px 14px; border-radius: var(--r-sm); font-size: 11px; font-weight: 500; color: var(--text-3); display: flex; align-items: center; gap: 6px; transition: all var(--d-fast); }
+.mode-tab.active { background: var(--surface-pop); color: var(--text-1); box-shadow: var(--el-1); }
+.mode-tab svg { width: 12px; height: 12px; }
+
+.mode-content { display: none; flex-direction: column; gap: 12px; }
+.mode-content.active { display: flex; }
+.config-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-1); gap: 10px; }
+.config-row:last-child { border-bottom: none; }
+.config-label { font-size: 11.5px; color: var(--text-2); font-weight: 500; }
+.config-value { font-size: 11.5px; color: var(--text-1); font-weight: 400; display: flex; align-items: center; gap: 6px; }
+.config-value svg { width: 12px; height: 12px; color: var(--text-3); }
+.palette-display { display: flex; gap: 4px; }
+.palette-color { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border-2); }
+
+/* Bar Settings Config */
+.bar-side-tabs { display: flex; gap: 2px; padding: 3px; background: var(--tint-2); border-radius: var(--r-md); width: fit-content; }
+.bar-side-tab { padding: 5px 14px; border-radius: var(--r-sm); font-size: 11px; font-weight: 500; color: var(--text-3); transition: all var(--d-fast); }
+.bar-side-tab.active { background: var(--surface-pop); color: var(--text-1); box-shadow: var(--el-1); }
+.bar-config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.config-group { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface-bar); border-radius: var(--r-md); border: 1px solid var(--border-1); }
+.config-group-title { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+.mini-slider { flex: 1; height: 4px; background: var(--tint-2); border-radius: 2px; position: relative; margin: 0 10px; cursor: pointer; }
+.mini-slider-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+.mini-slider-thumb {
+  position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%;
+  top: 50%; left: 30%; transform: translate(-50%, -50%);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2); pointer-events: none;
+}
+.mini-val { font-size: 11px; color: var(--text-3); width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.settings-toggle { width: 32px; height: 18px; background: var(--tint-2); border-radius: 9px; position: relative; cursor: pointer; transition: background var(--d-fast); flex-shrink: 0; }
+.settings-toggle.active { background: var(--accent); }
+.settings-toggle-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left var(--d-fast); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.settings-toggle.active .settings-toggle-thumb { left: 16px; }
+.config-row-check { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 11.5px; color: var(--text-3); cursor: pointer; transition: color var(--d-fast); }
+.config-row-check svg { width: 14px; height: 14px; color: var(--text-4); transition: var(--d-fast); }
+.config-row-check.active { color: var(--text-1); }
+.config-row-check.active svg { color: var(--accent); }
+
+/* ═══ WIDGETS PANE ═══ */
+.widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.widget { background: var(--tint-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.widget-head { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; }
+.widget-time .time-big { font-size: 36px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.widget-time .date-big { font-size: 12px; color: var(--text-2); }
+.widget-weather .weather-body { display: flex; align-items: center; gap: 14px; }
+.weather-icon { color: var(--accent-light); }
+.weather-icon svg { width: 40px; height: 40px; }
+.weather-temp { font-size: 28px; font-weight: 600; line-height: 1; }
+.weather-cond { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+.weather-loc { font-size: 10px; color: var(--text-4); margin-top: 2px; }
+.widget-stats { gap: 8px; }
+.stat-row { display: flex; align-items: center; gap: 10px; font-size: 11.5px; }
+.stat-label { width: 36px; color: var(--text-3); font-weight: 500; }
+.stat-bar { flex: 1; height: 5px; background: var(--tint-2); border-radius: 3px; overflow: hidden; }
+.stat-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.stat-val { width: 38px; text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.widget-proc { gap: 6px; }
+.proc-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 4px 0; border-bottom: 1px solid var(--border-1); }
+.widget-proc .proc-row:last-child { border-bottom: none; }
+.proc-row span:first-child { color: var(--text-2); }
+.proc-row span:last-child { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.widget-music { grid-column: span 2; flex-direction: row; align-items: center; gap: 14px; }
+.wm-art { width: 48px; height: 48px; border-radius: var(--r-md); background: linear-gradient(135deg, #b4a0ff, #7c5fff); flex-shrink: 0; }
+.wm-info { flex: 1; min-width: 0; }
+.wm-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wm-artist { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wm-controls { display: flex; gap: 4px; flex-shrink: 0; }
+.wm-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-2); transition: all var(--d-fast); }
+.wm-btn:hover { background: var(--tint-2); color: var(--text-1); }
+.wm-btn.play { background: var(--tint-3); color: var(--accent-light); }
+.wm-btn svg { width: 16px; height: 16px; }
+
+/* ═══ QUICK SETTINGS ═══ */
+.qs-panel { width: 300px; padding: 14px; }
+.qs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+.qs-date { font-size: 12px; font-weight: 500; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.qs-settings-btn { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-3); transition: all var(--d-fast); }
+.qs-settings-btn:hover { background: var(--tint-2); color: var(--text-1); }
+.qs-settings-btn svg { width: 15px; height: 15px; }
+
+.qs-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.qs-tile { display: flex; align-items: center; gap: 9px; padding: 10px 11px; border-radius: var(--r-lg); background: var(--tint-1); border: 1px solid var(--border-1); transition: all var(--d-fast) var(--ease); text-align: left; position: relative; }
+.qs-tile:hover { background: var(--tint-2); }
+.qs-tile.active { background: var(--tint-3); border-color: var(--border-3); }
+.qs-tile-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--tint-2); color: var(--text-3); flex-shrink: 0; transition: all var(--d-fast); }
+.qs-tile.active .qs-tile-icon { background: var(--accent); color: #fff; box-shadow: 0 2px 6px var(--accent-glow); }
+.qs-tile-icon svg { width: 15px; height: 15px; stroke-width: 2; }
+.qs-tile-body { flex: 1; min-width: 0; }
+.qs-tile-label { font-size: 11.5px; font-weight: 500; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qs-tile.active .qs-tile-label { color: var(--text-1); }
+.qs-tile-sub { font-size: 10px; color: var(--text-4); margin-top: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qs-tile.active .qs-tile-sub { color: var(--text-3); }
+
+.qs-sliders { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.slider-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-lg); transition: background var(--d-fast); }
+.slider-row:hover { background: var(--tint-1); }
+.slider-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-2); flex-shrink: 0; transition: all var(--d-fast); }
+.slider-icon:hover { background: var(--tint-2); color: var(--text-1); }
+.slider-icon svg { width: 16px; height: 16px; stroke-width: 1.85; }
+
+.slider { flex: 1; height: 5px; background: var(--tint-2); border-radius: 3px; position: relative; cursor: pointer; }
+.slider-fill { height: 100%; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); border-radius: 3px; width: 60%; box-shadow: 0 0 6px var(--accent-glow); }
+.slider-thumb { position: absolute; width: 13px; height: 13px; background: #fff; border-radius: 50%; top: 50%; left: 60%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(180,160,255,0.3); pointer-events: none; transition: transform 0.1s, box-shadow var(--d-fast); }
+.slider:hover .slider-thumb { transform: translate(-50%, -50%) scale(1.18); box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 0 0 2px var(--accent-glow); }
+.slider-value { font-size: 11px; font-weight: 500; color: var(--text-2); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.qs-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 2px; border-top: 1px solid var(--border-1); }
+.qs-battery { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text-2); font-weight: 450; }
+.qs-battery svg { width: 16px; height: 16px; color: var(--text-2); }
+.qs-battery-time { color: var(--text-4); font-size: 10.5px; }
+
+/* ═══ CALENDAR & WEATHER POPOVER ═══ */
+.cal-pop { width: 460px; padding: 0; overflow: hidden; }
+.cal-split-layout { display: flex; align-items: stretch; height: 100%; }
+.cal-weather-side { width: 150px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+.weather-icon-lg { color: var(--accent-light); margin-bottom: 4px; }
+.weather-icon-lg svg { width: 56px; height: 56px; }
+.cw-temp { font-size: 28px; font-weight: 600; color: var(--text-1); line-height: 1; }
+.cw-cond { font-size: 12px; color: var(--text-2); }
+.cw-loc { font-size: 11px; color: var(--text-3); }
+
+.cal-vertical-bar { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px; border-left: 1px solid var(--border-1); border-right: 1px solid var(--border-1); gap: 6px; font-size: 10px; font-weight: 600; color: var(--text-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+.vbar-sep { width: 12px; height: 1px; background: var(--border-2); margin: 2px 0; }
+
+.cal-cal-side { flex: 1; padding: 16px; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+.cal-month { font-size: 12.5px; font-weight: 550; color: var(--text-1); }
+.cal-nav { display: flex; gap: 2px; }
+.cal-nav-btn { width: 26px; height: 26px; display: grid; place-items: center; border-radius: var(--r-xs); color: var(--text-3); transition: all var(--d-fast); }
+.cal-nav-btn:hover { background: var(--tint-2); color: var(--text-1); }
+.cal-nav-btn svg { width: 14px; height: 14px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+.cal-day-head { text-align: center; font-size: 10px; font-weight: 500; color: var(--text-4); padding: 4px 0; text-transform: uppercase; letter-spacing: 0.04em; }
+.cal-day { aspect-ratio: 1; display: grid; place-items: center; font-size: 11.5px; font-weight: 450; color: var(--text-2); border-radius: var(--r-sm); transition: all var(--d-fast); cursor: pointer; }
+.cal-day:hover:not(.empty) { background: var(--tint-2); }
+.cal-day.other { color: var(--text-4); }
+.cal-day.today { background: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 2px 6px var(--accent-glow); }
+.cal-day.empty { cursor: default; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+
+@media (max-width: 1100px) {
+  .capsule-input-wrapper input { width: 60px; }
+  #dock-container { gap: 4px; padding: 4px 6px; }
+}
+@media (max-width: 900px) {
+  .capsule-input-wrapper { display: none; }
+  .music-widget { min-width: 230px; }
+}
+@media (max-width: 780px) {
+  .office-group { display: none; }
+  .music-widget { display: none; }
+  .start-menu { width: calc(100vw - 20px); height: calc(100vh - 100px); }
+  .settings-layout { flex-direction: column; }
+  .settings-nav { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid var(--border-1); padding-right: 0; padding-bottom: 12px; overflow-x: auto; }
+}
+@media (max-width: 640px) {
+  .workspace-widget { display: none; }
+  .status-section .date-time .day, .status-section .date-time .date { display: none; }
+  .cal-pop { width: 320px; }
+  .cal-weather-side { display: none; }
+  .cal-vertical-bar { display: none; }
+  .app-groups-container { grid-template-columns: repeat(2, 1fr); }
+  .app-group.span-2, .app-group.span-3 { grid-column: span 2; }
+  .theme-settings-layout { grid-template-columns: 1fr; }
+  .installed-themes-list { border-right: none; border-bottom: 1px solid var(--border-1); padding-right: 0; padding-bottom: 12px; }
+  .bar-config-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 540px) {
+  #dock-container { width: calc(100vw - 20px); border-radius: var(--r-2xl); justify-content: center; }
+  .widgets-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="desktop">
+  <div class="wallpaper">
+    <img id="wallpaperImg" src="" alt="" onerror="this.style.opacity='0'">
+  </div>
+
+  <aside class="music-widget">
+    <div class="album-art">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    </div>
+    <div class="music-info">
+      <div class="track-name">Outro</div>
+      <div class="artist-name">M83 — Hurry Up, We're Dreaming</div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+  </aside>
+
+  <div class="window" id="appWindow" role="dialog" aria-modal="true">
+    <div class="titlebar">
+      <div class="title">
+        <img id="winIcon" src="" alt="" style="display:none">
+        <span id="winTitle">Application</span>
+      </div>
+      <div class="win-controls">
+        <button class="win-ctrl min" aria-label="Minimize"></button>
+        <button class="win-ctrl max" aria-label="Maximize"></button>
+        <button class="win-ctrl close" id="closeWindow" aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-content">
+      <div class="placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+        <span>empty workspace</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ START MENU ═══ -->
+  <div class="popover start-menu" id="launcherPop">
+    <div class="start-header">
+      <div class="start-tabs">
+        <button class="start-tab active" data-tab="apps"><i data-lucide="grid"></i> Apps</button>
+        <button class="start-tab" data-tab="widgets"><i data-lucide="layout-dashboard"></i> Widgets</button>
+        <button class="start-tab" data-tab="settings"><i data-lucide="settings"></i> Settings</button>
+      </div>
+      <div class="search-box">
+        <i data-lucide="search"></i>
+        <input type="text" id="searchInput" placeholder="Search..." autocomplete="off">
+      </div>
+    </div>
+    <div class="start-body">
+      <div class="start-pane active" id="pane-apps">
+        <div class="app-groups-container">
+          <!-- Row 1: Three 2x2 Squares -->
+          <div class="app-group span-2">
+            <div class="app-group-title">Internet</div>
+            <div class="app-group-items layout-sq2">
+              <button class="app-item" data-app="firefox" data-name="Firefox"><img src="https://cdn.simpleicons.org/firefox" alt=""><span>Firefox</span></button>
+              <button class="app-item" data-app="discord" data-name="Discord"><img src="https://cdn.simpleicons.org/discord" alt=""><span>Discord</span></button>
+              <button class="app-item" data-app="telegram" data-name="Telegram"><img src="https://cdn.simpleicons.org/telegram" alt=""><span>Telegram</span></button>
+              <button class="app-item" data-app="slack" data-name="Slack"><img src="https://cdn.simpleicons.org/slack" alt=""><span>Slack</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Development</div>
+            <div class="app-group-items layout-sq2">
+              <button class="app-item" data-app="code" data-name="VS Code"><img src="https://cdn.simpleicons.org/vscode" alt=""><span>VS Code</span></button>
+              <button class="app-item" data-app="terminal" data-name="Terminal"><i data-lucide="terminal-square"></i><span>Terminal</span></button>
+              <button class="app-item" data-app="docker" data-name="Docker"><img src="https://cdn.simpleicons.org/docker" alt=""><span>Docker</span></button>
+              <button class="app-item" data-app="github" data-name="GitHub"><img src="https://cdn.simpleicons.org/github" alt=""><span>GitHub</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Graphics</div>
+            <div class="app-group-items layout-sq2">
+              <button class="app-item" data-app="gimp" data-name="GIMP"><img src="https://cdn.simpleicons.org/gimp" alt=""><span>GIMP</span></button>
+              <button class="app-item" data-app="inkscape" data-name="Inkscape"><img src="https://cdn.simpleicons.org/inkscape" alt=""><span>Inkscape</span></button>
+              <button class="app-item" data-app="blender" data-name="Blender"><img src="https://cdn.simpleicons.org/blender" alt=""><span>Blender</span></button>
+              <button class="app-item" data-app="figma" data-name="Figma"><img src="https://cdn.simpleicons.org/figma" alt=""><span>Figma</span></button>
+            </div>
+          </div>
+
+          <!-- Row 2: Two 1x3 Horizontals -->
+          <div class="app-group span-3">
+            <div class="app-group-title">Office</div>
+            <div class="app-group-items layout-h3">
+              <button class="app-item" data-app="writer" data-name="Writer"><img src="https://cdn.simpleicons.org/libreofficewriter" alt=""><span>Writer</span></button>
+              <button class="app-item" data-app="calc" data-name="Calc"><img src="https://cdn.simpleicons.org/libreofficecalc" alt=""><span>Calc</span></button>
+              <button class="app-item" data-app="impress" data-name="Impress"><img src="https://cdn.simpleicons.org/libreofficeimpress" alt=""><span>Impress</span></button>
+            </div>
+          </div>
+          <div class="app-group span-3">
+            <div class="app-group-title">Media</div>
+            <div class="app-group-items layout-h3">
+              <button class="app-item" data-app="spotify" data-name="Spotify"><img src="https://cdn.simpleicons.org/spotify" alt=""><span>Spotify</span></button>
+              <button class="app-item" data-app="obs" data-name="OBS"><img src="https://cdn.simpleicons.org/obsstudio" alt=""><span>OBS</span></button>
+              <button class="app-item" data-app="vlc" data-name="VLC"><img src="https://cdn.simpleicons.org/vlc" alt=""><span>VLC</span></button>
+            </div>
+          </div>
+
+          <!-- Row 3: Three 2x1 Verticals -->
+          <div class="app-group span-2">
+            <div class="app-group-title">System</div>
+            <div class="app-group-items layout-v2">
+              <button class="app-item app-item-list" data-app="settings" data-name="Settings"><i data-lucide="settings"></i><span>Settings</span></button>
+              <button class="app-item app-item-list" data-app="files" data-name="Files"><i data-lucide="folder"></i><span>Files</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Utilities</div>
+            <div class="app-group-items layout-v2">
+              <button class="app-item app-item-list" data-app="calc_app" data-name="Calculator"><i data-lucide="calculator"></i><span>Calculator</span></button>
+              <button class="app-item app-item-list" data-app="text_editor" data-name="Text Editor"><i data-lucide="file-text"></i><span>Text Editor</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Notes</div>
+            <div class="app-group-items layout-v2">
+              <button class="app-item app-item-list" data-app="obsidian" data-name="Obsidian"><img src="https://cdn.simpleicons.org/obsidian" alt=""><span>Obsidian</span></button>
+              <button class="app-item app-item-list" data-app="notion" data-name="Notion"><img src="https://cdn.simpleicons.org/notion" alt=""><span>Notion</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="start-pane" id="pane-widgets">
+        <div class="widgets-grid">
+          <div class="widget widget-time">
+            <div class="widget-head">Local Time</div>
+            <div class="time-big" id="widgetTime">14:32</div>
+            <div class="date-big" id="widgetDate">Thursday, 24 October</div>
+          </div>
+          <div class="widget widget-weather">
+            <div class="widget-head">Weather</div>
+            <div class="weather-body">
+              <div class="weather-icon"><i data-lucide="cloud-sun"></i></div>
+              <div class="weather-info">
+                <div class="weather-temp">18°</div>
+                <div class="weather-cond">Partly Cloudy</div>
+                <div class="weather-loc">Reykjavík</div>
+              </div>
+            </div>
+          </div>
+          <div class="widget widget-stats">
+            <div class="widget-head">System</div>
+            <div class="stat-row"><span class="stat-label">CPU</span><div class="stat-bar"><div class="stat-fill" style="width: 24%"></div></div><span class="stat-val">24%</span></div>
+            <div class="stat-row"><span class="stat-label">RAM</span><div class="stat-bar"><div class="stat-fill" style="width: 62%"></div></div><span class="stat-val">9.8G</span></div>
+            <div class="stat-row"><span class="stat-label">DISK</span><div class="stat-bar"><div class="stat-fill" style="width: 41%"></div></div><span class="stat-val">205G</span></div>
+          </div>
+          <div class="widget widget-proc">
+            <div class="widget-head">TopProcesses</div>
+            <div class="proc-row"><span>firefox</span><span>12.4%</span></div>
+            <div class="proc-row"><span>code</span><span>8.1%</span></div>
+            <div class="proc-row"><span>node</span><span>4.2%</span></div>
+            <div class="proc-row"><span>wayfire</span><span>2.1%</span></div>
+          </div>
+          <div class="widget widget-music">
+            <div class="wm-art"></div>
+            <div class="wm-info">
+              <div class="wm-title">Outro</div>
+              <div class="wm-artist">M83 — Hurry Up, We're Dreaming</div>
+            </div>
+            <div class="wm-controls">
+              <button class="wm-btn"><i data-lucide="skip-back"></i></button>
+              <button class="wm-btn play"><i data-lucide="play"></i></button>
+              <button class="wm-btn"><i data-lucide="skip-forward"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="start-pane" id="pane-settings">
+        <div class="settings-layout">
+          <div class="settings-nav">
+            <button class="settings-tab active" data-settings-tab="looks"><i data-lucide="palette"></i> Looks & Feel</button>
+            <button class="settings-tab" data-settings-tab="system"><i data-lucide="cpu"></i> System</button>
+            <button class="settings-tab" data-settings-tab="network"><i data-lucide="wifi"></i> Network</button>
+            <button class="settings-tab" data-settings-tab="accounts"><i data-lucide="user"></i> Accounts</button>
+          </div>
+          <div class="settings-content">
+            <div class="settings-pane active" id="settings-pane-looks">
+              <div class="settings-box">
+                <div class="settings-box-title">Appearance & Themes</div>
+                <div class="theme-settings-layout">
+                  <div class="installed-themes-list" id="settingsThemeList">
+                    <!-- Populated by JS -->
+                  </div>
+                  <div class="theme-config" id="themeConfigArea">
+                     <!-- Populated by JS -->
+                  </div>
+                </div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title">Shell Bar Configuration</div>
+                <div class="bar-side-tabs">
+                  <button class="bar-side-tab" data-side="top">Top</button>
+                  <button class="bar-side-tab active" data-side="bottom">Bottom</button>
+                  <button class="bar-side-tab" data-side="left">Left</button>
+                  <button class="bar-side-tab" data-side="right">Right</button>
+                </div>
+                <div class="bar-config-grid">
+                  <div class="config-group">
+                    <div class="config-group-title">Overriding</div>
+                    <div class="config-row">
+                      <span class="config-label">Layer Mode</span>
+                      <span class="config-value">Bounding <i data-lucide="chevron-right"></i></span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Auto Hide</span>
+                      <div class="settings-toggle"><div class="settings-toggle-thumb"></div></div>
+                    </div>
+                  </div>
+                  
+                  <div class="config-group">
+                    <div class="config-group-title">Dimensions</div>
+                    <div class="config-row">
+                      <span class="config-label">Height</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 20%"></div><div class="mini-slider-thumb" style="left: 20%"></div></div>
+                      <span class="mini-val">48px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Width</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 80%"></div><div class="mini-slider-thumb" style="left: 80%"></div></div>
+                      <span class="mini-val">80%</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Margin Left</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 10%"></div><div class="mini-slider-thumb" style="left: 10%"></div></div>
+                      <span class="mini-val">16px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Margin Right</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 10%"></div><div class="mini-slider-thumb" style="left: 10%"></div></div>
+                      <span class="mini-val">16px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Edge Distance</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 5%"></div><div class="mini-slider-thumb" style="left: 5%"></div></div>
+                      <span class="mini-val">16px</span>
+                    </div>
+                  </div>
+                  
+                  <div class="config-group">
+                    <div class="config-group-title">Parenting & Layout</div>
+                    <div class="config-row">
+                      <span class="config-label">Items Connected</span>
+                      <div class="settings-toggle active" id="toggleBarConnection"><div class="settings-toggle-thumb"></div></div>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Items In Box</span>
+                      <div class="settings-toggle active" id="toggleBarInBox"><div class="settings-toggle-thumb"></div></div>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Separation</span>
+                      <div class="mini-slider" id="barSeparationSlider"><div class="mini-slider-fill" id="barSeparationFill" style="width: 30%"></div><div class="mini-slider-thumb" id="barSeparationThumb" style="left: 30%"></div></div>
+                      <span class="mini-val" id="barSeparationVal">6px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Alignment</span>
+                      <span class="config-value">Center <i data-lucide="chevron-right"></i></span>
+                    </div>
+                  </div>
+                  
+                  <div class="config-group">
+                    <div class="config-group-title">Bar Items</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Start Menu & AI</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Pinned Apps & Groups</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Workspace Widget</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Device States</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Globe State (Clock)</div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title">Window Behavior</div>
+                <div class="config-row">
+                  <span class="config-label">Focus Mode</span>
+                  <span class="config-value">Click to focus <i data-lucide="chevron-right"></i></span>
+                </div>
+                <div class="config-row">
+                  <span class="config-label">Titlebar Actions</span>
+                  <span class="config-value">Double click to maximize <i data-lucide="chevron-right"></i></span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-pane" id="settings-pane-system">
+              <div class="settings-box">
+                <div class="settings-box-title">Hardware Info</div>
+                <div class="config-row"><span class="config-label">CPU</span><span class="config-value">AMD Ryzen 7 5800X</span></div>
+                <div class="config-row"><span class="config-label">Memory</span><span class="config-value">16 GB DDR4</span></div>
+                <div class="config-row"><span class="config-label">Graphics</span><span class="config-value">NVIDIA RTX 3070</span></div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title">Power Management</div>
+                <div class="config-row"><span class="config-label">Power Mode</span><span class="config-value">Balanced <i data-lucide="chevron-right"></i></span></div>
+                <div class="config-row"><span class="config-label">Screen Timeout</span><span class="config-value">15 minutes <i data-lucide="chevron-right"></i></span></div>
+              </div>
+            </div>
+            <div class="settings-pane" id="settings-pane-network">
+              <div class="settings-box">
+                <div class="settings-box-title">Wi-Fi</div>
+                <div class="config-row"><span class="config-label">Status</span><span class="config-value">Connected to Aurora-5G</span></div>
+                <div class="config-row"><span class="config-label">IP Address</span><span class="config-value">192.168.1.42</span></div>
+                <div class="config-row"><span class="config-label">MAC Address</span><span class="config-value">3C:52:82:1F:9A:2B</span></div>
+              </div>
+            </div>
+            <div class="settings-pane" id="settings-pane-accounts">
+              <div class="settings-box">
+                <div class="settings-box-title">User Info</div>
+                <div class="config-row"><span class="config-label">Name</span><span class="config-value">kai</span></div>
+                <div class="config-row"><span class="config-label">Account Type</span><span class="config-value">Administrator</span></div>
+                <div class="config-row"><span class="config-label">Login Shell</span><span class="config-value">/bin/zsh</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="start-footer">
+      <button class="start-user-btn">
+        <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Felix" alt="">
+        <div class="start-user-info">
+          <span class="start-user-name">kai</span>
+          <span class="start-user-sub">Administrator</span>
+        </div>
+      </button>
+      <button class="start-power" data-tip="Power"><i data-lucide="power"></i></button>
+    </div>
+  </div>
+
+  <!-- ═══ QUICK SETTINGS ═══ -->
+  <div class="popover qs-panel" id="qsPanel">
+    <div class="qs-header">
+      <span class="qs-date" id="qsDate">—</span>
+      <button class="qs-settings-btn" data-tip="Settings"><i data-lucide="settings"></i></button>
+    </div>
+    <div class="qs-tiles">
+      <button class="qs-tile active" data-toggle="wifi">
+        <div class="qs-tile-icon"><i data-lucide="wifi"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Wi-Fi</div><div class="qs-tile-sub">Aurora-5G</div></div>
+      </button>
+      <button class="qs-tile" data-toggle="bt">
+        <div class="qs-tile-icon"><i data-lucide="bluetooth"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Bluetooth</div><div class="qs-tile-sub">Off</div></div>
+      </button>
+      <button class="qs-tile" data-toggle="dnd">
+        <div class="qs-tile-icon"><i data-lucide="moon-star"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Do Not Disturb</div><div class="qs-tile-sub">Off</div></div>
+      </button>
+      <button class="qs-tile active" data-toggle="theme">
+        <div class="qs-tile-icon"><i data-lucide="palette"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Dark Theme</div><div class="qs-tile-sub">On</div></div>
+      </button>
+    </div>
+    <div class="qs-sliders">
+      <div class="slider-row">
+        <button class="slider-icon" id="muteBtn" aria-label="Mute"><i data-lucide="volume-2"></i></button>
+        <div class="slider" id="volSlider" role="slider" aria-label="Volume" tabindex="0">
+          <div class="slider-fill" id="volFill"></div><div class="slider-thumb" id="volThumb"></div>
+        </div>
+        <span class="slider-value" id="volValue">60%</span>
+      </div>
+      <div class="slider-row">
+        <div class="slider-icon"><i data-lucide="sun"></i></div>
+        <div class="slider" id="brightSlider" role="slider" aria-label="Brightness" tabindex="0">
+          <div class="slider-fill" id="brightFill"></div><div class="slider-thumb" id="brightThumb"></div>
+        </div>
+        <span class="slider-value" id="brightValue">82%</span>
+      </div>
+    </div>
+    <div class="qs-footer">
+      <div class="qs-battery">
+        <i data-lucide="battery-medium"></i><span>78%</span><span class="qs-battery-time">4h 22m</span>
+      </div>
+      <button class="qs-settings-btn" data-tip="Power"><i data-lucide="power"></i></button>
+    </div>
+  </div>
+
+  <!-- ═══ CALENDAR & WEATHER POPOVER ═══ -->
+  <div class="popover cal-pop" id="calPop">
+    <div class="cal-split-layout">
+      <div class="cal-weather-side">
+        <div class="weather-icon-lg"><i data-lucide="cloud-sun"></i></div>
+        <div class="cw-temp">18°</div>
+        <div class="cw-cond">Partly Cloudy</div>
+        <div class="cw-loc">Reykjavík</div>
+      </div>
+      <div class="cal-vertical-bar" id="calVerticalBar">
+        <!-- Populated by JS -->
+      </div>
+      <div class="cal-cal-side">
+        <div class="cal-header">
+          <span class="cal-month" id="calMonth">—</span>
+          <div class="cal-nav">
+            <button class="cal-nav-btn" id="calPrev" aria-label="Previous"><i data-lucide="chevron-left"></i></button>
+            <button class="cal-nav-btn" id="calNext" aria-label="Next"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CUSTOM TASKBAR (DOCK CONTAINER) ═══ -->
+  <nav id="dock-container" aria-label="Shell bar">
+    <div class="bar-group">
+      <button class="app-icon" id="launcherBtn" data-tip="Start Menu"><i data-lucide="layout-grid"></i></button>
+      <div class="capsule-input-wrapper">
+        <i data-lucide="bot"></i>
+        <input type="text" placeholder="Ask AI...">
+      </div>
+      <button class="app-icon" data-app="files" data-tip="Files"><i data-lucide="folder"></i></button>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <button class="app-icon" data-app="firefox" data-tip="Firefox">
+        <svg class="app-indicator" viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#ff5f56" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="0"></circle>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-21.991148575128552"></circle>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#27c93f" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-43.982297150257104"></circle>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#2196f3" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-65.97344572538566"></circle>
+        </svg>
+        <img src="https://cdn.simpleicons.org/firefox" alt="">
+      </button>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <div class="office-group" data-tip="Office Suite">
+        <button class="app-icon" data-app="writer"><img src="https://cdn.simpleicons.org/libreofficewriter" alt=""></button>
+        <button class="app-icon" data-app="calc"><img src="https://cdn.simpleicons.org/libreofficecalc" alt=""></button>
+        <button class="app-icon" data-app="impress"><img src="https://cdn.simpleicons.org/libreofficeimpress" alt=""></button>
+      </div>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <button class="app-icon" data-app="obsidian" data-tip="Obsidian"><img src="https://cdn.simpleicons.org/obsidian" alt=""></button>
+      <button class="app-icon" data-app="inkscape" data-tip="Inkscape"><img src="https://cdn.simpleicons.org/inkscape" alt=""></button>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <div class="workspace-widget">
+        <div class="layout-box" id="layout-indicator" data-tip="Layout: Float">
+          <div class="mini-win-container mini-float" id="miniWinContainer">
+            <div class="m-win m-1"></div>
+            <div class="m-win m-2 solid"></div>
+          </div>
+        </div>
+        <div class="theme-widget">
+          <div class="theme-dock-controls">
+            <div class="theme-trigger-btn" id="themeTriggerBtn" data-tip="Theme Selector"></div>
+            <div class="custom-toggle" id="customToggle" data-tip="Dark Mode">
+              <div class="custom-toggle-thumb">
+                <i data-lucide="moon" id="toggleIcon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="theme-popup-menu" id="themePopupMenu"></div>
+        </div>
+        <div class="ws-dots" id="wsGridContainer">
+          <div class="ws-dot active" data-ws="1"></div>
+          <div class="ws-dot" data-ws="2"></div>
+          <div class="ws-dot" data-ws="3"></div>
+          <div class="ws-dot" data-ws="4"></div>
+          <div class="ws-dot" data-ws="5"></div>
+          <div class="ws-dot" data-ws="6"></div>
+          <div class="ws-dot" data-ws="7"></div>
+          <div class="ws-dot" data-ws="8"></div>
+          <div class="ws-dot" data-ws="9"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="bar-group">
+      <button class="sys-tray-stacked" id="quickSettingsBtn" data-tip="Quick Settings">
+        <i data-lucide="wifi"></i>
+        <i data-lucide="volume-2"></i>
+        <i data-lucide="bluetooth"></i>
+        <i data-lucide="battery-medium"></i>
+      </button>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="bar-group">
+      <button class="status-section" id="globeBtn" data-tip="Calendar & Weather">
+        <i data-lucide="cloud-sun" class="weather-icon-only"></i>
+        <div class="vertical-separator"></div>
+        <div class="date-time">
+          <div class="time" id="time">--:--</div>
+          <div class="day" id="day">---</div>
+          <div class="date" id="date">---</div>
+        </div>
+      </button>
+    </div>
+  </nav>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const initIcons = () => { if (window.lucide) lucide.createIcons(); };
+  initIcons();
+
+  // Theme Data Model
+  const themes = {
+    Midnight: {
+      dark: { url: 'https://images.pexels.com/photos/31622977/pexels-photo-31622977.jpeg', bg: '#24283b', text: '#f0ecff', dots: ['#7aa2f7', '#bb9af7', '#c0caf5', '#8b6fff'] },
+      light: { url: 'https://images.pexels.com/photos/31622978/pexels-photo-31622978.jpeg', bg: '#e6e6fa', text: '#1a1530', dots: ['#7aa2f7', '#bb9af7', '#8b6fff', '#c0caf5'] },
+      accent: '#8b6fff'
+    },
+    Cyberpunk: {
+      dark: { url: 'https://images.pexels.com/photos/38184044/pexels-photo-38184044.jpeg', bg: '#1a0b1a', text: '#ffffff', dots: ['#ff0055', '#00e5ff', '#ffffff', '#ff007a'] },
+      light: { url: 'https://images.pexels.com/photos/38184045/pexels-photo-38184045.jpeg', bg: '#ffe6f0', text: '#1a0b1a', dots: ['#ff0055', '#00e5ff', '#ff007a', '#ffffff'] },
+      accent: '#ff007a'
+    },
+    Sunny: {
+      dark: { url: '', bg: '#333333', text: '#fdfcdc', dots: ['#ffb703', '#fb8500', '#fdfcdc', '#ffb703'] },
+      light: { url: '', bg: '#fdfcdc', text: '#333333', dots: ['#ffb703', '#fb8500', '#333333', '#ffb703'] },
+      accent: '#ffb703'
+    }
+  };
+  let currentTheme = 'Midnight';
+
+  function updateWallpaper() {
+    const isLight = document.body.classList.contains('light');
+    const theme = themes[currentTheme];
+    const url = theme ? (isLight ? theme.light.url : theme.dark.url) : null;
+    const img = document.getElementById('wallpaperImg');
+    
+    if (url) {
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        img.src = url;
+        img.style.opacity = '0.85';
+      };
+      tempImg.src = url;
+    } else {
+      img.style.opacity = '0';
+    }
+  }
+
+  function applyTheme(themeName) {
+    const theme = themes[themeName];
+    if (!theme) return;
+    currentTheme = themeName;
+    
+    const isLight = document.body.classList.contains('light');
+    const modeData = isLight ? theme.light : theme.dark;
+
+    // Update Accent
+    document.documentElement.style.setProperty('--accent-strong', theme.accent);
+    const rgb = hexToRgb(theme.accent);
+    if (rgb) {
+      document.documentElement.style.setProperty('--accent', `rgba(${rgb.r},${rgb.g},${rgb.b},0.8)`);
+      document.documentElement.style.setProperty('--accent-light', `rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
+      document.documentElement.style.setProperty('--accent-glow', `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)`);
+    }
+
+    // Update Taskbar Trigger
+    const trigger = document.getElementById('themeTriggerBtn');
+    trigger.innerHTML = '';
+    trigger.style.backgroundColor = modeData.bg;
+    modeData.dots.forEach(c => {
+      const dot = document.createElement('div');
+      dot.className = 'color-dot';
+      dot.style.backgroundColor = c;
+      trigger.appendChild(dot);
+    });
+
+    // Update Taskbar Popup
+    const popup = document.getElementById('themePopupMenu');
+    popup.innerHTML = '';
+    Object.keys(themes).forEach(name => {
+      const t = themes[name];
+      const tMode = isLight ? t.light : t.dark;
+      const item = document.createElement('div');
+      item.className = 'theme-item' + (name === themeName ? ' active' : '');
+      item.dataset.name = name;
+      item.dataset.color = t.accent;
+      item.innerHTML = `
+        <div class="color-plate-preview" style="background-color: ${tMode.bg};">
+          <div class="dots-grid">
+            ${tMode.dots.map(d => `<div class="color-dot" style="background-color: ${d};"></div>`).join('')}
+          </div>
+        </div>
+        <div class="font-info-text">SE 14</div>
+        <div class="theme-separator"></div>
+        <div class="theme-short-name">${name}</div>
+      `;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        applyTheme(name);
+        popup.classList.remove('open');
+      });
+      popup.appendChild(item);
+    });
+
+    // Update Settings List
+    const settingsList = document.getElementById('settingsThemeList');
+    if (settingsList) {
+      settingsList.innerHTML = '';
+      Object.keys(themes).forEach(name => {
+        const t = themes[name];
+        const tMode = isLight ? t.light : t.dark;
+        const item = document.createElement('div');
+        item.className = 'settings-theme-item' + (name === themeName ? ' active' : '');
+        item.dataset.theme = name;
+        item.innerHTML = `
+          <div class="color-plate-preview" style="background-color: ${tMode.bg};">
+            <div class="dots-grid">
+              ${tMode.dots.map(d => `<div class="color-dot" style="background-color: ${d};"></div>`).join('')}
+            </div>
+          </div>
+          <span class="theme-short-name">${name}</span>
+        `;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Selecting a theme in settings should NOT change the actual active theme
+          document.querySelectorAll('.settings-theme-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          updateThemeConfigValues(name);
+        });
+        settingsList.appendChild(item);
+      });
+    }
+
+    updateThemeConfigValues(themeName);
+    updateWallpaper();
+  }
+
+  function updateThemeConfigValues(themeName) {
+    const configArea = document.getElementById('themeConfigArea');
+    if (!configArea) return;
+    const theme = themes[themeName];
+    const isLight = document.body.classList.contains('light');
+    
+    configArea.innerHTML = `
+      <div class="mode-tabs">
+        <button class="mode-tab ${!isLight ? 'active' : ''}" data-mode="dark"><i data-lucide="moon"></i> Dark</button>
+        <button class="mode-tab ${isLight ? 'active' : ''}" data-mode="light"><i data-lucide="sun"></i> Light</button>
+      </div>
+      <div class="mode-content ${!isLight ? 'active' : ''}" id="mode-content-dark">
+        ${generateModeContent(theme.dark)}
+      </div>
+      <div class="mode-content ${isLight ? 'active' : ''}" id="mode-content-light">
+        ${generateModeContent(theme.light)}
+      </div>
+    `;
+    
+    configArea.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        configArea.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const mode = tab.dataset.mode;
+        configArea.querySelectorAll('.mode-content').forEach(c => c.classList.remove('active'));
+        configArea.querySelector('#mode-content-' + mode).classList.add('active');
+      });
+    });
+    
+    initIcons();
+  }
+  
+  function generateModeContent(modeData) {
+    return `
+      <img src="${modeData.url || ''}" alt="Wallpaper" class="theme-wallpaper" onerror="this.style.opacity='0'">
+      <div class="config-row">
+        <span class="config-label">Font Family</span>
+        <span class="config-value"><i data-lucide="type"></i> Inter</span>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Font Size</span>
+        <span class="config-value">14px</span>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Base Color</span>
+        <span class="config-value">
+          <div class="palette-display">
+            <div class="palette-color" style="background-color: ${modeData.bg};"></div>
+            <div class="palette-color" style="background-color: ${modeData.text};"></div>
+          </div>
+        </span>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Accent Palette</span>
+        <span class="config-value">
+          <div class="palette-display">
+            ${modeData.dots.map(d => `<div class="palette-color" style="background-color: ${d};"></div>`).join('')}
+          </div>
+        </span>
+      </div>
+    `;
+  }
+
+  function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  // Initialize Theme
+  applyTheme('Midnight');
+
+  /* ═══ CLOCK & DATES ═══ */
+  const timeEl = document.getElementById('time');
+  const dayEl = document.getElementById('day');
+  const dateEl = document.getElementById('date');
+  const qsDateEl = document.getElementById('qsDate');
+  const wTime = document.getElementById('widgetTime');
+  const wDate = document.getElementById('widgetDate');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const daysLong = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthsLong = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    if (timeEl) timeEl.textContent = `${h}:${m}`;
+    if (dayEl) dayEl.textContent = days[now.getDay()];
+    if (dateEl) dateEl.textContent = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+    if (qsDateEl) qsDateEl.textContent = `${daysLong[now.getDay()]}, ${now.getDate()} ${monthsLong[now.getMonth()]}`;
+    if (wTime) wTime.textContent = `${h}:${m}`;
+    if (wDate) wDate.textContent = `${daysLong[now.getDay()]}, ${now.getDate()} ${monthsLong[now.getMonth()]}`;
+  }
+  updateClock();
+  setInterval(updateClock, 5000);
+
+  /* ═══ APP WINDOW ═══ */
+  const appInfo = {
+    firefox:  { name: 'Firefox — New Window',           icon: 'https://cdn.simpleicons.org/firefox' },
+    code:     { name: 'Visual Studio Code',             icon: 'https://cdn.simpleicons.org/vscode' },
+    terminal: { name: 'Terminal — zsh',                 icon: null },
+    files:    { name: 'Files — Home',                   icon: null },
+    discord:  { name: 'Discord',                        icon: 'https://cdn.simpleicons.org/discord' },
+    spotify:  { name: 'Spotify',                        icon: 'https://cdn.simpleicons.org/spotify' },
+    gimp:     { name: 'GNU Image Manipulation Program', icon: 'https://cdn.simpleicons.org/gimp' },
+    writer:   { name: 'LibreOffice Writer',             icon: 'https://cdn.simpleicons.org/libreofficewriter' },
+    calc:     { name: 'LibreOffice Calc',               icon: 'https://cdn.simpleicons.org/libreofficecalc' },
+    impress:  { name: 'LibreOffice Impress',            icon: 'https://cdn.simpleicons.org/libreofficeimpress' },
+    obsidian: { name: 'Obsidian Vault',                 icon: 'https://cdn.simpleicons.org/obsidian' },
+    inkscape: { name: 'Inkscape',                       icon: 'https://cdn.simpleicons.org/inkscape' },
+    settings: { name: 'Settings',                       icon: null },
+    slack:    { name: 'Slack',                          icon: 'https://cdn.simpleicons.org/slack' },
+    telegram: { name: 'Telegram',                       icon: 'https://cdn.simpleicons.org/telegram' },
+    docker:   { name: 'Docker Desktop',                 icon: 'https://cdn.simpleicons.org/docker' },
+    github:   { name: 'GitHub Desktop',                 icon: 'https://cdn.simpleicons.org/github' },
+    blender:  { name: 'Blender',                        icon: 'https://cdn.simpleicons.org/blender' },
+    figma:    { name: 'Figma',                          icon: 'https://cdn.simpleicons.org/figma' },
+    obs:      { name: 'OBS Studio',                     icon: 'https://cdn.simpleicons.org/obsstudio' },
+    vlc:      { name: 'VLC Media Player',               icon: 'https://cdn.simpleicons.org/vlc' },
+    notion:   { name: 'Notion',                         icon: 'https://cdn.simpleicons.org/notion' },
+    calc_app: { name: 'Calculator',                     icon: null },
+    text_editor: { name: 'Text Editor',                 icon: null }
+  };
+
+  const appWindow = document.getElementById('appWindow');
+  const winTitle = document.getElementById('winTitle');
+  const winIcon = document.getElementById('winIcon');
+
+  function openApp(appId) {
+    const info = appInfo[appId] || { name: appId.charAt(0).toUpperCase() + appId.slice(1), icon: null };
+    winTitle.textContent = info.name;
+    if (info.icon) {
+      winIcon.src = info.icon;
+      winIcon.style.display = '';
+      winIcon.onerror = () => { winIcon.style.display = 'none'; };
+    } else {
+      winIcon.style.display = 'none';
+    }
+    appWindow.classList.add('open');
+    document.querySelectorAll('.app-icon').forEach(btn => {
+      if (btn.dataset.app) {
+        btn.classList.remove('active');
+        if (btn.dataset.app === appId) btn.classList.add('active');
+      }
+    });
+  }
+  function closeWindow() {
+    appWindow.classList.remove('open');
+    document.querySelectorAll('.app-icon').forEach(btn => btn.classList.remove('active'));
+  }
+  document.getElementById('closeWindow').addEventListener('click', closeWindow);
+  document.querySelectorAll('.app-icon[data-app]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (btn.classList.contains('active')) closeWindow();
+      else openApp(btn.dataset.app);
+    });
+  });
+
+  /* ═══ POPOVER SYSTEM ═══ */
+  const triggers = {
+    launcher: document.getElementById('launcherBtn'),
+    qs:       document.getElementById('quickSettingsBtn'),
+    cal:      document.getElementById('globeBtn')
+  };
+  const panels = {
+    launcher: document.getElementById('launcherPop'),
+    qs:       document.getElementById('qsPanel'),
+    cal:      document.getElementById('calPop')
+  };
+  let activeName = null;
+
+  function closeAll() {
+    Object.values(panels).forEach(p => p.classList.remove('open'));
+    Object.values(triggers).flat().forEach(t => t.classList.remove('active'));
+    document.getElementById('themePopupMenu').classList.remove('open');
+    activeName = null;
+  }
+
+  function positionPanel(name, trigger) {
+    const panel = panels[name];
+    const tr = trigger.getBoundingClientRect();
+    const pr = panel.getBoundingClientRect();
+    let left = tr.left + tr.width / 2 - pr.width / 2;
+    left = Math.max(10, Math.min(left, window.innerWidth - pr.width - 10));
+    panel.style.left = left + 'px';
+    panel.style.bottom = (window.innerHeight - tr.top + 10) + 'px';
+    panel.style.right = 'auto';
+    panel.style.top = 'auto';
+  }
+
+  function toggle(name, trigger) {
+    const wasOpen = panels[name].classList.contains('open');
+    closeAll();
+    if (!wasOpen) {
+      panels[name].classList.add('open');
+      trigger.classList.add('active');
+      activeName = name;
+      requestAnimationFrame(() => positionPanel(name, trigger));
+    }
+  }
+
+  triggers.launcher.addEventListener('click', e => { e.stopPropagation(); toggle('launcher', triggers.launcher); });
+  triggers.cal.addEventListener('click',      e => { e.stopPropagation(); toggle('cal', triggers.cal); });
+  triggers.qs.addEventListener('click',       e => { e.stopPropagation(); toggle('qs', triggers.qs); });
+
+  Object.values(panels).forEach(p => p.addEventListener('click', e => e.stopPropagation()));
+  document.addEventListener('click', () => { if (activeName) closeAll(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (activeName) closeAll();
+      else if (appWindow.classList.contains('open')) closeWindow();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (activeName) {
+      const trigger = Array.isArray(triggers[activeName]) ? triggers[activeName][0] : triggers[activeName];
+      positionPanel(activeName, trigger);
+    }
+  });
+
+  /* ═══ START MENU TABS ═══ */
+  document.querySelectorAll('.start-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.start-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      const target = tab.dataset.tab;
+      document.querySelectorAll('.start-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('pane-' + target).classList.add('active');
+    });
+  });
+
+  /* ═══ SETTINGS TABS ═══ */
+  document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.settingsTab;
+      document.querySelectorAll('.settings-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('settings-pane-' + target).classList.add('active');
+    });
+  });
+
+  // Bar Side Tabs
+  document.querySelectorAll('.bar-side-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.bar-side-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+    });
+  });
+
+  // Config Row Checkboxes
+  document.querySelectorAll('.config-row-check').forEach(row => {
+    row.addEventListener('click', () => {
+        row.classList.toggle('active');
+    });
+  });
+
+  // Settings Toggles
+  document.querySelectorAll('.settings-toggle').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggle.classList.toggle('active');
+        
+        const dock = document.getElementById('dock-container');
+        // Bar Connection Toggle Logic
+        if (toggle.id === 'toggleBarConnection') {
+            if (toggle.classList.contains('active')) {
+                dock.classList.remove('disconnected');
+            } else {
+                dock.classList.add('disconnected');
+            }
+        }
+        
+        // Bar In Box Toggle Logic
+        if (toggle.id === 'toggleBarInBox') {
+            if (toggle.classList.contains('active')) {
+                dock.classList.add('in-box');
+            } else {
+                dock.classList.remove('in-box');
+            }
+        }
+    });
+  });
+
+  // Bar Separation Slider
+  const barSepSlider = makeSlider(
+    document.getElementById('barSeparationSlider'),
+    document.getElementById('barSeparationFill'),
+    document.getElementById('barSeparationThumb'),
+    document.getElementById('barSeparationVal'),
+    30,
+    (v) => {
+      const px = Math.round(v / 100 * 20); // 0 to 20px
+      document.getElementById('barSeparationVal').textContent = `${px}px`;
+      const dock = document.getElementById('dock-container');
+      dock.style.gap = `${px}px`;
+    }
+  );
+
+  /* ═══ LAUNCHER SEARCH ═══ */
+  const searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase();
+    // Only search in apps pane
+    document.querySelectorAll('#pane-apps .app-group').forEach(group => {
+      let visibleCount = 0;
+      group.querySelectorAll('.app-item').forEach(item => {
+        const match = item.dataset.name.toLowerCase().includes(q);
+        item.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+      });
+      group.style.display = visibleCount > 0 ? '' : 'none';
+    });
+  });
+  searchInput.addEventListener('click', e => e.stopPropagation());
+  document.querySelectorAll('.app-item[data-app]').forEach(item => {
+    item.addEventListener('click', () => {
+      openApp(item.dataset.app);
+      closeAll();
+      searchInput.value = '';
+      document.querySelectorAll('.app-item').forEach(i => i.style.display = '');
+      document.querySelectorAll('.app-group').forEach(g => g.style.display = '');
+    });
+  });
+
+  /* ═══ LAYOUT INDICATOR ═══ */
+  const layoutBox = document.getElementById('layout-indicator');
+  const miniWinContainer = document.getElementById('miniWinContainer');
+  let isFloat = true;
+  
+  layoutBox.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isFloat = !isFloat;
+    if (isFloat) {
+      miniWinContainer.className = 'mini-win-container mini-float';
+      layoutBox.setAttribute('data-tip', 'Layout: Float');
+    } else {
+      miniWinContainer.className = 'mini-win-container mini-stack';
+      layoutBox.setAttribute('data-tip', 'Layout: Stack');
+    }
+  });
+
+  /* ═══ THEME SELECTOR ═══ */
+  const themeTrigger = document.getElementById('themeTriggerBtn');
+  const themePopup = document.getElementById('themePopupMenu');
+  
+  themeTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    themePopup.classList.toggle('open');
+  });
+  
+  themePopup.addEventListener('click', (e) => e.stopPropagation());
+
+  /* ═══ LIGHT/DARK TOGGLE ═══ */
+  const customToggle = document.getElementById('customToggle');
+  const toggleIcon = document.getElementById('toggleIcon');
+  
+  customToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    customToggle.classList.toggle('active');
+    
+    if (customToggle.classList.contains('active')) {
+      document.body.classList.add('light');
+      customToggle.setAttribute('data-tip', 'Light Mode');
+      toggleIcon.setAttribute('data-lucide', 'sun');
+    } else {
+      document.body.classList.remove('light');
+      customToggle.setAttribute('data-tip', 'Dark Mode');
+      toggleIcon.setAttribute('data-lucide', 'moon');
+    }
+    initIcons();
+    applyTheme(currentTheme); // Re-apply theme to update colors/wallpaper
+  });
+
+  /* ═══ WORKSPACE DOTS ═══ */
+  document.querySelectorAll('.ws-dot').forEach(dot => {
+    dot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.ws-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    });
+  });
+
+  /* ═══ QS TOGGLES ═══ */
+  document.querySelectorAll('.qs-tile').forEach(tile => {
+    tile.addEventListener('click', e => {
+      e.stopPropagation();
+      tile.classList.toggle('active');
+      const sub = tile.querySelector('.qs-tile-sub');
+      if (sub) {
+        const key = tile.dataset.toggle;
+        const isOn = tile.classList.contains('active');
+        const subs = { wifi: isOn ? 'Aurora-5G' : 'Off', bt: isOn ? 'On' : 'Off', dnd: isOn ? 'On' : 'Off', theme: isOn ? 'On' : 'Off' };
+        sub.textContent = subs[key] || (isOn ? 'On' : 'Off');
+      }
+    });
+  });
+
+  /* ═══ SLIDERS ═══ */
+  function makeSlider(sliderEl, fillEl, thumbEl, valueEl, initial, onChange) {
+    let value = initial;
+    let dragging = false;
+    function setVal(v, fire = true) {
+      value = Math.max(0, Math.min(100, Math.round(v)));
+      fillEl.style.width = value + '%';
+      if (thumbEl) thumbEl.style.left = value + '%';
+      if (valueEl) valueEl.textContent = value + '%';
+      sliderEl.setAttribute('aria-valuenow', value);
+      if (fire && onChange) onChange(value);
+    }
+    function fromEvent(clientX) {
+      const r = sliderEl.getBoundingClientRect();
+      const x = Math.max(0, Math.min(r.width, clientX - r.left));
+      setVal((x / r.width) * 100);
+    }
+    setVal(initial, false);
+    sliderEl.addEventListener('mousedown', e => { dragging = true; fromEvent(e.clientX); e.preventDefault(); });
+    sliderEl.addEventListener('touchstart', e => { dragging = true; fromEvent(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('mousemove', e => { if (dragging) fromEvent(e.clientX); });
+    document.addEventListener('touchmove', e => { if (dragging) fromEvent(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('mouseup', () => { dragging = false; });
+    document.addEventListener('touchend', () => { dragging = false; });
+    return { setVal, getVal: () => value };
+  }
+
+  const volSlider = makeSlider(
+    document.getElementById('volSlider'),
+    document.getElementById('volFill'),
+    document.getElementById('volThumb'),
+    document.getElementById('volValue'),
+    60,
+    (v) => {
+      const stackedBtn = document.getElementById('quickSettingsBtn');
+      stackedBtn.setAttribute('data-tip', `Volume · ${v}%`);
+      const muteIcon = document.getElementById('muteBtn').querySelector('i, svg');
+      const trayIcon = stackedBtn.querySelector('i[data-lucide="volume-2"], i[data-lucide="volume-1"], i[data-lucide="volume-x"]');
+      const name = v === 0 ? 'volume-x' : (v < 35 ? 'volume-1' : 'volume-2');
+      if (window.lucide) {
+        if (muteIcon) { const n = document.createElement('i'); n.setAttribute('data-lucide', name); muteIcon.replaceWith(n); }
+        if (trayIcon) { const n = document.createElement('i'); n.setAttribute('data-lucide', name); trayIcon.replaceWith(n); }
+        lucide.createIcons();
+      }
+    }
+  );
+
+  const brightSlider = makeSlider(
+    document.getElementById('brightSlider'),
+    document.getElementById('brightFill'),
+    document.getElementById('brightThumb'),
+    document.getElementById('brightValue'),
+    82, null
+  );
+
+  let lastVol = 60;
+  document.getElementById('muteBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    const cur = volSlider.getVal();
+    if (cur > 0) { lastVol = cur; volSlider.setVal(0); }
+    else { volSlider.setVal(lastVol || 60); }
+  });
+
+  /* ═══ CALENDAR ═══ */
+  let calDate = new Date();
+  function renderCalendar() {
+    const year = calDate.getFullYear();
+    const month = calDate.getMonth();
+    const today = new Date();
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+    document.getElementById('calMonth').textContent = `${monthsLong[month]} ${year}`;
+    
+    // Vertical bar text
+    const vbar = document.getElementById('calVerticalBar');
+    vbar.innerHTML = '';
+    const yearStr = String(year);
+    for (let i = 0; i < yearStr.length; i++) {
+      const span = document.createElement('span');
+      span.textContent = yearStr[i];
+      vbar.appendChild(span);
+    }
+    const sep = document.createElement('div');
+    sep.className = 'vbar-sep';
+    vbar.appendChild(sep);
+    const monthInitials = monthsLong[month].substring(0, 3).toUpperCase();
+    for (let i = 0; i < monthInitials.length; i++) {
+      const span = document.createElement('span');
+      span.textContent = monthInitials[i];
+      vbar.appendChild(span);
+    }
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    ['S','M','T','W','T','F','S'].forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'cal-day-head';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+    for (let i = 0; i < firstDay; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      grid.appendChild(el);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const el = document.createElement('button');
+      el.className = 'cal-day';
+      el.textContent = d;
+      if (isCurrentMonth && d === today.getDate()) el.classList.add('today');
+      grid.appendChild(el);
+    }
+  }
+  renderCalendar();
+  document.getElementById('calPrev').addEventListener('click', e => { e.stopPropagation(); calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); });
+  document.getElementById('calNext').addEventListener('click', e => { e.stopPropagation(); calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); });
+
+  setTimeout(initIcons, 50);
+});
+</script>
+</body>
+</html>

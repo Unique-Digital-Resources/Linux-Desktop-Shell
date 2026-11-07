@@ -1,0 +1,902 @@
+     1→   901→  display: grid;
+     2→   902→  place-items: center;
+     3→   903→  z-index: 1;
+     4→   904→}
+     5→   905→.file-item:hover .file-checkbox, .file-item.selected .file-checkbox { opacity: 1; }
+     6→   906→.file-checkbox.checked {
+     7→   907→  background: var(--accent);
+     8→   908→  border-color: var(--accent);
+     9→   909→}
+    10→   910→.file-checkbox.checked::after {
+    11→   911→  content: '';
+    12→   912→  width: 8px; height: 5px;
+    13→   913→  border-left: 2px solid #FFFFFF;
+    14→   914→  border-bottom: 2px solid #FFFFFF;
+    15→   915→  transform: rotate(-45deg) translate(0.5px, -1px);
+    16→   916→}
+    17→   917→
+    18→   918→/* ===== List view ===== */
+    19→   919→.file-list {
+    20→   920→  display: flex;
+    21→   921→  flex-direction: column;
+    22→   922→}
+    23→   923→
+    24→   924→.list-header {
+    25→   925→  display: grid;
+    26→   926→  grid-template-columns: 1fr 100px 120px 140px 32px;
+    27→   927→  gap: 10px;
+    28→   928→  padding: 8px 14px;
+    29→   929→  font-size: 11px;
+    30→   930→  color: var(--text-muted);
+    31→   931→  font-weight: 600;
+    32→   932→  border-bottom: 1px solid var(--border);
+    33→   933→  text-transform: uppercase;
+    34→   934→  letter-spacing: 0.05em;
+    35→   935→  position: sticky;
+    36→   936→  top: -12px;
+    37→   937→  background: var(--bg-workspace);
+    38→   938→  z-index: 1;
+    39→   939→  margin-bottom: 2px;
+    40→   940→}
+    41→   941→
+    42→   942→.list-header .col {
+    43→   943→  display: flex;
+    44→   944→  align-items: center;
+    45→   945→  gap: 5px;
+    46→   946→  cursor: pointer;
+    47→   947→  user-select: none;
+    48→   948→}
+    49→   949→.list-header .col:hover { color: var(--text-secondary); }
+    50→   950→.list-header .col.sorted { color: var(--accent); }
+    51→   951→.list-header .col svg { width: 13px; height: 13px; }
+    52→   952→.list-header .col.size { justify-content: flex-end; }
+    53→   953→
+    54→   954→.list-row {
+    55→   955→  display: grid;
+    56→   956→  grid-template-columns: 1fr 100px 120px 140px 32px;
+    57→   957→  gap: 10px;
+    58→   958→  padding: 0 14px;
+    59→   959→  height: 40px;
+    60→   960→  align-items: center;
+    61→   961→  font-size: 13px;
+    62→   962→  color: var(--text-secondary);
+    63→   963→  border-radius: var(--radius-sm);
+    64→   964→  cursor: default;
+    65→   965→  transition: background var(--tr-fast);
+    66→   966→}
+    67→   967→.list-row:hover { background: var(--bg-hover); }
+    68→   968→.list-row.selected { background: var(--bg-selected); }
+    69→   969→.list-row.selected:hover { background: var(--bg-selected-hover); }
+    70→   970→
+    71→   971→.list-row .name-col {
+    72→   972→  display: flex;
+    73→   973→  align-items: center;
+    74→   974→  gap: 10px;
+    75→   975→  overflow: hidden;
+    76→   976→  min-width: 0;
+    77→   977→}
+    78→   978→.list-row .name-col .file-icon-wrap {
+    79→   979→  width: 20px; height: 20px;
+    80→   980→}
+    81→   981→.list-row .name-col .file-icon-wrap svg {
+    82→   982→  width: 18px; height: 18px;
+    83→   983→}
+    84→   984→.list-row .name-text {
+    85→   985→  overflow: hidden;
+    86→   986→  text-overflow: ellipsis;
+    87→   987→  white-space: nowrap;
+    88→   988→  color: var(--text-primary);
+    89→   989→}
+    90→   990→.list-row .size-col,
+    91→   991→.list-row .type-col,
+    92→   992→.list-row .date-col {
+    93→   993→  color: var(--text-muted);
+    94→   994→  font-variant-numeric: tabular-nums;
+    95→   995→  overflow: hidden;
+    96→   996→  text-overflow: ellipsis;
+    97→   997→  white-space: nowrap;
+    98→   998→}
+    99→   999→.list-row .size-col { text-align: right; }
+   100→  1000→
+   101→  1001→.file-list.compact .list-row { height: 30px; font-size: 12px; }
+   102→  1002→.file-list.compact .list-row .name-col { gap: 8px; }
+   103→  1003→.file-list.compact .list-row .name-col .file-icon-wrap { width: 16px; height: 16px; }
+   104→  1004→.file-list.compact .list-row .name-col .file-icon-wrap svg { width: 14px; height: 14px; }
+   105→  1005→
+   106→  1006→/* ===== File type colors ===== */
+   107→  1007→.icon-folder { color: #4285F4; }
+   108→  1008→.icon-image { color: #9C27B0; }
+   109→  1009→.icon-video { color: #EF6C00; }
+   110→  1010→.icon-audio { color: #00897B; }
+   111→  1011→.icon-pdf { color: #D32F2F; }
+   112→  1012→.icon-doc { color: #1976D2; }
+   113→  1013→.icon-sheet { color: #2E7D32; }
+   114→  1014→.icon-archive { color: #F57F17; }
+   115→  1015→.icon-code { color: #00897B; }
+   116→  1016→.icon-app { color: #C62828; }
+   117→  1017→.icon-text { color: #5F6368; }
+   118→  1018→.icon-generic { color: #9AA0A6; }
+   119→  1019→
+   120→  1020→/* ===== Empty state ===== */
+   121→  1021→.empty-state {
+   122→  1022→  display: flex;
+   123→  1023→  flex-direction: column;
+   124→  1024→  align-items: center;
+   125→  1025→  justify-content: center;
+   126→  1026→  height: 100%;
+   127→  1027→  gap: 12px;
+   128→  1028→  color: var(--text-muted);
+   129→  1029→  padding: 40px 20px;
+   130→  1030→}
+   131→  1031→.empty-state svg { width: 48px; height: 48px; opacity: 0.25; color: var(--text-muted); }
+   132→  1032→.empty-state .title {
+   133→  1033→  font-size: 14px;
+   134→  1034→  font-weight: 500;
+   135→  1035→  color: var(--text-secondary);
+   136→  1036→}
+   137→  1037→.empty-state .desc { font-size: 12.5px; color: var(--text-muted); }
+   138→  1038→
+   139→  1039→/* ===== Status bar ===== */
+   140→  1040→.statusbar {
+   141→  1041→  height: 52px;
+   142→  1042→  display: flex;
+   143→  1043→  align-items: center;
+   144→  1044→  padding: 0 14px;
+   145→  1045→  border-top: 1px solid var(--border);
+   146→  1046→  background: var(--bg-tabbar);
+   147→  1047→  font-size: 12px;
+   148→  1048→  color: var(--text-muted);
+   149→  1049→  gap: 12px;
+   150→  1050→  flex-shrink: 0;
+   151→  1051→}
+   152→  1052→.status-left {
+   153→  1053→  display: flex;
+   154→  1054→  align-items: center;
+   155→  1055→  gap: 10px;
+   156→  1056→}
+   157→  1057→.status-item {
+   158→  1058→  display: flex;
+   159→  1059→  align-items: center;
+   160→  1060→  gap: 6px;
+   161→  1061→  font-variant-numeric: tabular-nums;
+   162→  1062→}
+   163→  1063→.status-item svg { width: 13px; height: 13px; color: var(--text-faint); }
+   164→  1064→.status-divider {
+   165→  1065→  width: 1px;
+   166→  1066→  height: 22px;
+   167→  1067→  background: var(--border-strong);
+   168→  1068→}
+   169→  1069→.status-spacer { flex: 1; }
+   170→  1070→.status-accent { color: var(--accent); font-weight: 600; }
+   171→  1071→.status-muted { color: var(--text-muted); }
+   172→  1072→
+   173→  1073→.status-right-group {
+   174→  1074→  display: flex;
+   175→  1075→  align-items: center;
+   176→  1076→  gap: 8px;
+   177→  1077→  background: var(--bg-group);
+   178→  1078→  padding: 4px;
+   179→  1079→  border-radius: var(--radius-md);
+   180→  1080→  height: 42px;
+   181→  1081→}
+   182→  1082→
+   183→  1083→.view-segmented {
+   184→  1084→  display: flex;
+   185→  1085→  background: rgba(255,255,255,0.5);
+   186→  1086→  border-radius: var(--radius-sm);
+   187→  1087→  padding: 2px;
+   188→  1088→  height: 34px;
+   189→  1089→}
+   190→  1090→.seg-btn {
+   191→  1091→  width: 34px;
+   192→  1092→  display: grid;
+   193→  1093→  place-items: center;
+   194→  1094→  border-radius: 5px;
+   195→  1095→  color: var(--text-muted);
+   196→  1096→  transition: all var(--tr-fast);
+   197→  1097→}
+   198→  1098→.seg-btn:hover { color: var(--text-secondary); }
+   199→  1099→.seg-btn.active {
+   200→  1100→  background: #FFFFFF;
+   201→  1101→  color: var(--accent);
+   202→  1102→  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+   203→  1103→}
+   204→  1104→.seg-btn svg { width: 16px; height: 16px; }
+   205→  1105→
+   206→  1106→.sort-btn {
+   207→  1107→  height: 34px;
+   208→  1108→  padding: 0 12px;
+   209→  1109→  border-radius: var(--radius-sm);
+   210→  1110→  background: rgba(255,255,255,0.5);
+   211→  1111→  color: var(--text-secondary);
+   212→  1112→  display: flex;
+   213→  1113→  align-items: center;
+   214→  1114→  gap: 7px;
+   215→  1115→  font-size: 12.5px;
+   216→  1116→  transition: all var(--tr-fast);
+   217→  1117→}
+   218→  1118→.sort-btn:hover { background: #FFFFFF; color: var(--text-primary); }
+   219→  1119→.sort-btn svg { width: 14px; height: 14px; }
+   220→  1120→.sort-btn .chev { color: var(--text-faint); }
+   221→  1121→
+   222→  1122→/* ===== Context menu ===== */
+   223→  1123→.context-menu {
+   224→  1124→  position: fixed;
+   225→  1125→  background: var(--bg-elevated);
+   226→  1126→  border: 1px solid var(--border-strong);
+   227→  1127→  border-radius: var(--radius-lg);
+   228→  1128→  padding: 6px;
+   229→  1129→  min-width: 220px;
+   230→  1130→  box-shadow: var(--shadow-pop);
+   231→  1131→  z-index: 1000;
+   232→  1132→  font-size: 13px;
+   233→  1133→  animation: menuIn var(--tr-fast);
+   234→  1134→}
+   235→  1135→@keyframes menuIn {
+   236→  1136→  from { opacity: 0; transform: scale(0.96) translateY(-3px); }
+   237→  1137→  to { opacity: 1; transform: scale(1) translateY(0); }
+   238→  1138→}
+   239→  1139→
+   240→  1140→.menu-item {
+   241→  1141→  display: flex;
+   242→  1142→  align-items: center;
+   243→  1143→  gap: 10px;
+   244→  1144→  padding: 0 12px;
+   245→  1145→  border-radius: var(--radius-sm);
+   246→  1146→  cursor: pointer;
+   247→  1147→  color: var(--text-secondary);
+   248→  1148→  height: 36px;
+   249→  1149→  position: relative;
+   250→  1150→}
+   251→  1151→.menu-item:hover {
+   252→  1152→  background: var(--bg-hover);
+   253→  1153→  color: var(--text-primary);
+   254→  1154→}
+   255→  1155→.menu-item.disabled { opacity: 0.35; pointer-events: none; }
+   256→  1156→.menu-item .icon, .menu-item svg.lucide {
+   257→  1157→  width: 17px; height: 17px;
+   258→  1158→  color: var(--text-muted);
+   259→  1159→  flex-shrink: 0;
+   260→  1160→}
+   261→  1161→.menu-item:hover .icon, .menu-item:hover svg.lucide { color: var(--accent); }
+   262→  1162→.menu-item .label { flex: 1; }
+   263→  1163→.menu-item .shortcut {
+   264→  1164→  font-size: 11px;
+   265→  1165→  color: var(--text-faint);
+   266→  1166→  font-family: var(--font-mono);
+   267→  1167→}
+   268→  1168→.menu-item.danger, .menu-item.danger .icon { color: var(--error); }
+   269→  1169→.menu-item.danger:hover .icon { color: var(--error); }
+   270→  1170→
+   271→  1171→.menu-arrow { width: 14px; height: 14px; color: var(--text-muted); }
+   272→  1172→
+   273→  1173→.menu-separator {
+   274→  1174→  height: 1px;
+   275→  1175→  background: var(--border);
+   276→  1176→  margin: 4px 4px;
+   277→  1177→}
+   278→  1178→
+   279→  1179→.menu-section-label {
+   280→  1180→  font-size: 10.5px;
+   281→  1181→  font-weight: 600;
+   282→  1182→  color: var(--text-muted);
+   283→  1183→  text-transform: uppercase;
+   284→  1184→  letter-spacing: 0.07em;
+   285→  1185→  padding: 8px 12px 4px;
+   286→  1186→}
+   287→  1187→
+   288→  1188→/* ===== Dialog ===== */
+   289→  1189→.dialog-backdrop {
+   290→  1190→  position: fixed;
+   291→  1191→  inset: 0;
+   292→  1192→  background: rgba(0, 0, 0, 0.3);
+   293→  1193→  backdrop-filter: blur(3px);
+   294→  1194→  z-index: 2000;
+   295→  1195→  display: grid;
+   296→  1196→  place-items: center;
+   297→  1197→  animation: fadeIn var(--tr-base);
+   298→  1198→}
+   299→  1199→@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+   300→  1200→
+   301→  1201→.dialog {
+   302→  1202→  background: var(--bg-elevated);
+   303→  1203→  border: 1px solid var(--border);
+   304→  1204→  border-radius: var(--radius-xl);
+   305→  1205→  padding: 22px 24px 18px;
+   306→  1206→  min-width: 420px;
+   307→  1207→  max-width: 500px;
+   308→  1208→  box-shadow: var(--shadow-dialog);
+   309→  1209→  animation: dialogIn var(--tr-base);
+   310→  1210→}
+   311→  1211→@keyframes dialogIn {
+   312→  1212→  from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+   313→  1213→  to { opacity: 1; transform: scale(1) translateY(0); }
+   314→  1214→}
+   315→  1215→
+   316→  1216→.dialog-title {
+   317→  1217→  font-size: 15px;
+   318→  1218→  font-weight: 600;
+   319→  1219→  color: var(--text-primary);
+   320→  1220→  margin-bottom: 5px;
+   321→  1221→}
+   322→  1222→.dialog-desc {
+   323→  1223→  font-size: 13px;
+   324→  1224→  color: var(--text-secondary);
+   325→  1225→  margin-bottom: 16px;
+   326→  1226→  line-height: 1.45;
+   327→  1227→}
+   328→  1228→.dialog-input {
+   329→  1229→  width: 100%;
+   330→  1230→  height: 38px;
+   331→  1231→  background: var(--bg-elevated-2);
+   332→  1232→  border: 1px solid transparent;
+   333→  1233→  border-radius: var(--radius-md);
+   334→  1234→  padding: 0 14px;
+   335→  1235→  color: var(--text-primary);
+   336→  1236→  font-size: 13px;
+   337→  1237→  margin-bottom: 18px;
+   338→  1238→  transition: border-color var(--tr-fast), background var(--tr-fast);
+   339→  1239→}
+   340→  1240→.dialog-input:focus { outline: none; border-color: var(--accent); background: #FFFFFF; box-shadow: 0 0 0 3px rgba(11,87,208,0.1); }
+   341→  1241→.dialog-actions {
+   342→  1242→  display: flex;
+   343→  1243→  justify-content: flex-end;
+   344→  1244→  gap: 8px;
+   345→  1245→}
+   346→  1246→
+   347→  1247→.btn {
+   348→  1248→  height: 36px;
+   349→  1249→  padding: 0 18px;
+   350→  1250→  border-radius: var(--radius-md);
+   351→  1251→  font-size: 13px;
+   352→  1252→  font-weight: 500;
+   353→  1253→  display: inline-flex;
+   354→  1254→  align-items: center;
+   355→  1255→  gap: 7px;
+   356→  1256→  transition: background var(--tr-fast), transform var(--tr-fast);
+   357→  1257→  border: none;
+   358→  1258→}
+   359→  1259→.btn:active { transform: translateY(0.5px); }
+   360→  1260→.btn-secondary {
+   361→  1261→  background: var(--bg-elevated-2);
+   362→  1262→  color: var(--text-secondary);
+   363→  1263→}
+   364→  1264→.btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
+   365→  1265→.btn-primary {
+   366→  1266→  background: var(--accent);
+   367→  1267→  color: var(--accent-on);
+   368→  1268→  font-weight: 600;
+   369→  1269→}
+   370→  1270→.btn-primary:hover { background: var(--accent-hover); }
+   371→  1271→.btn-danger {
+   372→  1272→  background: var(--error);
+   373→  1273→  color: #FFFFFF;
+   374→  1274→  font-weight: 600;
+   375→  1275→}
+   376→  1276→.btn-danger:hover { background: #9B2018; }
+   377→  1277→
+   378→  1278→/* ===== Properties panel ===== */
+   379→  1279→.properties-panel {
+   380→  1280→  position: fixed;
+   381→  1281→  right: 16px;
+   382→  1282→  top: 110px;
+   383→  1283→  width: 290px;
+   384→  1284→  background: var(--bg-elevated);
+   385→  1285→  border: 1px solid var(--border);
+   386→  1286→  border-radius: var(--radius-lg);
+   387→  1287→  box-shadow: var(--shadow-pop);
+   388→  1288→  z-index: 100;
+   389→  1289→  overflow: hidden;
+   390→  1290→  animation: dialogIn var(--tr-base);
+   391→  1291→}
+   392→  1292→
+   393→  1293→.properties-header {
+   394→  1294→  padding: 14px 16px 12px;
+   395→  1295→  display: flex;
+   396→  1296→  align-items: center;
+   397→  1297→  gap: 12px;
+   398→  1298→  border-bottom: 1px solid var(--border);
+   399→  1299→}
+   400→  1300→.properties-header .icon-wrap {
+   401→  1301→  width: 40px;
+   402→  1302→  height: 40px;
+   403→  1303→  display: grid;
+   404→  1304→  place-items: center;
+   405→  1305→  background: var(--bg-elevated-2);
+   406→  1306→  border-radius: var(--radius-md);
+   407→  1307→  flex-shrink: 0;
+   408→  1308→}
+   409→  1309→.properties-header .icon-wrap svg { width: 22px; height: 22px; }
+   410→  1310→.properties-header .name {
+   411→  1311→  font-size: 14px;
+   412→  1312→  font-weight: 500;
+   413→  1313→  color: var(--text-primary);
+   414→  1314→  overflow: hidden;
+   415→  1315→  text-overflow: ellipsis;
+   416→  1316→  white-space: nowrap;
+   417→  1317→  max-width: 170px;
+   418→  1318→}
+   419→  1319→.properties-header .type {
+   420→  1320→  font-size: 12px;
+   421→  1321→  color: var(--text-muted);
+   422→  1322→}
+   423→  1323→.properties-close {
+   424→  1324→  margin-left: auto;
+   425→  1325→  width: 28px;
+   426→  1326→  height: 28px;
+   427→  1327→  display: grid;
+   428→  1328→  place-items: center;
+   429→  1329→  border-radius: var(--radius-sm);
+   430→  1330→  color: var(--text-muted);
+   431→  1331→  flex-shrink: 0;
+   432→  1332→}
+   433→  1333→.properties-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+   434→  1334→.properties-close svg { width: 15px; height: 15px; }
+   435→  1335→
+   436→  1336→.properties-body { padding: 10px 16px 14px; }
+   437→  1337→.prop-row {
+   438→  1338→  display: flex;
+   439→  1339→  justify-content: space-between;
+   440→  1340→  padding: 5px 0;
+   441→  1341→  font-size: 12px;
+   442→  1342→  gap: 12px;
+   443→  1343→}
+   444→  1344→.prop-row .key { color: var(--text-muted); }
+   445→  1345→.prop-row .val {
+   446→  1346→  color: var(--text-secondary);
+   447→  1347→  font-variant-numeric: tabular-nums;
+   448→  1348→  text-align: right;
+   449→  1349→  max-width: 60%;
+   450→  1350→  overflow: hidden;
+   451→  1351→  text-overflow: ellipsis;
+   452→  1352→  white-space: nowrap;
+   453→  1353→}
+   454→  1354→
+   455→  1355→.prop-preview {
+   456→  1356→  width: 100%;
+   457→  1357→  height: 140px;
+   458→  1358→  background: var(--bg-elevated-2);
+   459→  1359→  border-radius: var(--radius-md);
+   460→  1360→  margin-bottom: 10px;
+   461→  1361→  display: grid;
+   462→  1362→  place-items: center;
+   463→  1363→  overflow: hidden;
+   464→  1364→  position: relative;
+   465→  1365→  border: 1px solid var(--border);
+   466→  1366→}
+   467→  1367→.prop-preview svg { width: 48px; height: 48px; }
+   468→  1368→
+   469→  1369→/* ===== Toast ===== */
+   470→  1370→.toast-container {
+   471→  1371→  position: fixed;
+   472→  1372→  bottom: 64px;
+   473→  1373→  right: 16px;
+   474→  1374→  z-index: 3000;
+   475→  1375→  display: flex;
+   476→  1376→  flex-direction: column;
+   477→  1377→  gap: 8px;
+   478→  1378→  align-items: flex-end;
+   479→  1379→}
+   480→  1380→.toast {
+   481→  1381→  background: #322F35;
+   482→  1382→  border: none;
+   483→  1383→  border-radius: var(--radius-md);
+   484→  1384→  padding: 11px 16px;
+   485→  1385→  font-size: 12.5px;
+   486→  1386→  color: #F5F3F0;
+   487→  1387→  box-shadow: var(--shadow-pop);
+   488→  1388→  display: flex;
+   489→  1389→  align-items: center;
+   490→  1390→  gap: 9px;
+   491→  1391→  min-width: 240px;
+   492→  1392→  max-width: 360px;
+   493→  1393→  animation: toastIn var(--tr-base);
+   494→  1394→}
+   495→  1395→@keyframes toastIn {
+   496→  1396→  from { opacity: 0; transform: translateX(24px); }
+   497→  1397→  to { opacity: 1; transform: translateX(0); }
+   498→  1398→}
+   499→  1399→.toast .icon { width: 16px; height: 16px; flex-shrink: 0; }
+   500→  1400→.toast.success .icon { color: #7DD3A8; }
+   501→  1401→.toast.error .icon { color: #EF8A8A; }
+   502→  1402→.toast.info .icon { color: #7DC3FF; }
+   503→  1403→
+   504→  1404→/* ===== Scrollbars ===== */
+   505→  1405→::-webkit-scrollbar { width: 10px; height: 10px; }
+   506→  1406→::-webkit-scrollbar-track { background: transparent; }
+   507→  1407→::-webkit-scrollbar-thumb {
+   508→  1408→  background: rgba(0, 0, 0, 0.12);
+   509→  1409→  border-radius: 5px;
+   510→  1410→  border: 2px solid transparent;
+   511→  1411→  background-clip: padding-box;
+   512→  1412→}
+   513→  1413→::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.20); background-clip: padding-box; }
+   514→  1414→::-webkit-scrollbar-corner { background: transparent; }
+   515→  1415→
+   516→  1416→/* ===== Reduced motion ===== */
+   517→  1417→@media (prefers-reduced-motion: reduce) {
+   518→  1418→  *, *::before, *::after {
+   519→  1419→    transition: none !important;
+   520→  1420→    animation: none !important;
+   521→  1421→  }
+   522→  1422→}
+   523→  1423→
+   524→  1424→/* ===== Responsive ===== */
+   525→  1425→@media (max-width: 880px) {
+   526→  1426→  .app { grid-template-columns: 220px 1fr; }
+   527→  1427→  .search-input { width: 160px; }
+   528→  1428→  .search-input:focus { width: 220px; }
+   529→  1429→}
+   530→  1430→
+   531→  1431→@media (max-width: 680px) {
+   532→  1432→  .app { grid-template-columns: 60px 1fr; }
+   533→  1433→  .nav-item .label, .nav-section-title, .storage-item .name,
+   534→  1434→  .storage-bar, .storage-meta, .tree-label, .brand-name { display: none; }
+   535→  1435→  .nav-item { justify-content: center; }
+   536→  1436→  .sidebar-header { justify-content: center; padding: 16px 8px 10px; }
+   537→  1437→  .search-input { width: 120px; }
+   538→  1438→  .search-input:focus { width: 160px; }
+   539→  1439→}
+   540→  1440→</style>
+   541→  1441→</head>
+   542→  1442→<body>
+   543→  1443→<div class="app">
+   544→  1444→  <aside class="sidebar" id="sidebar">
+   545→  1445→    <div class="sidebar-header">
+   546→  1446→      <div class="brand-mark">A</div>
+   547→  1447→      <div class="brand-name">Aether <span class="dim">Files</span></div>
+   548→  1448→    </div>
+   549→  1449→    <div class="sidebar-scroll" id="sidebarScroll"></div>
+   550→  1450→    <div class="sidebar-resize" id="sidebarResize"></div>
+   551→  1451→  </aside>
+   552→  1452→
+   553→  1453→  <main class="workspace">
+   554→  1454→    <div class="tab-strip" id="tabStrip"></div>
+   555→  1455→
+   556→  1456→    <div class="toolbar">
+   557→  1457→      <div class="btn-group">
+   558→  1458→        <button class="btn-icon" id="backBtn" title="Back"><i data-lucide="arrow-left"></i></button>
+   559→  1459→        <button class="btn-icon" id="forwardBtn" title="Forward"><i data-lucide="arrow-right"></i></button>
+   560→  1460→        <button class="btn-icon" id="upBtn" title="Up one level"><i data-lucide="arrow-up"></i></button>
+   561→  1461→        <button class="btn-icon" id="refreshBtn" title="Refresh"><i data-lucide="refresh-cw"></i></button>
+   562→  1462→      </div>
+   563→  1463→      <div class="dir-bar-wrap">
+   564→  1464→        <div class="breadcrumb" id="breadcrumb"></div>
+   565→  1465→        <div class="btn-group dir-actions">
+   566→  1466→          <button class="btn-icon" id="newFolderBtn" title="New folder"><i data-lucide="folder-plus"></i></button>
+   567→  1467→          <button class="btn-icon" id="newFileBtn" title="New file"><i data-lucide="file-plus"></i></button>
+   568→  1468→          <button class="btn-icon" id="pasteBtn" title="Paste" disabled><i data-lucide="clipboard-paste"></i></button>
+   569→  1469→        </div>
+   570→  1470→      </div>
+   571→  1471→      <div class="search-wrap">
+   572→  1472→        <span class="search-icon"><i data-lucide="search"></i></span>
+   573→  1473→        <input type="text" class="search-input" id="searchInput" placeholder="Search current folder">
+   574→  1474→      </div>
+   575→  1475→    </div>
+   576→  1476→
+   577→  1477→    <div class="action-bar hidden" id="actionBar">
+   578→  1478→      <div class="btn-group">
+   579→  1479→        <button class="btn-icon" id="copyBtn" title="Copy" disabled><i data-lucide="copy"></i></button>
+   580→  1480→        <button class="btn-icon" id="cutBtn" title="Cut" disabled><i data-lucide="scissors"></i></button>
+   581→  1481→        <button class="btn-icon" id="renameBtn" title="Rename" disabled><i data-lucide="pencil-line"></i></button>
+   582→  1482→        <button class="btn-icon" id="deleteBtn" title="Move to trash" disabled><i data-lucide="trash-2"></i></button>
+   583→  1483→      </div>
+   584→  1484→      <div class="btn-group">
+   585→  1485→        <button class="btn-icon" id="moreMenuBtn" title="More actions"><i data-lucide="ellipsis"></i></button>
+   586→  1486→      </div>
+   587→  1487→      <div class="selection-info" id="selectionInfo"></div>
+   588→  1488→    </div>
+   589→  1489→
+   590→  1490→    <div class="content">
+   591→  1491→      <div class="content-scroll" id="contentScroll"></div>
+   592→  1492→    </div>
+   593→  1493→
+   594→  1494→    <div class="statusbar" id="statusbar"></div>
+   595→  1495→  </main>
+   596→  1496→</div>
+   597→  1497→
+   598→  1498→<div class="toast-container" id="toastContainer"></div>
+   599→  1499→
+   600→  1500→<script>
+   601→  1501→// ============================================================
+   602→  1502→//  File System Data Model
+   603→  1503→// ============================================================
+   604→  1504→
+   605→  1505→const TYPE_META = {
+   606→  1506→  folder:  { icon: 'folder',          class: 'icon-folder',  label: 'Folder' },
+   607→  1507→  image:   { icon: 'image',            class: 'icon-image',   label: 'Image' },
+   608→  1508→  video:   { icon: 'film',             class: 'icon-video',   label: 'Video' },
+   609→  1509→  audio:   { icon: 'music',            class: 'icon-audio',   label: 'Audio' },
+   610→  1510→  pdf:     { icon: 'file-text',        class: 'icon-pdf',     label: 'PDF document' },
+   611→  1511→  doc:     { icon: 'file-text',        class: 'icon-doc',     label: 'Document' },
+   612→  1512→  sheet:   { icon: 'file-spreadsheet', class: 'icon-sheet',   label: 'Spreadsheet' },
+   613→  1513→  archive: { icon: 'file-archive',     class: 'icon-archive', label: 'Archive' },
+   614→  1514→  code:    { icon: 'file-code-2',      class: 'icon-code',    label: 'Source code' },
+   615→  1515→  app:     { icon: 'app-window',       class: 'icon-app',     label: 'Application' },
+   616→  1516→  text:    { icon: 'file-text',        class: 'icon-text',    label: 'Text file' },
+   617→  1517→  generic: { icon: 'file',             class: 'icon-generic', label: 'File' },
+   618→  1518→};
+   619→  1519→
+   620→  1520→let nextId = 1;
+   621→  1521→const fsNodes = new Map();
+   622→  1522→
+   623→  1523→function createNode(data) {
+   624→  1524→  const id = data.id || ('n' + (nextId++));
+   625→  1525→  const node = {
+   626→  1526→    id,
+   627→  1527→    name: data.name,
+   628→  1528→    type: data.type || 'folder',
+   629→  1529→    parentId: data.parentId || null,
+   630→  1530→    children: (data.type === undefined || data.type === 'folder') ? (data.children || []) : null,
+   631→  1531→    size: data.size || 0,
+   632→  1532→    modified: data.modified || randomDate(),
+   633→  1533→    meta: data.meta || {},
+   634→  1534→    expanded: data.expanded || false,
+   635→  1535→  };
+   636→  1536→  fsNodes.set(id, node);
+   637→  1537→  return node;
+   638→  1538→}
+   639→  1539→
+   640→  1540→function randomDate() {
+   641→  1541→  const days = Math.floor(Math.random() * 120);
+   642→  1542→  const d = new Date(Date.now() - days * 86400000 - Math.random() * 86400000);
+   643→  1543→  return d;
+   644→  1544→}
+   645→  1545→
+   646→  1546→function getChildByName(parentId, name) {
+   647→  1547→  const parent = fsNodes.get(parentId);
+   648→  1548→  if (!parent || !parent.children) return null;
+   649→  1549→  for (const cid of parent.children) {
+   650→  1550→    const c = fsNodes.get(cid);
+   651→  1551→    if (c && c.name === name) return c;
+   652→  1552→  }
+   653→  1553→  return null;
+   654→  1554→}
+   655→  1555→
+   656→  1556→function getPath(nodeId) {
+   657→  1557→  const parts = [];
+   658→  1558→  let n = fsNodes.get(nodeId);
+   659→  1559→  while (n) {
+   660→  1560→    parts.unshift({ id: n.id, name: n.name });
+   661→  1561→    n = n.parentId ? fsNodes.get(n.parentId) : null;
+   662→  1562→  }
+   663→  1563→  return parts;
+   664→  1564→}
+   665→  1565→
+   666→  1566→function findNodeByPath(parts) {
+   667→  1567→  let cur = fsNodes.get('root');
+   668→  1568→  for (const p of parts) {
+   669→  1569→    if (!cur || !cur.children) return null;
+   670→  1570→    let found = null;
+   671→  1571→    for (const cid of cur.children) {
+   672→  1572→      const c = fsNodes.get(cid);
+   673→  1573→      if (c && c.name === p) { found = c; break; }
+   674→  1574→    }
+   675→  1575→    if (!found) return null;
+   676→  1576→    cur = found;
+   677→  1577→  }
+   678→  1578→  return cur ? cur.id : null;
+   679→  1579→}
+   680→  1580→
+   681→  1581→function isAncestor(ancestorId, nodeId) {
+   682→  1582→  let n = fsNodes.get(nodeId);
+   683→  1583→  while (n && n.parentId) {
+   684→  1584→    if (n.parentId === ancestorId) return true;
+   685→  1585→    n = fsNodes.get(n.parentId);
+   686→  1586→  }
+   687→  1587→  return false;
+   688→  1588→}
+   689→  1589→
+   690→  1590→function initFilesystem() {
+   691→  1591→  const root = createNode({ id: 'root', name: 'Computer', type: 'folder' });
+   692→  1592→  const home = createNode({ name: 'Home', type: 'folder', parentId: 'root', expanded: true });
+   693→  1593→  root.children.push(home.id);
+   694→  1594→
+   695→  1595→  const dashboardNode = { id: 'dashboard', name: 'Dashboard', type: 'dashboard', parentId: null };
+   696→  1596→  fsNodes.set('dashboard', dashboardNode);
+   697→  1597→
+   698→  1598→  const desktop   = createNode({ name: 'Desktop',   type: 'folder', parentId: home.id });
+   699→  1599→  const documents = createNode({ name: 'Documents', type: 'folder', parentId: home.id });
+   700→  1600→  const downloads = createNode({ name: 'Downloads', type: 'folder', parentId: home.id });
+   701→  1601→  const pictures  = createNode({ name: 'Pictures',  type: 'folder', parentId: home.id });
+   702→  1602→  const music     = createNode({ name: 'Music',     type: 'folder', parentId: home.id });
+   703→  1603→  const videos    = createNode({ name: 'Videos',    type: 'folder', parentId: home.id });
+   704→  1604→  const projects  = createNode({ name: 'Projects',  type: 'folder', parentId: home.id, expanded: true });
+   705→  1605→  const config    = createNode({ name: '.config',   type: 'folder', parentId: home.id });
+   706→  1606→
+   707→  1607→  home.children.push(desktop.id, documents.id, downloads.id, pictures.id, music.id, videos.id, projects.id, config.id);
+   708→  1608→
+   709→  1609→  // Documents
+   710→  1610→  const work = createNode({ name: 'Work', type: 'folder', parentId: documents.id });
+   711→  1611→  const personal = createNode({ name: 'Personal', type: 'folder', parentId: documents.id });
+   712→  1612→  const invoices = createNode({ name: 'Invoices', type: 'folder', parentId: documents.id });
+   713→  1613→  const q4Strategy = createNode({ name: 'Q4 Strategy', type: 'folder', parentId: work.id });
+   714→  1614→  work.children.push(q4Strategy.id);
+   715→  1615→  documents.children.push(work.id, personal.id, invoices.id);
+   716→  1616→
+   717→  1617→  documents.children.push(
+   718→  1618→    createNode({ name: 'resume.pdf',            type: 'pdf',     size: 248000,   parentId: documents.id }).id,
+   719→  1619→    createNode({ name: 'budget-2024.ods',       type: 'sheet',   size: 89200,    parentId: documents.id }).id,
+   720→  1620→    createNode({ name: 'meeting-notes.md',      type: 'text',    size: 4800,     parentId: documents.id }).id,
+   721→  1621→    createNode({ name: 'thesis-draft.docx',     type: 'doc',     size: 1842000, parentId: documents.id }).id,
+   722→  1622→    createNode({ name: 'reading-list.txt',      type: 'text',    size: 1200,    parentId: documents.id }).id,
+   723→  1623→    createNode({ name: 'lease-agreement.pdf',   type: 'pdf',     size: 512000,  parentId: documents.id }).id,
+   724→  1624→  );
+   725→  1625→
+   726→  1626→  personal.children.push(
+   727→  1627→    createNode({ name: 'journal.md',            type: 'text',    size: 18400,   parentId: personal.id }).id,
+   728→  1628→    createNode({ name: 'recipes.txt',           type: 'text',    size: 3200,    parentId: personal.id }).id,
+   729→  1629→    createNode({ name: 'trip-planning.ods',     type: 'sheet',   size: 42000,   parentId: personal.id }).id,
+   730→  1630→  );
+   731→  1631→
+   732→  1632→  // Downloads
+   733→  1633→  downloads.children.push(
+   734→  1634→    createNode({ name: 'ubuntu-24.04.iso',          type: 'generic', size: 4900000000, parentId: downloads.id }).id,
+   735→  1635→    createNode({ name: 'firefox-installer.deb',     type: 'generic', size: 62000000,   parentId: downloads.id }).id,
+   736→  1636→    createNode({ name: 'project-archive.zip',       type: 'archive', size: 184000000,  parentId: downloads.id }).id,
+   737→  1637→    createNode({ name: 'wallpapers-pack.tar.gz',    type: 'archive', size: 92000000,   parentId: downloads.id }).id,
+   738→  1638→    createNode({ name: 'backup-2024-03.borg',       type: 'archive', size: 2400000000, parentId: downloads.id }).id,
+   739→  1639→    createNode({ name: 'sublime-text_build.deb',     type: 'generic', size: 12000000,   parentId: downloads.id }).id,
+   740→  1640→    createNode({ name: 'vim-config.tar.gz',         type: 'archive', size: 38000,      parentId: downloads.id }).id,
+   741→  1641→  );
+   742→  1642→
+   743→  1643→  // Pictures
+   744→  1644→  const screenshots = createNode({ name: 'Screenshots', type: 'folder', parentId: pictures.id });
+   745→  1645→  const wallpapers  = createNode({ name: 'Wallpapers',   type: 'folder', parentId: pictures.id });
+   746→  1646→  const photos      = createNode({ name: 'Photos',       type: 'folder', parentId: pictures.id });
+   747→  1647→  pictures.children.push(screenshots.id, wallpapers.id, photos.id);
+   748→  1648→
+   749→  1649→  pictures.children.push(
+   750→  1650→    createNode({ name: 'aurora-night.png',      type: 'image', size: 4800000, parentId: pictures.id, meta: { w: 3840, h: 2160 } }).id,
+   751→  1651→    createNode({ name: 'mountain-vista.jpg',     type: 'image', size: 3200000, parentId: pictures.id, meta: { w: 3840, h: 2160 } }).id,
+   752→  1652→    createNode({ name: 'portrait-001.jpg',       type: 'image', size: 2800000, parentId: pictures.id, meta: { w: 1080, h: 1620 } }).id,
+   753→  1653→  );
+   754→  1654→
+   755→  1655→  screenshots.children.push(
+   756→  1656→    createNode({ name: 'screenshot-001.png', type: 'image', size: 380000, parentId: screenshots.id }).id,
+   757→  1657→    createNode({ name: 'screenshot-002.png', type: 'image', size: 420000, parentId: screenshots.id }).id,
+   758→  1658→    createNode({ name: 'screenshot-003.png', type: 'image', size: 510000, parentId: screenshots.id }).id,
+   759→  1659→    createNode({ name: 'screenshot-004.png', type: 'image', size: 460000, parentId: screenshots.id }).id,
+   760→  1660→  );
+   761→  1661→
+   762→  1662→  wallpapers.children.push(
+   763→  1663→    createNode({ name: 'gradient-mist.jpg',  type: 'image', size: 1800000, parentId: wallpapers.id }).id,
+   764→  1664→    createNode({ name: 'minimal-dark.png',    type: 'image', size: 2100000, parentId: wallpapers.id }).id,
+   765→  1665→    createNode({ name: 'forest-calm.jpg',     type: 'image', size: 3400000, parentId: wallpapers.id }).id,
+   766→  1666→    createNode({ name: 'desert-dusk.jpg',     type: 'image', size: 2900000, parentId: wallpapers.id }).id,
+   767→  1667→  );
+   768→  1668→
+   769→  1669→  // Music
+   770→  1670→  const playlists = createNode({ name: 'Playlists', type: 'folder', parentId: music.id });
+   771→  1671→  music.children.push(playlists.id);
+   772→  1672→  music.children.push(
+   773→  1673→    createNode({ name: 'ambient-mix.mp3',        type: 'audio', size: 8400000,  parentId: music.id }).id,
+   774→  1674→    createNode({ name: 'podcast-ep42.ogg',       type: 'audio', size: 32000000, parentId: music.id }).id,
+   775→  1675→    createNode({ name: 'live-recording.flac',    type: 'audio', size: 28000000, parentId: music.id }).id,
+   776→  1676→    createNode({ name: 'symphony-no9.flac',      type: 'audio', size: 42000000, parentId: music.id }).id,
+   777→  1677→  );
+   778→  1678→
+   779→  1679→  // Videos
+   780→  1680→  videos.children.push(
+   781→  1681→    createNode({ name: 'conference-talk.mp4',  type: 'video', size: 480000000, parentId: videos.id }).id,
+   782→  1682→    createNode({ name: 'screen-recording.mkv', type: 'video', size: 184000000, parentId: videos.id }).id,
+   783→  1683→    createNode({ name: 'holiday-clip.mov',     type: 'video', size: 920000000, parentId: videos.id }).id,
+   784→  1684→  );
+   785→  1685→
+   786→  1686→  // Projects
+   787→  1687→  const webApp  = createNode({ name: 'web-app',   type: 'folder', parentId: projects.id, expanded: true });
+   788→  1688→  const dotfiles = createNode({ name: 'dotfiles', type: 'folder', parentId: projects.id });
+   789→  1689→  const cliTool = createNode({ name: 'cli-tool', type: 'folder', parentId: projects.id });
+   790→  1690→  projects.children.push(webApp.id, dotfiles.id, cliTool.id);
+   791→  1691→
+   792→  1692→  const srcDir = createNode({ name: 'src', type: 'folder', parentId: webApp.id, expanded: true });
+   793→  1693→  webApp.children.push(srcDir.id);
+   794→  1694→  webApp.children.push(
+   795→  1695→    createNode({ name: 'package.json',  type: 'code', size: 1200, parentId: webApp.id }).id,
+   796→  1696→    createNode({ name: 'README.md',     type: 'text', size: 3400, parentId: webApp.id }).id,
+   797→  1697→    createNode({ name: 'tsconfig.json', type: 'code', size: 580,  parentId: webApp.id }).id,
+   798→  1698→    createNode({ name: 'vite.config.ts', type: 'code', size: 820, parentId: webApp.id }).id,
+   799→  1699→  );
+   800→  1700→  srcDir.children.push(
+   801→  1701→    createNode({ name: 'index.ts',   type: 'code', size: 4200, parentId: srcDir.id }).id,
+   802→  1702→    createNode({ name: 'app.tsx',    type: 'code', size: 8900, parentId: srcDir.id }).id,
+   803→  1703→    createNode({ name: 'utils.ts',   type: 'code', size: 2100, parentId: srcDir.id }).id,
+   804→  1704→    createNode({ name: 'styles.css', type: 'code', size: 3400, parentId: srcDir.id }).id,
+   805→  1705→  );
+   806→  1706→
+   807→  1707→  dotfiles.children.push(
+   808→  1708→    createNode({ name: '.bashrc',     type: 'code', size: 4200, parentId: dotfiles.id }).id,
+   809→  1709→    createNode({ name: '.gitconfig',  type: 'code', size: 320,  parentId: dotfiles.id }).id,
+   810→  1710→    createNode({ name: '.tmux.conf',  type: 'code', size: 1800, parentId: dotfiles.id }).id,
+   811→  1711→  );
+   812→  1712→
+   813→  1713→  // Desktop
+   814→  1714→  desktop.children.push(
+   815→  1715→    createNode({ name: 'README.txt',       type: 'text', size: 480, parentId: desktop.id }).id,
+   816→  1716→    createNode({ name: 'project-links.url', type: 'generic', size: 120, parentId: desktop.id }).id,
+   817→  1717→    createNode({ name: 'screenshot.png',   type: 'image', size: 280000, parentId: desktop.id }).id,
+   818→  1718→  );
+   819→  1719→
+   820→  1720→  // Config
+   821→  1721→  config.children.push(
+   822→  1722→    createNode({ name: 'nvim',  type: 'folder', parentId: config.id }).id,
+   823→  1723→    createNode({ name: 'fish',  type: 'folder', parentId: config.id }).id,
+   824→  1724→    createNode({ name: 'gitconfig', type: 'code', size: 320, parentId: config.id }).id,
+   825→  1725→  );
+   826→  1726→
+   827→  1727→  return home;
+   828→  1728→}
+   829→  1729→
+   830→  1730→// ============================================================
+   831→  1731→//  Application State
+   832→  1732→// ============================================================
+   833→  1733→
+   834→  1734→const state = {
+   835→  1735→  homeId: null,
+   836→  1736→  dashboardId: 'dashboard',
+   837→  1737→  tabs: [],
+   838→  1738→  activeTabId: null,
+   839→  1739→  clipboard: null,
+   840→  1740→  selection: new Set(),
+   841→  1741→  sortBy: 'name',
+   842→  1742→  sortDir: 'asc',
+   843→  1743→  viewMode: 'grid',
+   844→  1744→  searchQuery: '',
+   845→  1745→  sidebarWidth: 264,
+   846→  1746→  nextTabId: 1,
+   847→  1747→  widgets: {
+   848→  1748→    imageGallery: { visible: true, orientation: 'vertical' }
+   849→  1749→  }
+   850→  1750→};
+   851→  1751→
+   852→  1752→// ============================================================
+   853→  1753→//  Tab Management
+   854→  1754→// ============================================================
+   855→  1755→
+   856→  1756→function createTab(nodeId) {
+   857→  1757→  const tabId = 't' + (state.nextTabId++);
+   858→  1758→  const tab = {
+   859→  1759→    id: tabId,
+   860→  1760→    nodeId: nodeId,
+   861→  1761→    history: [nodeId],
+   862→  1762→    historyIdx: 0,
+   863→  1763→    selectedIds: new Set(),
+   864→  1764→  };
+   865→  1765→  state.tabs.push(tab);
+   866→  1766→  state.activeTabId = tabId;
+   867→  1767→  return tab;
+   868→  1768→}
+   869→  1769→
+   870→  1770→function getActiveTab() {
+   871→  1771→  return state.tabs.find(t => t.id === state.activeTabId);
+   872→  1772→}
+   873→  1773→
+   874→  1774→function switchTab(tabId) {
+   875→  1775→  state.activeTabId = tabId;
+   876→  1776→  const tab = getActiveTab();
+   877→  1777→  if (tab) {
+   878→  1778→    state.selection = tab.selectedIds;
+   879→  1779→    state.searchQuery = '';
+   880→  1780→    document.getElementById('searchInput').value = '';
+   881→  1781→    renderAll();
+   882→  1782→  }
+   883→  1783→}
+   884→  1784→
+   885→  1785→function closeTab(tabId) {
+   886→  1786→  const idx = state.tabs.findIndex(t => t.id === tabId);
+   887→  1787→  if (idx < 0) return;
+   888→  1788→  state.tabs.splice(idx, 1);
+   889→  1789→  if (state.tabs.length === 0) {
+   890→  1790→    createTab(state.dashboardId);
+   891→  1791→  } else if (state.activeTabId === tabId) {
+   892→  1792→    const newTab = state.tabs[Math.min(idx, state.tabs.length - 1)];
+   893→  1793→    state.activeTabId = newTab.id;
+   894→  1794→    state.selection = newTab.selectedIds;
+   895→  1795→  }
+   896→  1796→  renderAll();
+   897→  1797→}
+   898→  1798→
+   899→  1799→function navigateTo(nodeId) {
+   900→  1800→  const tab = getActiveTab();
+   901→
+   902→[showing lines 901-1800 of 3593; use offset=1801 with limit to continue reading]

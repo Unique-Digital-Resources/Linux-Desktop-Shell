@@ -1,0 +1,1975 @@
+     1→<!DOCTYPE html>
+     2→<html lang="en">
+     3→<head>
+     4→<meta charset="UTF-8">
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0">
+     6→<title>caelestia · wayland shell</title>
+     7→<link rel="preconnect" href="https://fonts.googleapis.com">
+     8→<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     9→<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    10→<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    11→<style>
+    12→/* ════════════════════════════════════════════════════════════
+    13→   DESIGN TOKENS
+    14→   ════════════════════════════════════════════════════════════ */
+    15→:root {
+    16→  --accent:        #b4a0ff;
+    17→  --accent-strong: #8b6fff;
+    18→  --accent-light:  #d4c8ff;
+    19→  --accent-glow:   rgba(180,160,255,0.35);
+    20→
+    21→  --tint-1: rgba(180,160,255,0.045);
+    22→  --tint-2: rgba(180,160,255,0.08);
+    23→  --tint-3: rgba(180,160,255,0.14);
+    24→  --tint-4: rgba(180,160,255,0.22);
+    25→  --tint-5: rgba(180,160,255,0.30);
+    26→
+    27→  --text-1: #f0ecff;
+    28→  --text-2: #c5bfd8;
+    29→  --text-3: #837ca0;
+    30→  --text-4: #5a547a;
+    31→
+    32→  --surface-bar:   rgba(14, 10, 28, 0.65);
+    33→  --surface-pop:   rgba(20, 14, 36, 0.85);
+    34→  --surface-deep:  rgba(24, 18, 42, 0.96);
+    35→
+    36→  --border-1: rgba(180,160,255,0.08);
+    37→  --border-2: rgba(180,160,255,0.15);
+    38→  --border-3: rgba(180,160,255,0.28);
+    39→
+    40→  --r-xs: 5px;  --r-sm: 7px;  --r-md: 9px;  --r-lg: 11px;
+    41→  --r-xl: 13px; --r-2xl: 16px; --r-3xl: 20px; --r-pill: 999px;
+    42→
+    43→  --el-1: 0 1px 2px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.10);
+    44→  --el-2: 0 4px 14px rgba(0,0,0,0.26), 0 1px 4px rgba(0,0,0,0.14);
+    45→  --el-3: 0 14px 40px rgba(0,0,0,0.40), 0 3px 10px rgba(0,0,0,0.20);
+    46→  --el-4: 0 28px 64px rgba(0,0,0,0.52), 0 6px 18px rgba(0,0,0,0.28);
+    47→
+    48→  --ease:      cubic-bezier(0.32, 0.72, 0, 1);
+    49→  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+    50→  --d-fast: 0.13s; --d-med: 0.20s; --d-slow: 0.30s;
+    51→
+    52→  --bar-h: 48px;
+    53→  --icon-sm: 15px; --icon-md: 17px; --icon-lg: 22px;
+    54→  --stroke: 1.75;
+    55→}
+    56→
+    57→/* Light Mode Overrides */
+    58→body.light {
+    59→  --accent:        #6549e0;
+    60→  --accent-strong: #5034cc;
+    61→  --accent-light:  #7760ea;
+    62→  --accent-glow:   rgba(101, 73, 224, 0.25);
+    63→
+    64→  --tint-1: rgba(101, 73, 224, 0.04);
+    65→  --tint-2: rgba(101, 73, 224, 0.08);
+    66→  --tint-3: rgba(101, 73, 224, 0.14);
+    67→  --tint-4: rgba(101, 73, 224, 0.22);
+    68→  --tint-5: rgba(101, 73, 224, 0.30);
+    69→
+    70→  --text-1: #1a1530;
+    71→  --text-2: #45405e;
+    72→  --text-3: #6a6585;
+    73→  --text-4: #9a95b0;
+    74→
+    75→  --surface-bar:   rgba(245, 245, 252, 0.65);
+    76→  --surface-pop:   rgba(250, 250, 255, 0.88);
+    77→  --surface-deep:  rgba(255, 255, 255, 0.98);
+    78→
+    79→  --border-1: rgba(50, 30, 100, 0.06);
+    80→  --border-2: rgba(50, 30, 100, 0.12);
+    81→  --border-3: rgba(101, 73, 224, 0.3);
+    82→}
+    83→
+    84→*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    85→html, body {
+    86→  width: 100%; height: 100%; overflow: hidden;
+    87→  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    88→  color: var(--text-1); user-select: none;
+    89→  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    90→  background: #06040f; font-size: 14px;
+    91→  transition: background 0.4s var(--ease);
+    92→}
+    93→body.light { background: #f0f0f7; }
+    94→button { font-family: inherit; color: inherit; border: none; background: none; cursor: pointer; }
+    95→input { font-family: inherit; color: inherit; }
+    96→img { display: block; }
+    97→::selection { background: var(--tint-4); }
+    98→
+    99→.desktop { position: fixed; inset: 0; overflow: hidden; }
+   100→
+   101→/* ═══ WALLPAPER ═══ */
+   102→.wallpaper {
+   103→  position: absolute; inset: 0; z-index: 0;
+   104→  background:
+   105→    radial-gradient(ellipse 70% 55% at 22% 28%, rgba(95, 65, 180, 0.22), transparent 65%),
+   106→    radial-gradient(ellipse 55% 75% at 82% 78%, rgba(50, 35, 120, 0.28), transparent 60%),
+   107→    linear-gradient(160deg, #07051a 0%, #120d2c 45%, #080614 100%);
+   108→  transition: background 0.4s var(--ease);
+   109→}
+   110→body.light .wallpaper {
+   111→  background:
+   112→    radial-gradient(ellipse 70% 55% at 22% 28%, rgba(180, 160, 255, 0.35), transparent 65%),
+   113→    radial-gradient(ellipse 55% 75% at 82% 78%, rgba(120, 100, 200, 0.25), transparent 60%),
+   114→    linear-gradient(160deg, #e8e6f5 0%, #d8d4ef 45%, #f0f0f8 100%);
+   115→}
+   116→.wallpaper img {
+   117→  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0;
+   118→  transition: opacity 0.5s var(--ease);
+   119→}
+   120→.wallpaper::after {
+   121→  content: ''; position: absolute; inset: 0;
+   122→  background:
+   123→    radial-gradient(ellipse 90% 60% at 20% 25%, rgba(80, 55, 160, 0.10), transparent 60%),
+   124→    radial-gradient(ellipse 80% 70% at 85% 80%, rgba(35, 25, 85, 0.12), transparent 60%),
+   125→    linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 25%, transparent 70%, rgba(0,0,0,0.25) 100%);
+   126→  pointer-events: none;
+   127→}
+   128→body.light .wallpaper::after {
+   129→  background:
+   130→    radial-gradient(ellipse 90% 60% at 20% 25%, rgba(180, 160, 255, 0.20), transparent 60%),
+   131→    radial-gradient(ellipse 80% 70% at 85% 80%, rgba(120, 100, 200, 0.15), transparent 60%),
+   132→    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 25%, transparent 70%, rgba(255,255,255,0.15) 100%);
+   133→}
+   134→
+   135→/* ═══ MUSIC WIDGET ═══ */
+   136→.music-widget {
+   137→  position: absolute; top: 20px; right: 20px; z-index: 5;
+   138→  display: flex; align-items: center; gap: 11px;
+   139→  padding: 9px 16px 9px 9px;
+   140→  background: var(--surface-bar);
+   141→  border: 1px solid var(--border-1);
+   142→  border-radius: var(--r-xl);
+   143→  backdrop-filter: blur(22px) saturate(180%);
+   144→  -webkit-backdrop-filter: blur(22px) saturate(180%);
+   145→  box-shadow: var(--el-2), inset 0 1px 0 rgba(255,255,255,0.04);
+   146→  min-width: 260px;
+   147→  animation: fadeDown 0.6s var(--ease-soft) 0.15s both;
+   148→}
+   149→@keyframes fadeDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+   150→.album-art {
+   151→  width: 42px; height: 42px; border-radius: var(--r-md); flex-shrink: 0;
+   152→  background: linear-gradient(135deg, #b4a0ff 0%, #7c5fff 50%, #4a2bd9 100%);
+   153→  display: grid; place-items: center; color: rgba(255,255,255,0.88);
+   154→  box-shadow: 0 3px 10px rgba(124,95,255,0.32), inset 0 1px 0 rgba(255,255,255,0.22);
+   155→}
+   156→.album-art svg { width: 19px; height: 19px; }
+   157→.music-info { flex: 1; min-width: 0; }
+   158→.track-name { font-size: 12.5px; font-weight: 500; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   159→.artist-name { font-size: 10.5px; color: var(--text-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   160→.progress-bar { margin-top: 5px; height: 2px; background: var(--tint-2); border-radius: 1px; overflow: hidden; }
+   161→.progress-fill { height: 100%; border-radius: 1px; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); animation: progress 214s linear infinite; }
+   162→@keyframes progress { from { width: 0%; } to { width: 100%; } }
+   163→
+   164→/* ═══ TASKBAR (CUSTOM DOCK CONTAINER) ═══ */
+   165→#dock-container {
+   166→  position: absolute;
+   167→  bottom: 16px; left: 50%;
+   168→  transform: translateX(-50%);
+   169→  z-index: 15;
+   170→  display: flex; align-items: center;
+   171→  gap: 6px;
+   172→  height: var(--bar-h);
+   173→  padding: 4px 8px;
+   174→  background: var(--surface-bar);
+   175→  border: 1px solid var(--border-1);
+   176→  border-radius: var(--r-3xl);
+   177→  backdrop-filter: blur(30px) saturate(180%);
+   178→  -webkit-backdrop-filter: blur(30px) saturate(180%);
+   179→  box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 3px 8px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
+   180→  max-width: calc(100vw - 24px);
+   181→  animation: barRise 0.65s var(--ease-soft) both;
+   182→  transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), backdrop-filter 0.3s var(--ease), gap 0.3s var(--ease), padding 0.3s var(--ease);
+   183→}
+   184→@keyframes barRise { from { opacity: 0; transform: translateX(-50%) translateY(16px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+   185→
+   186→/* Disconnected Bar State */
+   187→#dock-container.disconnected {
+   188→  background: transparent;
+   189→  border: none;
+   190→  box-shadow: none;
+   191→  backdrop-filter: none;
+   192→  -webkit-backdrop-filter: none;
+   193→  padding: 0;
+   194→}
+   195→
+   196→/* Separators */
+   197→.separator {
+   198→  width: 1px;
+   199→  height: 24px;
+   200→  background: linear-gradient(180deg, transparent, var(--border-2) 30%, var(--border-2) 70%, transparent);
+   201→  flex-shrink: 0;
+   202→  transition: background 0.3s var(--ease);
+   203→}
+   204→#dock-container.disconnected .separator {
+   205→  background: transparent;
+   206→}
+   207→
+   208→/* Bar Groups (Wrappers for items) */
+   209→.bar-group {
+   210→  display: flex;
+   211→  align-items: center;
+   212→  gap: 4px;
+   213→  border-radius: var(--r-xl);
+   214→  transition: background 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), backdrop-filter 0.3s var(--ease), padding 0.3s var(--ease);
+   215→}
+   216→
+   217→/* Disconnected + In Box State (Each group in its own shell box) */
+   218→#dock-container.disconnected.in-box .bar-group {
+   219→  background: var(--surface-bar);
+   220→  border: 1px solid var(--border-1);
+   221→  box-shadow: 0 12px 32px rgba(0,0,0,0.42), 0 3px 8px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
+   222→  backdrop-filter: blur(30px) saturate(180%);
+   223→  -webkit-backdrop-filter: blur(30px) saturate(180%);
+   224→  padding: 4px 8px;
+   225→}
+   226→
+   227→/* App Icons */
+   228→.app-icon {
+   229→  display: flex; align-items: center; justify-content: center;
+   230→  width: 34px; height: 34px; border-radius: var(--r-md);
+   231→  color: var(--text-2);
+   232→  transition: background var(--d-fast) var(--ease), transform 0.08s var(--ease);
+   233→  position: relative; flex-shrink: 0;
+   234→}
+   235→.app-icon:hover { background: var(--tint-2); }
+   236→.app-icon:active { transform: scale(0.92); }
+   237→.app-icon img, .app-icon svg:not(.app-indicator):not([data-lucide]) {
+   238→  width: 20px; height: 20px; pointer-events: none;
+   239→}
+   240→.app-icon[data-lucide] i, .app-icon[data-lucide] svg {
+   241→  width: 18px; height: 18px; color: var(--text-2);
+   242→}
+   243→.app-icon.active { background: var(--tint-3); }
+   244→
+   245→/* AI Input Capsule */
+   246→.capsule-input-wrapper {
+   247→  display: flex; align-items: center; gap: 8px;
+   248→  padding: 0 12px;
+   249→  height: 34px;
+   250→  background: var(--tint-2);
+   251→  border: 1px solid var(--border-1);
+   252→  border-radius: 17px;
+   253→  transition: border-color var(--d-fast);
+   254→}
+   255→.capsule-input-wrapper:focus-within { border-color: var(--border-3); }
+   256→.capsule-input-wrapper svg { width: 14px; height: 14px; color: var(--accent-light); flex-shrink: 0; }
+   257→.capsule-input-wrapper input {
+   258→  background: transparent; border: none; outline: none;
+   259→  font-size: 12px; color: var(--text-1); width: 100px;
+   260→}
+   261→.capsule-input-wrapper input::placeholder { color: var(--text-3); }
+   262→
+   263→/* Firefox Indicator (SVG Ring) */
+   264→.app-indicator {
+   265→  position: absolute;
+   266→  top: -2px; left: -2px;
+   267→  width: 38px; height: 38px;
+   268→  pointer-events: none;
+   269→  transform: rotate(-90deg);
+   270→}
+   271→
+   272→/* Office Group */
+   273→.office-group {
+   274→  display: flex; gap: 2px;
+   275→  padding: 2px;
+   276→  background: var(--tint-1);
+   277→  border: 1px solid var(--border-1);
+   278→  border-radius: var(--r-lg);
+   279→}
+   280→.office-group .app-icon { width: 28px; height: 28px; border-radius: var(--r-sm); }
+   281→.office-group .app-icon img { width: 18px; height: 18px; }
+   282→
+   283→/* Workspace Widget */
+   284→.workspace-widget {
+   285→  display: flex; align-items: center; gap: 10px;
+   286→  padding: 4px 8px;
+   287→  background: var(--tint-1);
+   288→  border: 1px solid var(--border-1);
+   289→  border-radius: var(--r-lg);
+   290→}
+   291→
+   292→/* Layout Indicator */
+   293→.layout-box {
+   294→  width: 22px; height: 22px;
+   295→  border: 1px solid var(--text-3);
+   296→  border-radius: 4px;
+   297→  display: flex; padding: 2px; gap: 2px;
+   298→  cursor: pointer;
+   299→  transition: border-color var(--d-fast);
+   300→}
+   301→.layout-box:hover { border-color: var(--accent); }
+   302→.mini-win-container { display: flex; gap: 2px; width: 100%; height: 100%; }
+   303→.mini-float { flex-direction: row; }
+   304→.mini-stack { flex-direction: column; }
+   305→.m-win { flex: 1; background: var(--text-3); border-radius: 1px; opacity: 0.6; transition: var(--d-fast); }
+   306→.m-win.solid { background: var(--accent); opacity: 1; box-shadow: 0 0 4px var(--accent-glow); }
+   307→
+   308→/* Theme Widget */
+   309→.theme-widget { position: relative; display: flex; align-items: center; gap: 6px; }
+   310→.theme-dock-controls { display: flex; gap: 4px; align-items: center; }
+   311→
+   312→.theme-trigger-btn {
+   313→  width: 22px; height: 22px;
+   314→  border-radius: 6px;
+   315→  cursor: pointer;
+   316→  border: 1px solid var(--border-2);
+   317→  transition: transform var(--d-fast);
+   318→  padding: 3px;
+   319→  display: grid;
+   320→  grid-template-columns: 1fr 1fr;
+   321→  grid-template-rows: 1fr 1fr;
+   322→  gap: 2px;
+   323→  overflow: hidden;
+   324→  flex-shrink: 0;
+   325→}
+   326→.theme-trigger-btn:hover { transform: scale(1.1); }
+   327→.color-dot { border-radius: 2px; width: 100%; height: 100%; }
+   328→
+   329→/* Vertical Custom Toggle Switch */
+   330→.custom-toggle {
+   331→  width: 16px; height: 28px;
+   332→  background: var(--tint-2);
+   333→  border: 1px solid var(--border-1);
+   334→  border-radius: 8px;
+   335→  position: relative;
+   336→  cursor: pointer;
+   337→  transition: background var(--d-med) var(--ease);
+   338→}
+   339→.custom-toggle.active { background: var(--accent); border-color: var(--accent); }
+   340→.custom-toggle-thumb {
+   341→  position: absolute; top: 1px; left: 1px;
+   342→  width: 12px; height: 12px;
+   343→  background: #fff;
+   344→  border-radius: 50%;
+   345→  display: grid; place-items: center;
+   346→  transition: top var(--d-med) var(--ease);
+   347→  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+   348→}
+   349→.custom-toggle.active .custom-toggle-thumb { top: 13px; }
+   350→.custom-toggle-thumb i, .custom-toggle-thumb svg {
+   351→  width: 9px; height: 9px;
+   352→  color: #999;
+   353→  transition: color var(--d-med);
+   354→}
+   355→.custom-toggle.active .custom-toggle-thumb i,
+   356→.custom-toggle.active .custom-toggle-thumb svg { color: var(--accent); }
+   357→
+   358→/* Theme Popup Menu */
+   359→.theme-popup-menu {
+   360→  position: absolute;
+   361→  bottom: calc(100% + 8px); right: 0;
+   362→  width: 200px;
+   363→  background: var(--surface-pop);
+   364→  border: 1px solid var(--border-2);
+   365→  border-radius: var(--r-lg);
+   366→  padding: 4px;
+   367→  display: none;
+   368→  flex-direction: column; gap: 2px;
+   369→  z-index: 100;
+   370→  box-shadow: var(--el-3);
+   371→  opacity: 0;
+   372→  transform: translateY(5px);
+   373→  transition: opacity var(--d-med), transform var(--d-med);
+   374→}
+   375→.theme-popup-menu.open { display: flex; opacity: 1; transform: translateY(0); }
+   376→.theme-item {
+   377→  display: flex; align-items: center; gap: 10px;
+   378→  padding: 6px;
+   379→  border-radius: var(--r-sm);
+   380→  cursor: pointer;
+   381→  transition: background var(--d-fast);
+   382→}
+   383→.theme-item:hover { background: var(--tint-2); }
+   384→.theme-item.active { background: var(--tint-3); }
+   385→.color-plate-preview {
+   386→  width: 24px; height: 24px;
+   387→  border-radius: 6px;
+   388→  overflow: hidden;
+   389→  padding: 4px;
+   390→  display: grid;
+   391→  grid-template-columns: 1fr 1fr;
+   392→  grid-template-rows: 1fr 1fr;
+   393→  gap: 2px;
+   394→  border: 1px solid var(--border-2);
+   395→  flex-shrink: 0;
+   396→}
+   397→.dots-grid { display: contents; }
+   398→.font-info-text { font-size: 10px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+   399→.theme-separator { width: 1px; height: 14px; background: var(--border-2); }
+   400→.theme-short-name { font-size: 12px; font-weight: 500; color: var(--text-1); }
+   401→
+   402→/* Workspace Dots */
+   403→.ws-dots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+   404→.ws-dot {
+   405→  width: 5px; height: 5px;
+   406→  border-radius: 50%;
+   407→  background: var(--text-4);
+   408→  transition: var(--d-fast);
+   409→  cursor: pointer;
+   410→}
+   411→.ws-dot:hover { background: var(--text-2); }
+   412→.ws-dot.active { background: var(--accent); box-shadow: 0 0 4px var(--accent-glow); }
+   413→
+   414→/* 2x2 Grid System Tray (Device States) */
+   415→.sys-tray-stacked {
+   416→  display: grid;
+   417→  grid-template-columns: 1fr 1fr;
+   418→  gap: 4px;
+   419→  padding: 5px 7px;
+   420→  height: 38px;
+   421→  width: 44px;
+   422→  border-radius: var(--r-md);
+   423→  color: var(--text-2);
+   424→  background: rgba(0, 0, 0, 0.2);
+   425→  transition: background var(--d-fast);
+   426→  place-items: center;
+   427→}
+   428→body.light .sys-tray-stacked { background: rgba(0, 0, 0, 0.05); }
+   429→.sys-tray-stacked:hover { background: rgba(0, 0, 0, 0.3); }
+   430→body.light .sys-tray-stacked:hover { background: rgba(0, 0, 0, 0.1); }
+   431→.sys-tray-stacked svg { width: 14px; height: 14px; stroke-width: 2; }
+   432→
+   433→/* Status Section (Globe State) */
+   434→.status-section {
+   435→  display: flex; align-items: center; justify-content: center; gap: 10px;
+   436→  padding: 4px 12px;
+   437→  height: 38px;
+   438→  border-radius: var(--r-md);
+   439→  cursor: pointer;
+   440→  background: rgba(0, 0, 0, 0.2);
+   441→  transition: background var(--d-fast);
+   442→}
+   443→body.light .status-section { background: rgba(0, 0, 0, 0.05); }
+   444→.status-section:hover { background: rgba(0, 0, 0, 0.3); }
+   445→body.light .status-section:hover { background: rgba(0, 0, 0, 0.1); }
+   446→.weather-icon-only { color: var(--accent-light); width: 24px; height: 24px; }
+   447→.vertical-separator { width: 1px; height: 24px; background: var(--border-2); }
+   448→.date-time { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+   449→.time { font-size: 12px; font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
+   450→.day { font-size: 10px; color: var(--text-2); }
+   451→.date { font-size: 9px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+   452→
+   453→/* ═══ TOOLTIPS ═══ */
+   454→[data-tip] { position: relative; }
+   455→[data-tip]::before {
+   456→  content: attr(data-tip); position: absolute;
+   457→  bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(3px);
+   458→  background: var(--surface-deep); border: 1px solid var(--border-2); color: var(--text-1);
+   459→  padding: 4px 8px; border-radius: var(--r-xs); font-size: 11px; font-weight: 500;
+   460→  white-space: nowrap; pointer-events: none; opacity: 0;
+   461→  transition: opacity var(--d-fast), transform var(--d-fast); z-index: 50;
+   462→  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--el-1);
+   463→}
+   464→[data-tip]:hover::before { opacity: 1; transform: translateX(-50%) translateY(0); transition-delay: 0.45s; }
+   465→
+   466→/* ═══ WINDOW ═══ */
+   467→.window {
+   468→  position: absolute; top: 50%; left: 50%;
+   469→  width: 720px; max-width: calc(100vw - 48px);
+   470→  height: 460px; max-height: calc(100vh - 120px);
+   471→  z-index: 12;
+   472→  background: var(--surface-pop); border: 1px solid var(--border-2); border-radius: var(--r-xl);
+   473→  backdrop-filter: blur(36px) saturate(180%); -webkit-backdrop-filter: blur(36px) saturate(180%);
+   474→  box-shadow: var(--el-4), inset 0 1px 0 rgba(255,255,255,0.05);
+   475→  display: flex; flex-direction: column;
+   476→  opacity: 0; pointer-events: none; transform: translate(-50%, -50%) scale(0.96);
+   477→  transition: opacity var(--d-med) var(--ease), transform var(--d-med) var(--ease); overflow: hidden;
+   478→}
+   479→.window.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+   480→.titlebar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border-1); flex-shrink: 0; background: linear-gradient(180deg, rgba(255,255,255,0.025), transparent); }
+   481→.titlebar .title { flex: 1; display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--text-2); font-weight: 450; }
+   482→.titlebar .title img, .titlebar .title svg { width: 15px; height: 15px; }
+   483→.win-controls { display: flex; gap: 7px; }
+   484→.win-ctrl { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; transition: filter var(--d-fast); }
+   485→.win-ctrl:hover { filter: brightness(1.18); }
+   486→.win-ctrl.close { background: #ff5f57; } .win-ctrl.min { background: #febc2e; } .win-ctrl.max { background: #28c840; }
+   487→.window-content { flex: 1; display: grid; place-items: center; }
+   488→.window-content .placeholder { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--text-4); }
+   489→.window-content .placeholder svg { width: 42px; height: 42px; stroke-width: 1.2; }
+   490→.window-content .placeholder span { font-size: 11.5px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em; }
+   491→
+   492→/* ═══ POPOVER BASE ═══ */
+   493→.popover {
+   494→  position: absolute; z-index: 20;
+   495→  background: var(--surface-pop); border: 1px solid var(--border-2); border-radius: var(--r-xl);
+   496→  backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%);
+   497→  box-shadow: var(--el-3), inset 0 1px 0 rgba(255,255,255,0.04);
+   498→  opacity: 0; pointer-events: none; transform: translateY(8px) scale(0.97);
+   499→  transform-origin: bottom center;
+   500→  transition: opacity var(--d-med) var(--ease), transform var(--d-med) var(--ease);
+   501→}
+   502→.popover.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+   503→
+   504→.section-title { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; padding: 0 4px; margin-bottom: 8px; }
+   505→
+   506→/* ═══ START MENU ═══ */
+   507→.start-menu { width: 680px; height: 560px; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+   508→.start-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border-1); flex-shrink: 0; }
+   509→.start-tabs { display: flex; gap: 4px; }
+   510→.start-tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r-sm); font-size: 12px; font-weight: 500; color: var(--text-3); transition: all var(--d-fast); }
+   511→.start-tab:hover { background: var(--tint-2); color: var(--text-1); }
+   512→.start-tab.active { background: var(--tint-3); color: var(--text-1); box-shadow: inset 0 0 0 0.5px var(--border-2); }
+   513→.start-tab svg { width: 14px; height: 14px; }
+   514→
+   515→.start-header .search-box { width: 220px; margin-bottom: 0; padding: 6px 10px; background: var(--tint-2); border: 1px solid var(--border-1); }
+   516→.search-box { display: flex; align-items: center; gap: 8px; border-radius: var(--r-lg); transition: border-color var(--d-fast); }
+   517→.search-box:focus-within { border-color: var(--border-3); }
+   518→.search-box svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; }
+   519→.search-box input { flex: 1; background: transparent; border: none; outline: none; font-size: 12px; color: var(--text-1); }
+   520→.search-box input::placeholder { color: var(--text-4); }
+   521→
+   522→.start-body { flex: 1; overflow-y: auto; padding: 14px; }
+   523→.start-pane { display: none; height: 100%; }
+   524→.start-pane.active { display: block; animation: fadeIn 0.2s ease; }
+   525→@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+   526→
+   527→/* App Groups Mosaic Layout */
+   528→.app-groups-container {
+   529→  display: grid;
+   530→  grid-template-columns: repeat(6, 1fr);
+   531→  gap: 12px;
+   532→  align-items: start;
+   533→}
+   534→.app-group {
+   535→  background: var(--tint-1);
+   536→  border: 1px solid var(--border-1);
+   537→  border-radius: var(--r-lg);
+   538→  padding: 12px;
+   539→  display: flex;
+   540→  flex-direction: column;
+   541→  gap: 8px;
+   542→}
+   543→.app-group.span-2 { grid-column: span 2; }
+   544→.app-group.span-3 { grid-column: span 3; }
+   545→.app-group-title {
+   546→  font-size: 10.5px; font-weight: 500; color: var(--text-3);
+   547→  text-transform: uppercase; letter-spacing: 0.07em; padding-left: 4px;
+   548→}
+   549→.app-group-items { display: grid; gap: 4px; }
+   550→.app-group-items.layout-sq2 { grid-template-columns: repeat(2, 1fr); }
+   551→.app-group-items.layout-h3 { grid-template-columns: repeat(3, 1fr); }
+   552→.app-group-items.layout-v2 { grid-template-columns: 1fr; }
+   553→
+   554→.app-item {
+   555→  display: flex; flex-direction: column; align-items: center; gap: 6px;
+   556→  padding: 10px 4px; border-radius: var(--r-md);
+   557→  transition: background var(--d-fast); text-align: center;
+   558→}
+   559→.app-item:hover { background: var(--tint-2); }
+   560→.app-item img, .app-item svg { width: 28px; height: 28px; }
+   561→.app-item span { font-size: 11px; font-weight: 450; color: var(--text-2); }
+   562→.app-item-list {
+   563→  display: flex; flex-direction: row; align-items: center; gap: 10px;
+   564→  padding: 8px 10px; border-radius: var(--r-sm);
+   565→  transition: background var(--d-fast); text-align: left;
+   566→}
+   567→.app-item-list:hover { background: var(--tint-2); }
+   568→.app-item-list img, .app-item-list svg { width: 22px; height: 22px; }
+   569→.app-item-list span { font-size: 12px; font-weight: 450; color: var(--text-2); }
+   570→
+   571→.start-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--border-1); flex-shrink: 0; gap: 10px; }
+   572→.start-user-btn {
+   573→  display: flex; align-items: center; gap: 10px;
+   574→  padding: 6px 12px; border-radius: var(--r-md);
+   575→  background: rgba(0, 0, 0, 0.2);
+   576→  transition: background var(--d-fast);
+   577→  flex: 1;
+   578→}
+   579→body.light .start-user-btn { background: rgba(0, 0, 0, 0.05); }
+   580→.start-user-btn:hover { background: rgba(0, 0, 0, 0.3); }
+   581→body.light .start-user-btn:hover { background: rgba(0, 0, 0, 0.1); }
+   582→.start-user-btn img { width: 32px; height: 32px; border-radius: 50%; }
+   583→.start-user-info { display: flex; flex-direction: column; }
+   584→.start-user-name { font-size: 13px; font-weight: 500; color: var(--text-1); line-height: 1.2; }
+   585→.start-user-sub { font-size: 10.5px; font-weight: 400; color: var(--text-3); }
+   586→
+   587→.start-power { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-3); transition: all var(--d-fast); flex-shrink: 0; }
+   588→.start-power:hover { background: var(--tint-2); color: var(--text-1); }
+   589→.start-power svg { width: 16px; height: 16px; }
+   590→
+   591→/* ═══ SETTINGS PANE ═══ */
+   592→.settings-layout { display: flex; height: 100%; gap: 16px; }
+   593→.settings-nav { display: flex; flex-direction: column; gap: 2px; width: 160px; border-right: 1px solid var(--border-1); padding-right: 12px; flex-shrink: 0; }
+   594→.settings-tab { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-md); color: var(--text-3); font-size: 12px; transition: all var(--d-fast); text-align: left; }
+   595→.settings-tab:hover { background: var(--tint-2); color: var(--text-1); }
+   596→.settings-tab.active { background: var(--tint-3); color: var(--text-1); }
+   597→.settings-tab svg { width: 14px; height: 14px; }
+   598→
+   599→.settings-content { flex: 1; overflow-y: auto; padding-right: 4px; }
+   600→.settings-pane { display: none; flex-direction: column; gap: 14px; }
+   601→.settings-pane.active { display: flex; animation: fadeIn 0.2s ease; }
+   602→.settings-box { background: var(--tint-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+   603→.settings-box-title { font-size: 13px; font-weight: 600; color: var(--text-1); }
+   604→
+   605→.theme-settings-layout { display: grid; grid-template-columns: 160px 1fr; gap: 16px; }
+   606→.installed-themes-list { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--border-1); padding-right: 12px; }
+   607→.settings-theme-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--r-sm); cursor: pointer; transition: background var(--d-fast); }
+   608→.settings-theme-item:hover { background: var(--tint-2); }
+   609→.settings-theme-item.active { background: var(--tint-3); }
+   610→.settings-theme-item .color-plate-preview { width: 20px; height: 20px; padding: 3px; }
+   611→.settings-theme-item .theme-short-name { font-size: 11.5px; }
+   612→
+   613→.theme-config { display: flex; flex-direction: column; gap: 12px; }
+   614→.theme-wallpaper {
+   615→  width: 100%;
+   616→  height: 120px;
+   617→  object-fit: cover;
+   618→  border-radius: var(--r-md);
+   619→  border: 1px solid var(--border-1);
+   620→  background: var(--surface-deep);
+   621→}
+   622→.mode-tabs { display: flex; gap: 2px; padding: 3px; background: var(--tint-2); border-radius: var(--r-md); align-self: flex-start; }
+   623→.mode-tab { padding: 5px 14px; border-radius: var(--r-sm); font-size: 11px; font-weight: 500; color: var(--text-3); display: flex; align-items: center; gap: 6px; transition: all var(--d-fast); }
+   624→.mode-tab.active { background: var(--surface-pop); color: var(--text-1); box-shadow: var(--el-1); }
+   625→.mode-tab svg { width: 12px; height: 12px; }
+   626→
+   627→.mode-content { display: none; flex-direction: column; gap: 12px; }
+   628→.mode-content.active { display: flex; }
+   629→.config-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-1); gap: 10px; }
+   630→.config-row:last-child { border-bottom: none; }
+   631→.config-label { font-size: 11.5px; color: var(--text-2); font-weight: 500; }
+   632→.config-value { font-size: 11.5px; color: var(--text-1); font-weight: 400; display: flex; align-items: center; gap: 6px; }
+   633→.config-value svg { width: 12px; height: 12px; color: var(--text-3); }
+   634→.palette-display { display: flex; gap: 4px; }
+   635→.palette-color { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border-2); }
+   636→
+   637→/* Bar Settings Config */
+   638→.bar-side-tabs { display: flex; gap: 2px; padding: 3px; background: var(--tint-2); border-radius: var(--r-md); width: fit-content; }
+   639→.bar-side-tab { padding: 5px 14px; border-radius: var(--r-sm); font-size: 11px; font-weight: 500; color: var(--text-3); transition: all var(--d-fast); }
+   640→.bar-side-tab.active { background: var(--surface-pop); color: var(--text-1); box-shadow: var(--el-1); }
+   641→.bar-config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+   642→.config-group { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface-bar); border-radius: var(--r-md); border: 1px solid var(--border-1); }
+   643→.config-group-title { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+   644→.mini-slider { flex: 1; height: 4px; background: var(--tint-2); border-radius: 2px; position: relative; margin: 0 10px; cursor: pointer; }
+   645→.mini-slider-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+   646→.mini-slider-thumb {
+   647→  position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%;
+   648→  top: 50%; left: 30%; transform: translate(-50%, -50%);
+   649→  box-shadow: 0 1px 2px rgba(0,0,0,0.2); pointer-events: none;
+   650→}
+   651→.mini-val { font-size: 11px; color: var(--text-3); width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+   652→.settings-toggle { width: 32px; height: 18px; background: var(--tint-2); border-radius: 9px; position: relative; cursor: pointer; transition: background var(--d-fast); flex-shrink: 0; }
+   653→.settings-toggle.active { background: var(--accent); }
+   654→.settings-toggle-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left var(--d-fast); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+   655→.settings-toggle.active .settings-toggle-thumb { left: 16px; }
+   656→.config-row-check { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 11.5px; color: var(--text-3); cursor: pointer; transition: color var(--d-fast); }
+   657→.config-row-check svg { width: 14px; height: 14px; color: var(--text-4); transition: var(--d-fast); }
+   658→.config-row-check.active { color: var(--text-1); }
+   659→.config-row-check.active svg { color: var(--accent); }
+   660→
+   661→/* ═══ WIDGETS PANE ═══ */
+   662→.widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+   663→.widget { background: var(--tint-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+   664→.widget-head { font-size: 10.5px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; }
+   665→.widget-time .time-big { font-size: 36px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+   666→.widget-time .date-big { font-size: 12px; color: var(--text-2); }
+   667→.widget-weather .weather-body { display: flex; align-items: center; gap: 14px; }
+   668→.weather-icon { color: var(--accent-light); }
+   669→.weather-icon svg { width: 40px; height: 40px; }
+   670→.weather-temp { font-size: 28px; font-weight: 600; line-height: 1; }
+   671→.weather-cond { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+   672→.weather-loc { font-size: 10px; color: var(--text-4); margin-top: 2px; }
+   673→.widget-stats { gap: 8px; }
+   674→.stat-row { display: flex; align-items: center; gap: 10px; font-size: 11.5px; }
+   675→.stat-label { width: 36px; color: var(--text-3); font-weight: 500; }
+   676→.stat-bar { flex: 1; height: 5px; background: var(--tint-2); border-radius: 3px; overflow: hidden; }
+   677→.stat-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+   678→.stat-val { width: 38px; text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+   679→.widget-proc { gap: 6px; }
+   680→.proc-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 4px 0; border-bottom: 1px solid var(--border-1); }
+   681→.widget-proc .proc-row:last-child { border-bottom: none; }
+   682→.proc-row span:first-child { color: var(--text-2); }
+   683→.proc-row span:last-child { color: var(--text-3); font-variant-numeric: tabular-nums; }
+   684→.widget-music { grid-column: span 2; flex-direction: row; align-items: center; gap: 14px; }
+   685→.wm-art { width: 48px; height: 48px; border-radius: var(--r-md); background: linear-gradient(135deg, #b4a0ff, #7c5fff); flex-shrink: 0; }
+   686→.wm-info { flex: 1; min-width: 0; }
+   687→.wm-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   688→.wm-artist { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   689→.wm-controls { display: flex; gap: 4px; flex-shrink: 0; }
+   690→.wm-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-2); transition: all var(--d-fast); }
+   691→.wm-btn:hover { background: var(--tint-2); color: var(--text-1); }
+   692→.wm-btn.play { background: var(--tint-3); color: var(--accent-light); }
+   693→.wm-btn svg { width: 16px; height: 16px; }
+   694→
+   695→/* ═══ QUICK SETTINGS ═══ */
+   696→.qs-panel { width: 300px; padding: 14px; }
+   697→.qs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+   698→.qs-date { font-size: 12px; font-weight: 500; color: var(--text-1); font-variant-numeric: tabular-nums; }
+   699→.qs-settings-btn { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-3); transition: all var(--d-fast); }
+   700→.qs-settings-btn:hover { background: var(--tint-2); color: var(--text-1); }
+   701→.qs-settings-btn svg { width: 15px; height: 15px; }
+   702→
+   703→.qs-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+   704→.qs-tile { display: flex; align-items: center; gap: 9px; padding: 10px 11px; border-radius: var(--r-lg); background: var(--tint-1); border: 1px solid var(--border-1); transition: all var(--d-fast) var(--ease); text-align: left; position: relative; }
+   705→.qs-tile:hover { background: var(--tint-2); }
+   706→.qs-tile.active { background: var(--tint-3); border-color: var(--border-3); }
+   707→.qs-tile-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--tint-2); color: var(--text-3); flex-shrink: 0; transition: all var(--d-fast); }
+   708→.qs-tile.active .qs-tile-icon { background: var(--accent); color: #fff; box-shadow: 0 2px 6px var(--accent-glow); }
+   709→.qs-tile-icon svg { width: 15px; height: 15px; stroke-width: 2; }
+   710→.qs-tile-body { flex: 1; min-width: 0; }
+   711→.qs-tile-label { font-size: 11.5px; font-weight: 500; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   712→.qs-tile.active .qs-tile-label { color: var(--text-1); }
+   713→.qs-tile-sub { font-size: 10px; color: var(--text-4); margin-top: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   714→.qs-tile.active .qs-tile-sub { color: var(--text-3); }
+   715→
+   716→.qs-sliders { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+   717→.slider-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-lg); transition: background var(--d-fast); }
+   718→.slider-row:hover { background: var(--tint-1); }
+   719→.slider-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--text-2); flex-shrink: 0; transition: all var(--d-fast); }
+   720→.slider-icon:hover { background: var(--tint-2); color: var(--text-1); }
+   721→.slider-icon svg { width: 16px; height: 16px; stroke-width: 1.85; }
+   722→
+   723→.slider { flex: 1; height: 5px; background: var(--tint-2); border-radius: 3px; position: relative; cursor: pointer; }
+   724→.slider-fill { height: 100%; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); border-radius: 3px; width: 60%; box-shadow: 0 0 6px var(--accent-glow); }
+   725→.slider-thumb { position: absolute; width: 13px; height: 13px; background: #fff; border-radius: 50%; top: 50%; left: 60%; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(180,160,255,0.3); pointer-events: none; transition: transform 0.1s, box-shadow var(--d-fast); }
+   726→.slider:hover .slider-thumb { transform: translate(-50%, -50%) scale(1.18); box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 0 0 2px var(--accent-glow); }
+   727→.slider-value { font-size: 11px; font-weight: 500; color: var(--text-2); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+   728→
+   729→.qs-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 2px; border-top: 1px solid var(--border-1); }
+   730→.qs-battery { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text-2); font-weight: 450; }
+   731→.qs-battery svg { width: 16px; height: 16px; color: var(--text-2); }
+   732→.qs-battery-time { color: var(--text-4); font-size: 10.5px; }
+   733→
+   734→/* ═══ CALENDAR & WEATHER POPOVER ═══ */
+   735→.cal-pop { width: 460px; padding: 0; overflow: hidden; }
+   736→.cal-split-layout { display: flex; align-items: stretch; height: 100%; }
+   737→.cal-weather-side { width: 150px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+   738→.weather-icon-lg { color: var(--accent-light); margin-bottom: 4px; }
+   739→.weather-icon-lg svg { width: 56px; height: 56px; }
+   740→.cw-temp { font-size: 28px; font-weight: 600; color: var(--text-1); line-height: 1; }
+   741→.cw-cond { font-size: 12px; color: var(--text-2); }
+   742→.cw-loc { font-size: 11px; color: var(--text-3); }
+   743→
+   744→.cal-vertical-bar { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px; border-left: 1px solid var(--border-1); border-right: 1px solid var(--border-1); gap: 6px; font-size: 10px; font-weight: 600; color: var(--text-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+   745→.vbar-sep { width: 12px; height: 1px; background: var(--border-2); margin: 2px 0; }
+   746→
+   747→.cal-cal-side { flex: 1; padding: 16px; }
+   748→.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+   749→.cal-month { font-size: 12.5px; font-weight: 550; color: var(--text-1); }
+   750→.cal-nav { display: flex; gap: 2px; }
+   751→.cal-nav-btn { width: 26px; height: 26px; display: grid; place-items: center; border-radius: var(--r-xs); color: var(--text-3); transition: all var(--d-fast); }
+   752→.cal-nav-btn:hover { background: var(--tint-2); color: var(--text-1); }
+   753→.cal-nav-btn svg { width: 14px; height: 14px; }
+   754→.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+   755→.cal-day-head { text-align: center; font-size: 10px; font-weight: 500; color: var(--text-4); padding: 4px 0; text-transform: uppercase; letter-spacing: 0.04em; }
+   756→.cal-day { aspect-ratio: 1; display: grid; place-items: center; font-size: 11.5px; font-weight: 450; color: var(--text-2); border-radius: var(--r-sm); transition: all var(--d-fast); cursor: pointer; }
+   757→.cal-day:hover:not(.empty) { background: var(--tint-2); }
+   758→.cal-day.other { color: var(--text-4); }
+   759→.cal-day.today { background: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 2px 6px var(--accent-glow); }
+   760→.cal-day.empty { cursor: default; }
+   761→
+   762→::-webkit-scrollbar { width: 5px; height: 5px; }
+   763→::-webkit-scrollbar-track { background: transparent; }
+   764→::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+   765→::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+   766→
+   767→@media (max-width: 1100px) {
+   768→  .capsule-input-wrapper input { width: 60px; }
+   769→  #dock-container { gap: 4px; padding: 4px 6px; }
+   770→}
+   771→@media (max-width: 900px) {
+   772→  .capsule-input-wrapper { display: none; }
+   773→  .music-widget { min-width: 230px; }
+   774→}
+   775→@media (max-width: 780px) {
+   776→  .office-group { display: none; }
+   777→  .music-widget { display: none; }
+   778→  .start-menu { width: calc(100vw - 20px); height: calc(100vh - 100px); }
+   779→  .settings-layout { flex-direction: column; }
+   780→  .settings-nav { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid var(--border-1); padding-right: 0; padding-bottom: 12px; overflow-x: auto; }
+   781→}
+   782→@media (max-width: 640px) {
+   783→  .workspace-widget { display: none; }
+   784→  .status-section .date-time .day, .status-section .date-time .date { display: none; }
+   785→  .cal-pop { width: 320px; }
+   786→  .cal-weather-side { display: none; }
+   787→  .cal-vertical-bar { display: none; }
+   788→  .app-groups-container { grid-template-columns: repeat(2, 1fr); }
+   789→  .app-group.span-2, .app-group.span-3 { grid-column: span 2; }
+   790→  .theme-settings-layout { grid-template-columns: 1fr; }
+   791→  .installed-themes-list { border-right: none; border-bottom: 1px solid var(--border-1); padding-right: 0; padding-bottom: 12px; }
+   792→  .bar-config-grid { grid-template-columns: 1fr; }
+   793→}
+   794→@media (max-width: 540px) {
+   795→  #dock-container { width: calc(100vw - 20px); border-radius: var(--r-2xl); justify-content: center; }
+   796→  .widgets-grid { grid-template-columns: 1fr; }
+   797→}
+   798→
+   799→@media (prefers-reduced-motion: reduce) {
+   800→  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+   801→}
+   802→</style>
+   803→</head>
+   804→<body>
+   805→
+   806→<div class="desktop">
+   807→  <div class="wallpaper">
+   808→    <img id="wallpaperImg" src="" alt="" onerror="this.style.opacity='0'">
+   809→  </div>
+   810→
+   811→  <aside class="music-widget">
+   812→    <div class="album-art">
+   813→      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+   814→    </div>
+   815→    <div class="music-info">
+   816→      <div class="track-name">Outro</div>
+   817→      <div class="artist-name">M83 — Hurry Up, We're Dreaming</div>
+   818→      <div class="progress-bar"><div class="progress-fill"></div></div>
+   819→    </div>
+   820→  </aside>
+   821→
+   822→  <div class="window" id="appWindow" role="dialog" aria-modal="true">
+   823→    <div class="titlebar">
+   824→      <div class="title">
+   825→        <img id="winIcon" src="" alt="" style="display:none">
+   826→        <span id="winTitle">Application</span>
+   827→      </div>
+   828→      <div class="win-controls">
+   829→        <button class="win-ctrl min" aria-label="Minimize"></button>
+   830→        <button class="win-ctrl max" aria-label="Maximize"></button>
+   831→        <button class="win-ctrl close" id="closeWindow" aria-label="Close"></button>
+   832→      </div>
+   833→    </div>
+   834→    <div class="window-content">
+   835→      <div class="placeholder">
+   836→        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+   837→        <span>empty workspace</span>
+   838→      </div>
+   839→    </div>
+   840→  </div>
+   841→
+   842→  <!-- ═══ START MENU ═══ -->
+   843→  <div class="popover start-menu" id="launcherPop">
+   844→    <div class="start-header">
+   845→      <div class="start-tabs">
+   846→        <button class="start-tab active" data-tab="apps"><i data-lucide="grid"></i> Apps</button>
+   847→        <button class="start-tab" data-tab="widgets"><i data-lucide="layout-dashboard"></i> Widgets</button>
+   848→        <button class="start-tab" data-tab="settings"><i data-lucide="settings"></i> Settings</button>
+   849→      </div>
+   850→      <div class="search-box">
+   851→        <i data-lucide="search"></i>
+   852→        <input type="text" id="searchInput" placeholder="Search..." autocomplete="off">
+   853→      </div>
+   854→    </div>
+   855→    <div class="start-body">
+   856→      <div class="start-pane active" id="pane-apps">
+   857→        <div class="app-groups-container">
+   858→          <!-- Row 1: Three 2x2 Squares -->
+   859→          <div class="app-group span-2">
+   860→            <div class="app-group-title">Internet</div>
+   861→            <div class="app-group-items layout-sq2">
+   862→              <button class="app-item" data-app="firefox" data-name="Firefox"><img src="https://cdn.simpleicons.org/firefox" alt=""><span>Firefox</span></button>
+   863→              <button class="app-item" data-app="discord" data-name="Discord"><img src="https://cdn.simpleicons.org/discord" alt=""><span>Discord</span></button>
+   864→              <button class="app-item" data-app="telegram" data-name="Telegram"><img src="https://cdn.simpleicons.org/telegram" alt=""><span>Telegram</span></button>
+   865→              <button class="app-item" data-app="slack" data-name="Slack"><img src="https://cdn.simpleicons.org/slack" alt=""><span>Slack</span></button>
+   866→            </div>
+   867→          </div>
+   868→          <div class="app-group span-2">
+   869→            <div class="app-group-title">Development</div>
+   870→            <div class="app-group-items layout-sq2">
+   871→              <button class="app-item" data-app="code" data-name="VS Code"><img src="https://cdn.simpleicons.org/vscode" alt=""><span>VS Code</span></button>
+   872→              <button class="app-item" data-app="terminal" data-name="Terminal"><i data-lucide="terminal-square"></i><span>Terminal</span></button>
+   873→              <button class="app-item" data-app="docker" data-name="Docker"><img src="https://cdn.simpleicons.org/docker" alt=""><span>Docker</span></button>
+   874→              <button class="app-item" data-app="github" data-name="GitHub"><img src="https://cdn.simpleicons.org/github" alt=""><span>GitHub</span></button>
+   875→            </div>
+   876→          </div>
+   877→          <div class="app-group span-2">
+   878→            <div class="app-group-title">Graphics</div>
+   879→            <div class="app-group-items layout-sq2">
+   880→              <button class="app-item" data-app="gimp" data-name="GIMP"><img src="https://cdn.simpleicons.org/gimp" alt=""><span>GIMP</span></button>
+   881→              <button class="app-item" data-app="inkscape" data-name="Inkscape"><img src="https://cdn.simpleicons.org/inkscape" alt=""><span>Inkscape</span></button>
+   882→              <button class="app-item" data-app="blender" data-name="Blender"><img src="https://cdn.simpleicons.org/blender" alt=""><span>Blender</span></button>
+   883→              <button class="app-item" data-app="figma" data-name="Figma"><img src="https://cdn.simpleicons.org/figma" alt=""><span>Figma</span></button>
+   884→            </div>
+   885→          </div>
+   886→
+   887→          <!-- Row 2: Two 1x3 Horizontals -->
+   888→          <div class="app-group span-3">
+   889→            <div class="app-group-title">Office</div>
+   890→            <div class="app-group-items layout-h3">
+   891→              <button class="app-item" data-app="writer" data-name="Writer"><img src="https://cdn.simpleicons.org/libreofficewriter" alt=""><span>Writer</span></button>
+   892→              <button class="app-item" data-app="calc" data-name="Calc"><img src="https://cdn.simpleicons.org/libreofficecalc" alt=""><span>Calc</span></button>
+   893→              <button class="app-item" data-app="impress" data-name="Impress"><img src="https://cdn.simpleicons.org/libreofficeimpress" alt=""><span>Impress</span></button>
+   894→            </div>
+   895→          </div>
+   896→          <div class="app-group span-3">
+   897→            <div class="app-group-title">Media</div>
+   898→            <div class="app-group-items layout-h3">
+   899→              <button class="app-item" data-app="spotify" data-name="Spotify"><img src="https://cdn.simpleicons.org/spotify" alt=""><span>Spotify</span></button>
+   900→              <button class="app-item" data-app="obs" data-name="OBS"><img src="https://cdn.simpleicons.org/obsstudio" alt=""><span>OBS</span></button>
+   901→              <button class="app-item" data-app="vlc" data-name="VLC"><img src="https://cdn.simpleicons.org/vlc" alt=""><span>VLC</span></button>
+   902→            </div>
+   903→          </div>
+   904→
+   905→          <!-- Row 3: Three 2x1 Verticals -->
+   906→          <div class="app-group span-2">
+   907→            <div class="app-group-title">System</div>
+   908→            <div class="app-group-items layout-v2">
+   909→              <button class="app-item app-item-list" data-app="settings" data-name="Settings"><i data-lucide="settings"></i><span>Settings</span></button>
+   910→              <button class="app-item app-item-list" data-app="files" data-name="Files"><i data-lucide="folder"></i><span>Files</span></button>
+   911→            </div>
+   912→          </div>
+   913→          <div class="app-group span-2">
+   914→            <div class="app-group-title">Utilities</div>
+   915→            <div class="app-group-items layout-v2">
+   916→              <button class="app-item app-item-list" data-app="calc_app" data-name="Calculator"><i data-lucide="calculator"></i><span>Calculator</span></button>
+   917→              <button class="app-item app-item-list" data-app="text_editor" data-name="Text Editor"><i data-lucide="file-text"></i><span>Text Editor</span></button>
+   918→            </div>
+   919→          </div>
+   920→          <div class="app-group span-2">
+   921→            <div class="app-group-title">Notes</div>
+   922→            <div class="app-group-items layout-v2">
+   923→              <button class="app-item app-item-list" data-app="obsidian" data-name="Obsidian"><img src="https://cdn.simpleicons.org/obsidian" alt=""><span>Obsidian</span></button>
+   924→              <button class="app-item app-item-list" data-app="notion" data-name="Notion"><img src="https://cdn.simpleicons.org/notion" alt=""><span>Notion</span></button>
+   925→            </div>
+   926→          </div>
+   927→        </div>
+   928→      </div>
+   929→      <div class="start-pane" id="pane-widgets">
+   930→        <div class="widgets-grid">
+   931→          <div class="widget widget-time">
+   932→            <div class="widget-head">Local Time</div>
+   933→            <div class="time-big" id="widgetTime">14:32</div>
+   934→            <div class="date-big" id="widgetDate">Thursday, 24 October</div>
+   935→          </div>
+   936→          <div class="widget widget-weather">
+   937→            <div class="widget-head">Weather</div>
+   938→            <div class="weather-body">
+   939→              <div class="weather-icon"><i data-lucide="cloud-sun"></i></div>
+   940→              <div class="weather-info">
+   941→                <div class="weather-temp">18°</div>
+   942→                <div class="weather-cond">Partly Cloudy</div>
+   943→                <div class="weather-loc">Reykjavík</div>
+   944→              </div>
+   945→            </div>
+   946→          </div>
+   947→          <div class="widget widget-stats">
+   948→            <div class="widget-head">System</div>
+   949→            <div class="stat-row"><span class="stat-label">CPU</span><div class="stat-bar"><div class="stat-fill" style="width: 24%"></div></div><span class="stat-val">24%</span></div>
+   950→            <div class="stat-row"><span class="stat-label">RAM</span><div class="stat-bar"><div class="stat-fill" style="width: 62%"></div></div><span class="stat-val">9.8G</span></div>
+   951→            <div class="stat-row"><span class="stat-label">DISK</span><div class="stat-bar"><div class="stat-fill" style="width: 41%"></div></div><span class="stat-val">205G</span></div>
+   952→          </div>
+   953→          <div class="widget widget-proc">
+   954→            <div class="widget-head">TopProcesses</div>
+   955→            <div class="proc-row"><span>firefox</span><span>12.4%</span></div>
+   956→            <div class="proc-row"><span>code</span><span>8.1%</span></div>
+   957→            <div class="proc-row"><span>node</span><span>4.2%</span></div>
+   958→            <div class="proc-row"><span>wayfire</span><span>2.1%</span></div>
+   959→          </div>
+   960→          <div class="widget widget-music">
+   961→            <div class="wm-art"></div>
+   962→            <div class="wm-info">
+   963→              <div class="wm-title">Outro</div>
+   964→              <div class="wm-artist">M83 — Hurry Up, We're Dreaming</div>
+   965→            </div>
+   966→            <div class="wm-controls">
+   967→              <button class="wm-btn"><i data-lucide="skip-back"></i></button>
+   968→              <button class="wm-btn play"><i data-lucide="play"></i></button>
+   969→              <button class="wm-btn"><i data-lucide="skip-forward"></i></button>
+   970→            </div>
+   971→          </div>
+   972→        </div>
+   973→      </div>
+   974→      <div class="start-pane" id="pane-settings">
+   975→        <div class="settings-layout">
+   976→          <div class="settings-nav">
+   977→            <button class="settings-tab active" data-settings-tab="looks"><i data-lucide="palette"></i> Looks & Feel</button>
+   978→            <button class="settings-tab" data-settings-tab="system"><i data-lucide="cpu"></i> System</button>
+   979→            <button class="settings-tab" data-settings-tab="network"><i data-lucide="wifi"></i> Network</button>
+   980→            <button class="settings-tab" data-settings-tab="accounts"><i data-lucide="user"></i> Accounts</button>
+   981→          </div>
+   982→          <div class="settings-content">
+   983→            <div class="settings-pane active" id="settings-pane-looks">
+   984→              <div class="settings-box">
+   985→                <div class="settings-box-title">Appearance & Themes</div>
+   986→                <div class="theme-settings-layout">
+   987→                  <div class="installed-themes-list" id="settingsThemeList">
+   988→                    <!-- Populated by JS -->
+   989→                  </div>
+   990→                  <div class="theme-config" id="themeConfigArea">
+   991→                     <!-- Populated by JS -->
+   992→                  </div>
+   993→                </div>
+   994→              </div>
+   995→              <div class="settings-box">
+   996→                <div class="settings-box-title">Shell Bar Configuration</div>
+   997→                <div class="bar-side-tabs">
+   998→                  <button class="bar-side-tab" data-side="top">Top</button>
+   999→                  <button class="bar-side-tab active" data-side="bottom">Bottom</button>
+  1000→                  <button class="bar-side-tab" data-side="left">Left</button>
+  1001→                  <button class="bar-side-tab" data-side="right">Right</button>
+  1002→                </div>
+  1003→                <div class="bar-config-grid">
+  1004→                  <div class="config-group">
+  1005→                    <div class="config-group-title">Overriding</div>
+  1006→                    <div class="config-row">
+  1007→                      <span class="config-label">Layer Mode</span>
+  1008→                      <span class="config-value">Bounding <i data-lucide="chevron-right"></i></span>
+  1009→                    </div>
+  1010→                    <div class="config-row">
+  1011→                      <span class="config-label">Auto Hide</span>
+  1012→                      <div class="settings-toggle"><div class="settings-toggle-thumb"></div></div>
+  1013→                    </div>
+  1014→                  </div>
+  1015→                  
+  1016→                  <div class="config-group">
+  1017→                    <div class="config-group-title">Dimensions</div>
+  1018→                    <div class="config-row">
+  1019→                      <span class="config-label">Height</span>
+  1020→                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 20%"></div><div class="mini-slider-thumb" style="left: 20%"></div></div>
+  1021→                      <span class="mini-val">48px</span>
+  1022→                    </div>
+  1023→                    <div class="config-row">
+  1024→                      <span class="config-label">Width</span>
+  1025→                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 80%"></div><div class="mini-slider-thumb" style="left: 80%"></div></div>
+  1026→                      <span class="mini-val">80%</span>
+  1027→                    </div>
+  1028→                    <div class="config-row">
+  1029→                      <span class="config-label">Margin Left</span>
+  1030→                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 10%"></div><div class="mini-slider-thumb" style="left: 10%"></div></div>
+  1031→                      <span class="mini-val">16px</span>
+  1032→                    </div>
+  1033→                    <div class="config-row">
+  1034→                      <span class="config-label">Margin Right</span>
+  1035→                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 10%"></div><div class="mini-slider-thumb" style="left: 10%"></div></div>
+  1036→                      <span class="mini-val">16px</span>
+  1037→                    </div>
+  1038→                    <div class="config-row">
+  1039→                      <span class="config-label">Edge Distance</span>
+  1040→                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 5%"></div><div class="mini-slider-thumb" style="left: 5%"></div></div>
+  1041→                      <span class="mini-val">16px</span>
+  1042→                    </div>
+  1043→                  </div>
+  1044→                  
+  1045→                  <div class="config-group">
+  1046→                    <div class="config-group-title">Parenting & Layout</div>
+  1047→                    <div class="config-row">
+  1048→                      <span class="config-label">Items Connected</span>
+  1049→                      <div class="settings-toggle active" id="toggleBarConnection"><div class="settings-toggle-thumb"></div></div>
+  1050→                    </div>
+  1051→                    <div class="config-row">
+  1052→                      <span class="config-label">Items In Box</span>
+  1053→                      <div class="settings-toggle active" id="toggleBarInBox"><div class="settings-toggle-thumb"></div></div>
+  1054→                    </div>
+  1055→                    <div class="config-row">
+  1056→                      <span class="config-label">Separation</span>
+  1057→                      <div class="mini-slider" id="barSeparationSlider"><div class="mini-slider-fill" id="barSeparationFill" style="width: 30%"></div><div class="mini-slider-thumb" id="barSeparationThumb" style="left: 30%"></div></div>
+  1058→                      <span class="mini-val" id="barSeparationVal">6px</span>
+  1059→                    </div>
+  1060→                    <div class="config-row">
+  1061→                      <span class="config-label">Alignment</span>
+  1062→                      <span class="config-value">Center <i data-lucide="chevron-right"></i></span>
+  1063→                    </div>
+  1064→                  </div>
+  1065→                  
+  1066→                  <div class="config-group">
+  1067→                    <div class="config-group-title">Bar Items</div>
+  1068→                    <div class="config-row-check active"><i data-lucide="check"></i> Start Menu & AI</div>
+  1069→                    <div class="config-row-check active"><i data-lucide="check"></i> Pinned Apps & Groups</div>
+  1070→                    <div class="config-row-check active"><i data-lucide="check"></i> Workspace Widget</div>
+  1071→                    <div class="config-row-check active"><i data-lucide="check"></i> Device States</div>
+  1072→                    <div class="config-row-check active"><i data-lucide="check"></i> Globe State (Clock)</div>
+  1073→                  </div>
+  1074→                </div>
+  1075→              </div>
+  1076→              <div class="settings-box">
+  1077→                <div class="settings-box-title">Window Behavior</div>
+  1078→                <div class="config-row">
+  1079→                  <span class="config-label">Focus Mode</span>
+  1080→                  <span class="config-value">Click to focus <i data-lucide="chevron-right"></i></span>
+  1081→                </div>
+  1082→                <div class="config-row">
+  1083→                  <span class="config-label">Titlebar Actions</span>
+  1084→                  <span class="config-value">Double click to maximize <i data-lucide="chevron-right"></i></span>
+  1085→                </div>
+  1086→              </div>
+  1087→            </div>
+  1088→            <div class="settings-pane" id="settings-pane-system">
+  1089→              <div class="settings-box">
+  1090→                <div class="settings-box-title">Hardware Info</div>
+  1091→                <div class="config-row"><span class="config-label">CPU</span><span class="config-value">AMD Ryzen 7 5800X</span></div>
+  1092→                <div class="config-row"><span class="config-label">Memory</span><span class="config-value">16 GB DDR4</span></div>
+  1093→                <div class="config-row"><span class="config-label">Graphics</span><span class="config-value">NVIDIA RTX 3070</span></div>
+  1094→              </div>
+  1095→              <div class="settings-box">
+  1096→                <div class="settings-box-title">Power Management</div>
+  1097→                <div class="config-row"><span class="config-label">Power Mode</span><span class="config-value">Balanced <i data-lucide="chevron-right"></i></span></div>
+  1098→                <div class="config-row"><span class="config-label">Screen Timeout</span><span class="config-value">15 minutes <i data-lucide="chevron-right"></i></span></div>
+  1099→              </div>
+  1100→            </div>
+  1101→            <div class="settings-pane" id="settings-pane-network">
+  1102→              <div class="settings-box">
+  1103→                <div class="settings-box-title">Wi-Fi</div>
+  1104→                <div class="config-row"><span class="config-label">Status</span><span class="config-value">Connected to Aurora-5G</span></div>
+  1105→                <div class="config-row"><span class="config-label">IP Address</span><span class="config-value">192.168.1.42</span></div>
+  1106→                <div class="config-row"><span class="config-label">MAC Address</span><span class="config-value">3C:52:82:1F:9A:2B</span></div>
+  1107→              </div>
+  1108→            </div>
+  1109→            <div class="settings-pane" id="settings-pane-accounts">
+  1110→              <div class="settings-box">
+  1111→                <div class="settings-box-title">User Info</div>
+  1112→                <div class="config-row"><span class="config-label">Name</span><span class="config-value">kai</span></div>
+  1113→                <div class="config-row"><span class="config-label">Account Type</span><span class="config-value">Administrator</span></div>
+  1114→                <div class="config-row"><span class="config-label">Login Shell</span><span class="config-value">/bin/zsh</span></div>
+  1115→              </div>
+  1116→            </div>
+  1117→          </div>
+  1118→        </div>
+  1119→      </div>
+  1120→    </div>
+  1121→    <div class="start-footer">
+  1122→      <button class="start-user-btn">
+  1123→        <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Felix" alt="">
+  1124→        <div class="start-user-info">
+  1125→          <span class="start-user-name">kai</span>
+  1126→          <span class="start-user-sub">Administrator</span>
+  1127→        </div>
+  1128→      </button>
+  1129→      <button class="start-power" data-tip="Power"><i data-lucide="power"></i></button>
+  1130→    </div>
+  1131→  </div>
+  1132→
+  1133→  <!-- ═══ QUICK SETTINGS ═══ -->
+  1134→  <div class="popover qs-panel" id="qsPanel">
+  1135→    <div class="qs-header">
+  1136→      <span class="qs-date" id="qsDate">—</span>
+  1137→      <button class="qs-settings-btn" data-tip="Settings"><i data-lucide="settings"></i></button>
+  1138→    </div>
+  1139→    <div class="qs-tiles">
+  1140→      <button class="qs-tile active" data-toggle="wifi">
+  1141→        <div class="qs-tile-icon"><i data-lucide="wifi"></i></div>
+  1142→        <div class="qs-tile-body"><div class="qs-tile-label">Wi-Fi</div><div class="qs-tile-sub">Aurora-5G</div></div>
+  1143→      </button>
+  1144→      <button class="qs-tile" data-toggle="bt">
+  1145→        <div class="qs-tile-icon"><i data-lucide="bluetooth"></i></div>
+  1146→        <div class="qs-tile-body"><div class="qs-tile-label">Bluetooth</div><div class="qs-tile-sub">Off</div></div>
+  1147→      </button>
+  1148→      <button class="qs-tile" data-toggle="dnd">
+  1149→        <div class="qs-tile-icon"><i data-lucide="moon-star"></i></div>
+  1150→        <div class="qs-tile-body"><div class="qs-tile-label">Do Not Disturb</div><div class="qs-tile-sub">Off</div></div>
+  1151→      </button>
+  1152→      <button class="qs-tile active" data-toggle="theme">
+  1153→        <div class="qs-tile-icon"><i data-lucide="palette"></i></div>
+  1154→        <div class="qs-tile-body"><div class="qs-tile-label">Dark Theme</div><div class="qs-tile-sub">On</div></div>
+  1155→      </button>
+  1156→    </div>
+  1157→    <div class="qs-sliders">
+  1158→      <div class="slider-row">
+  1159→        <button class="slider-icon" id="muteBtn" aria-label="Mute"><i data-lucide="volume-2"></i></button>
+  1160→        <div class="slider" id="volSlider" role="slider" aria-label="Volume" tabindex="0">
+  1161→          <div class="slider-fill" id="volFill"></div><div class="slider-thumb" id="volThumb"></div>
+  1162→        </div>
+  1163→        <span class="slider-value" id="volValue">60%</span>
+  1164→      </div>
+  1165→      <div class="slider-row">
+  1166→        <div class="slider-icon"><i data-lucide="sun"></i></div>
+  1167→        <div class="slider" id="brightSlider" role="slider" aria-label="Brightness" tabindex="0">
+  1168→          <div class="slider-fill" id="brightFill"></div><div class="slider-thumb" id="brightThumb"></div>
+  1169→        </div>
+  1170→        <span class="slider-value" id="brightValue">82%</span>
+  1171→      </div>
+  1172→    </div>
+  1173→    <div class="qs-footer">
+  1174→      <div class="qs-battery">
+  1175→        <i data-lucide="battery-medium"></i><span>78%</span><span class="qs-battery-time">4h 22m</span>
+  1176→      </div>
+  1177→      <button class="qs-settings-btn" data-tip="Power"><i data-lucide="power"></i></button>
+  1178→    </div>
+  1179→  </div>
+  1180→
+  1181→  <!-- ═══ CALENDAR & WEATHER POPOVER ═══ -->
+  1182→  <div class="popover cal-pop" id="calPop">
+  1183→    <div class="cal-split-layout">
+  1184→      <div class="cal-weather-side">
+  1185→        <div class="weather-icon-lg"><i data-lucide="cloud-sun"></i></div>
+  1186→        <div class="cw-temp">18°</div>
+  1187→        <div class="cw-cond">Partly Cloudy</div>
+  1188→        <div class="cw-loc">Reykjavík</div>
+  1189→      </div>
+  1190→      <div class="cal-vertical-bar" id="calVerticalBar">
+  1191→        <!-- Populated by JS -->
+  1192→      </div>
+  1193→      <div class="cal-cal-side">
+  1194→        <div class="cal-header">
+  1195→          <span class="cal-month" id="calMonth">—</span>
+  1196→          <div class="cal-nav">
+  1197→            <button class="cal-nav-btn" id="calPrev" aria-label="Previous"><i data-lucide="chevron-left"></i></button>
+  1198→            <button class="cal-nav-btn" id="calNext" aria-label="Next"><i data-lucide="chevron-right"></i></button>
+  1199→          </div>
+  1200→        </div>
+  1201→        <div class="cal-grid" id="calGrid"></div>
+  1202→      </div>
+  1203→    </div>
+  1204→  </div>
+  1205→
+  1206→  <!-- ═══ CUSTOM TASKBAR (DOCK CONTAINER) ═══ -->
+  1207→  <nav id="dock-container" aria-label="Shell bar">
+  1208→    <div class="bar-group">
+  1209→      <button class="app-icon" id="launcherBtn" data-tip="Start Menu"><i data-lucide="layout-grid"></i></button>
+  1210→      <div class="capsule-input-wrapper">
+  1211→        <i data-lucide="bot"></i>
+  1212→        <input type="text" placeholder="Ask AI...">
+  1213→      </div>
+  1214→      <button class="app-icon" data-app="files" data-tip="Files"><i data-lucide="folder"></i></button>
+  1215→    </div>
+  1216→    
+  1217→    <div class="separator"></div>
+  1218→    
+  1219→    <div class="bar-group">
+  1220→      <button class="app-icon" data-app="firefox" data-tip="Firefox">
+  1221→        <svg class="app-indicator" viewBox="0 0 32 32">
+  1222→          <circle cx="16" cy="16" r="14" fill="none" stroke="#ff5f56" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="0"></circle>
+  1223→          <circle cx="16" cy="16" r="14" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-21.991148575128552"></circle>
+  1224→          <circle cx="16" cy="16" r="14" fill="none" stroke="#27c93f" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-43.982297150257104"></circle>
+  1225→          <circle cx="16" cy="16" r="14" fill="none" stroke="#2196f3" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-65.97344572538566"></circle>
+  1226→        </svg>
+  1227→        <img src="https://cdn.simpleicons.org/firefox" alt="">
+  1228→      </button>
+  1229→    </div>
+  1230→    
+  1231→    <div class="separator"></div>
+  1232→    
+  1233→    <div class="bar-group">
+  1234→      <div class="office-group" data-tip="Office Suite">
+  1235→        <button class="app-icon" data-app="writer"><img src="https://cdn.simpleicons.org/libreofficewriter" alt=""></button>
+  1236→        <button class="app-icon" data-app="calc"><img src="https://cdn.simpleicons.org/libreofficecalc" alt=""></button>
+  1237→        <button class="app-icon" data-app="impress"><img src="https://cdn.simpleicons.org/libreofficeimpress" alt=""></button>
+  1238→      </div>
+  1239→    </div>
+  1240→    
+  1241→    <div class="separator"></div>
+  1242→    
+  1243→    <div class="bar-group">
+  1244→      <button class="app-icon" data-app="obsidian" data-tip="Obsidian"><img src="https://cdn.simpleicons.org/obsidian" alt=""></button>
+  1245→      <button class="app-icon" data-app="inkscape" data-tip="Inkscape"><img src="https://cdn.simpleicons.org/inkscape" alt=""></button>
+  1246→    </div>
+  1247→    
+  1248→    <div class="separator"></div>
+  1249→    
+  1250→    <div class="bar-group">
+  1251→      <div class="workspace-widget">
+  1252→        <div class="layout-box" id="layout-indicator" data-tip="Layout: Float">
+  1253→          <div class="mini-win-container mini-float" id="miniWinContainer">
+  1254→            <div class="m-win m-1"></div>
+  1255→            <div class="m-win m-2 solid"></div>
+  1256→          </div>
+  1257→        </div>
+  1258→        <div class="theme-widget">
+  1259→          <div class="theme-dock-controls">
+  1260→            <div class="theme-trigger-btn" id="themeTriggerBtn" data-tip="Theme Selector"></div>
+  1261→            <div class="custom-toggle" id="customToggle" data-tip="Dark Mode">
+  1262→              <div class="custom-toggle-thumb">
+  1263→                <i data-lucide="moon" id="toggleIcon"></i>
+  1264→              </div>
+  1265→            </div>
+  1266→          </div>
+  1267→          <div class="theme-popup-menu" id="themePopupMenu"></div>
+  1268→        </div>
+  1269→        <div class="ws-dots" id="wsGridContainer">
+  1270→          <div class="ws-dot active" data-ws="1"></div>
+  1271→          <div class="ws-dot" data-ws="2"></div>
+  1272→          <div class="ws-dot" data-ws="3"></div>
+  1273→          <div class="ws-dot" data-ws="4"></div>
+  1274→          <div class="ws-dot" data-ws="5"></div>
+  1275→          <div class="ws-dot" data-ws="6"></div>
+  1276→          <div class="ws-dot" data-ws="7"></div>
+  1277→          <div class="ws-dot" data-ws="8"></div>
+  1278→          <div class="ws-dot" data-ws="9"></div>
+  1279→        </div>
+  1280→      </div>
+  1281→    </div>
+  1282→
+  1283→    <div class="separator"></div>
+  1284→
+  1285→    <div class="bar-group">
+  1286→      <button class="sys-tray-stacked" id="quickSettingsBtn" data-tip="Quick Settings">
+  1287→        <i data-lucide="wifi"></i>
+  1288→        <i data-lucide="volume-2"></i>
+  1289→        <i data-lucide="bluetooth"></i>
+  1290→        <i data-lucide="battery-medium"></i>
+  1291→      </button>
+  1292→    </div>
+  1293→
+  1294→    <div class="separator"></div>
+  1295→
+  1296→    <div class="bar-group">
+  1297→      <button class="status-section" id="globeBtn" data-tip="Calendar & Weather">
+  1298→        <i data-lucide="cloud-sun" class="weather-icon-only"></i>
+  1299→        <div class="vertical-separator"></div>
+  1300→        <div class="date-time">
+  1301→          <div class="time" id="time">--:--</div>
+  1302→          <div class="day" id="day">---</div>
+  1303→          <div class="date" id="date">---</div>
+  1304→        </div>
+  1305→      </button>
+  1306→    </div>
+  1307→  </nav>
+  1308→</div>
+  1309→
+  1310→<script>
+  1311→document.addEventListener('DOMContentLoaded', () => {
+  1312→  const initIcons = () => { if (window.lucide) lucide.createIcons(); };
+  1313→  initIcons();
+  1314→
+  1315→  // Theme Data Model
+  1316→  const themes = {
+  1317→    Midnight: {
+  1318→      dark: { url: 'https://images.pexels.com/photos/31622977/pexels-photo-31622977.jpeg', bg: '#24283b', text: '#f0ecff', dots: ['#7aa2f7', '#bb9af7', '#c0caf5', '#8b6fff'] },
+  1319→      light: { url: 'https://images.pexels.com/photos/31622978/pexels-photo-31622978.jpeg', bg: '#e6e6fa', text: '#1a1530', dots: ['#7aa2f7', '#bb9af7', '#8b6fff', '#c0caf5'] },
+  1320→      accent: '#8b6fff'
+  1321→    },
+  1322→    Cyberpunk: {
+  1323→      dark: { url: 'https://images.pexels.com/photos/38184044/pexels-photo-38184044.jpeg', bg: '#1a0b1a', text: '#ffffff', dots: ['#ff0055', '#00e5ff', '#ffffff', '#ff007a'] },
+  1324→      light: { url: 'https://images.pexels.com/photos/38184045/pexels-photo-38184045.jpeg', bg: '#ffe6f0', text: '#1a0b1a', dots: ['#ff0055', '#00e5ff', '#ff007a', '#ffffff'] },
+  1325→      accent: '#ff007a'
+  1326→    },
+  1327→    Sunny: {
+  1328→      dark: { url: '', bg: '#333333', text: '#fdfcdc', dots: ['#ffb703', '#fb8500', '#fdfcdc', '#ffb703'] },
+  1329→      light: { url: '', bg: '#fdfcdc', text: '#333333', dots: ['#ffb703', '#fb8500', '#333333', '#ffb703'] },
+  1330→      accent: '#ffb703'
+  1331→    }
+  1332→  };
+  1333→  let currentTheme = 'Midnight';
+  1334→
+  1335→  function updateWallpaper() {
+  1336→    const isLight = document.body.classList.contains('light');
+  1337→    const theme = themes[currentTheme];
+  1338→    const url = theme ? (isLight ? theme.light.url : theme.dark.url) : null;
+  1339→    const img = document.getElementById('wallpaperImg');
+  1340→    
+  1341→    if (url) {
+  1342→      const tempImg = new Image();
+  1343→      tempImg.onload = () => {
+  1344→        img.src = url;
+  1345→        img.style.opacity = '0.85';
+  1346→      };
+  1347→      tempImg.src = url;
+  1348→    } else {
+  1349→      img.style.opacity = '0';
+  1350→    }
+  1351→  }
+  1352→
+  1353→  function applyTheme(themeName) {
+  1354→    const theme = themes[themeName];
+  1355→    if (!theme) return;
+  1356→    currentTheme = themeName;
+  1357→    
+  1358→    const isLight = document.body.classList.contains('light');
+  1359→    const modeData = isLight ? theme.light : theme.dark;
+  1360→
+  1361→    // Update Accent
+  1362→    document.documentElement.style.setProperty('--accent-strong', theme.accent);
+  1363→    const rgb = hexToRgb(theme.accent);
+  1364→    if (rgb) {
+  1365→      document.documentElement.style.setProperty('--accent', `rgba(${rgb.r},${rgb.g},${rgb.b},0.8)`);
+  1366→      document.documentElement.style.setProperty('--accent-light', `rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
+  1367→      document.documentElement.style.setProperty('--accent-glow', `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)`);
+  1368→    }
+  1369→
+  1370→    // Update Taskbar Trigger
+  1371→    const trigger = document.getElementById('themeTriggerBtn');
+  1372→    trigger.innerHTML = '';
+  1373→    trigger.style.backgroundColor = modeData.bg;
+  1374→    modeData.dots.forEach(c => {
+  1375→      const dot = document.createElement('div');
+  1376→      dot.className = 'color-dot';
+  1377→      dot.style.backgroundColor = c;
+  1378→      trigger.appendChild(dot);
+  1379→    });
+  1380→
+  1381→    // Update Taskbar Popup
+  1382→    const popup = document.getElementById('themePopupMenu');
+  1383→    popup.innerHTML = '';
+  1384→    Object.keys(themes).forEach(name => {
+  1385→      const t = themes[name];
+  1386→      const tMode = isLight ? t.light : t.dark;
+  1387→      const item = document.createElement('div');
+  1388→      item.className = 'theme-item' + (name === themeName ? ' active' : '');
+  1389→      item.dataset.name = name;
+  1390→      item.dataset.color = t.accent;
+  1391→      item.innerHTML = `
+  1392→        <div class="color-plate-preview" style="background-color: ${tMode.bg};">
+  1393→          <div class="dots-grid">
+  1394→            ${tMode.dots.map(d => `<div class="color-dot" style="background-color: ${d};"></div>`).join('')}
+  1395→          </div>
+  1396→        </div>
+  1397→        <div class="font-info-text">SE 14</div>
+  1398→        <div class="theme-separator"></div>
+  1399→        <div class="theme-short-name">${name}</div>
+  1400→      `;
+  1401→      item.addEventListener('click', (e) => {
+  1402→        e.stopPropagation();
+  1403→        applyTheme(name);
+  1404→        popup.classList.remove('open');
+  1405→      });
+  1406→      popup.appendChild(item);
+  1407→    });
+  1408→
+  1409→    // Update Settings List
+  1410→    const settingsList = document.getElementById('settingsThemeList');
+  1411→    if (settingsList) {
+  1412→      settingsList.innerHTML = '';
+  1413→      Object.keys(themes).forEach(name => {
+  1414→        const t = themes[name];
+  1415→        const tMode = isLight ? t.light : t.dark;
+  1416→        const item = document.createElement('div');
+  1417→        item.className = 'settings-theme-item' + (name === themeName ? ' active' : '');
+  1418→        item.dataset.theme = name;
+  1419→        item.innerHTML = `
+  1420→          <div class="color-plate-preview" style="background-color: ${tMode.bg};">
+  1421→            <div class="dots-grid">
+  1422→              ${tMode.dots.map(d => `<div class="color-dot" style="background-color: ${d};"></div>`).join('')}
+  1423→            </div>
+  1424→          </div>
+  1425→          <span class="theme-short-name">${name}</span>
+  1426→        `;
+  1427→        item.addEventListener('click', (e) => {
+  1428→          e.stopPropagation();
+  1429→          // Selecting a theme in settings should NOT change the actual active theme
+  1430→          document.querySelectorAll('.settings-theme-item').forEach(i => i.classList.remove('active'));
+  1431→          item.classList.add('active');
+  1432→          updateThemeConfigValues(name);
+  1433→        });
+  1434→        settingsList.appendChild(item);
+  1435→      });
+  1436→    }
+  1437→
+  1438→    updateThemeConfigValues(themeName);
+  1439→    updateWallpaper();
+  1440→  }
+  1441→
+  1442→  function updateThemeConfigValues(themeName) {
+  1443→    const configArea = document.getElementById('themeConfigArea');
+  1444→    if (!configArea) return;
+  1445→    const theme = themes[themeName];
+  1446→    const isLight = document.body.classList.contains('light');
+  1447→    
+  1448→    configArea.innerHTML = `
+  1449→      <div class="mode-tabs">
+  1450→        <button class="mode-tab ${!isLight ? 'active' : ''}" data-mode="dark"><i data-lucide="moon"></i> Dark</button>
+  1451→        <button class="mode-tab ${isLight ? 'active' : ''}" data-mode="light"><i data-lucide="sun"></i> Light</button>
+  1452→      </div>
+  1453→      <div class="mode-content ${!isLight ? 'active' : ''}" id="mode-content-dark">
+  1454→        ${generateModeContent(theme.dark)}
+  1455→      </div>
+  1456→      <div class="mode-content ${isLight ? 'active' : ''}" id="mode-content-light">
+  1457→        ${generateModeContent(theme.light)}
+  1458→      </div>
+  1459→    `;
+  1460→    
+  1461→    configArea.querySelectorAll('.mode-tab').forEach(tab => {
+  1462→      tab.addEventListener('click', (e) => {
+  1463→        e.stopPropagation();
+  1464→        configArea.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  1465→        tab.classList.add('active');
+  1466→        const mode = tab.dataset.mode;
+  1467→        configArea.querySelectorAll('.mode-content').forEach(c => c.classList.remove('active'));
+  1468→        configArea.querySelector('#mode-content-' + mode).classList.add('active');
+  1469→      });
+  1470→    });
+  1471→    
+  1472→    initIcons();
+  1473→  }
+  1474→  
+  1475→  function generateModeContent(modeData) {
+  1476→    return `
+  1477→      <img src="${modeData.url || ''}" alt="Wallpaper" class="theme-wallpaper" onerror="this.style.opacity='0'">
+  1478→      <div class="config-row">
+  1479→        <span class="config-label">Font Family</span>
+  1480→        <span class="config-value"><i data-lucide="type"></i> Inter</span>
+  1481→      </div>
+  1482→      <div class="config-row">
+  1483→        <span class="config-label">Font Size</span>
+  1484→        <span class="config-value">14px</span>
+  1485→      </div>
+  1486→      <div class="config-row">
+  1487→        <span class="config-label">Base Color</span>
+  1488→        <span class="config-value">
+  1489→          <div class="palette-display">
+  1490→            <div class="palette-color" style="background-color: ${modeData.bg};"></div>
+  1491→            <div class="palette-color" style="background-color: ${modeData.text};"></div>
+  1492→          </div>
+  1493→        </span>
+  1494→      </div>
+  1495→      <div class="config-row">
+  1496→        <span class="config-label">Accent Palette</span>
+  1497→        <span class="config-value">
+  1498→          <div class="palette-display">
+  1499→            ${modeData.dots.map(d => `<div class="palette-color" style="background-color: ${d};"></div>`).join('')}
+  1500→          </div>
+  1501→        </span>
+  1502→      </div>
+  1503→    `;
+  1504→  }
+  1505→
+  1506→  function hexToRgb(hex) {
+  1507→    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  1508→    return result ? {
+  1509→      r: parseInt(result[1], 16),
+  1510→      g: parseInt(result[2], 16),
+  1511→      b: parseInt(result[3], 16)
+  1512→    } : null;
+  1513→  }
+  1514→
+  1515→  // Initialize Theme
+  1516→  applyTheme('Midnight');
+  1517→
+  1518→  /* ═══ CLOCK & DATES ═══ */
+  1519→  const timeEl = document.getElementById('time');
+  1520→  const dayEl = document.getElementById('day');
+  1521→  const dateEl = document.getElementById('date');
+  1522→  const qsDateEl = document.getElementById('qsDate');
+  1523→  const wTime = document.getElementById('widgetTime');
+  1524→  const wDate = document.getElementById('widgetDate');
+  1525→  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  1526→  const daysLong = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  1527→  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  1528→  const monthsLong = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  1529→
+  1530→  function updateClock() {
+  1531→    const now = new Date();
+  1532→    const h = String(now.getHours()).padStart(2,'0');
+  1533→    const m = String(now.getMinutes()).padStart(2,'0');
+  1534→    if (timeEl) timeEl.textContent = `${h}:${m}`;
+  1535→    if (dayEl) dayEl.textContent = days[now.getDay()];
+  1536→    if (dateEl) dateEl.textContent = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+  1537→    if (qsDateEl) qsDateEl.textContent = `${daysLong[now.getDay()]}, ${now.getDate()} ${monthsLong[now.getMonth()]}`;
+  1538→    if (wTime) wTime.textContent = `${h}:${m}`;
+  1539→    if (wDate) wDate.textContent = `${daysLong[now.getDay()]}, ${now.getDate()} ${monthsLong[now.getMonth()]}`;
+  1540→  }
+  1541→  updateClock();
+  1542→  setInterval(updateClock, 5000);
+  1543→
+  1544→  /* ═══ APP WINDOW ═══ */
+  1545→  const appInfo = {
+  1546→    firefox:  { name: 'Firefox — New Window',           icon: 'https://cdn.simpleicons.org/firefox' },
+  1547→    code:     { name: 'Visual Studio Code',             icon: 'https://cdn.simpleicons.org/vscode' },
+  1548→    terminal: { name: 'Terminal — zsh',                 icon: null },
+  1549→    files:    { name: 'Files — Home',                   icon: null },
+  1550→    discord:  { name: 'Discord',                        icon: 'https://cdn.simpleicons.org/discord' },
+  1551→    spotify:  { name: 'Spotify',                        icon: 'https://cdn.simpleicons.org/spotify' },
+  1552→    gimp:     { name: 'GNU Image Manipulation Program', icon: 'https://cdn.simpleicons.org/gimp' },
+  1553→    writer:   { name: 'LibreOffice Writer',             icon: 'https://cdn.simpleicons.org/libreofficewriter' },
+  1554→    calc:     { name: 'LibreOffice Calc',               icon: 'https://cdn.simpleicons.org/libreofficecalc' },
+  1555→    impress:  { name: 'LibreOffice Impress',            icon: 'https://cdn.simpleicons.org/libreofficeimpress' },
+  1556→    obsidian: { name: 'Obsidian Vault',                 icon: 'https://cdn.simpleicons.org/obsidian' },
+  1557→    inkscape: { name: 'Inkscape',                       icon: 'https://cdn.simpleicons.org/inkscape' },
+  1558→    settings: { name: 'Settings',                       icon: null },
+  1559→    slack:    { name: 'Slack',                          icon: 'https://cdn.simpleicons.org/slack' },
+  1560→    telegram: { name: 'Telegram',                       icon: 'https://cdn.simpleicons.org/telegram' },
+  1561→    docker:   { name: 'Docker Desktop',                 icon: 'https://cdn.simpleicons.org/docker' },
+  1562→    github:   { name: 'GitHub Desktop',                 icon: 'https://cdn.simpleicons.org/github' },
+  1563→    blender:  { name: 'Blender',                        icon: 'https://cdn.simpleicons.org/blender' },
+  1564→    figma:    { name: 'Figma',                          icon: 'https://cdn.simpleicons.org/figma' },
+  1565→    obs:      { name: 'OBS Studio',                     icon: 'https://cdn.simpleicons.org/obsstudio' },
+  1566→    vlc:      { name: 'VLC Media Player',               icon: 'https://cdn.simpleicons.org/vlc' },
+  1567→    notion:   { name: 'Notion',                         icon: 'https://cdn.simpleicons.org/notion' },
+  1568→    calc_app: { name: 'Calculator',                     icon: null },
+  1569→    text_editor: { name: 'Text Editor',                 icon: null }
+  1570→  };
+  1571→
+  1572→  const appWindow = document.getElementById('appWindow');
+  1573→  const winTitle = document.getElementById('winTitle');
+  1574→  const winIcon = document.getElementById('winIcon');
+  1575→
+  1576→  function openApp(appId) {
+  1577→    const info = appInfo[appId] || { name: appId.charAt(0).toUpperCase() + appId.slice(1), icon: null };
+  1578→    winTitle.textContent = info.name;
+  1579→    if (info.icon) {
+  1580→      winIcon.src = info.icon;
+  1581→      winIcon.style.display = '';
+  1582→      winIcon.onerror = () => { winIcon.style.display = 'none'; };
+  1583→    } else {
+  1584→      winIcon.style.display = 'none';
+  1585→    }
+  1586→    appWindow.classList.add('open');
+  1587→    document.querySelectorAll('.app-icon').forEach(btn => {
+  1588→      if (btn.dataset.app) {
+  1589→        btn.classList.remove('active');
+  1590→        if (btn.dataset.app === appId) btn.classList.add('active');
+  1591→      }
+  1592→    });
+  1593→  }
+  1594→  function closeWindow() {
+  1595→    appWindow.classList.remove('open');
+  1596→    document.querySelectorAll('.app-icon').forEach(btn => btn.classList.remove('active'));
+  1597→  }
+  1598→  document.getElementById('closeWindow').addEventListener('click', closeWindow);
+  1599→  document.querySelectorAll('.app-icon[data-app]').forEach(btn => {
+  1600→    btn.addEventListener('click', (e) => {
+  1601→      e.stopPropagation();
+  1602→      if (btn.classList.contains('active')) closeWindow();
+  1603→      else openApp(btn.dataset.app);
+  1604→    });
+  1605→  });
+  1606→
+  1607→  /* ═══ POPOVER SYSTEM ═══ */
+  1608→  const triggers = {
+  1609→    launcher: document.getElementById('launcherBtn'),
+  1610→    qs:       document.getElementById('quickSettingsBtn'),
+  1611→    cal:      document.getElementById('globeBtn')
+  1612→  };
+  1613→  const panels = {
+  1614→    launcher: document.getElementById('launcherPop'),
+  1615→    qs:       document.getElementById('qsPanel'),
+  1616→    cal:      document.getElementById('calPop')
+  1617→  };
+  1618→  let activeName = null;
+  1619→
+  1620→  function closeAll() {
+  1621→    Object.values(panels).forEach(p => p.classList.remove('open'));
+  1622→    Object.values(triggers).flat().forEach(t => t.classList.remove('active'));
+  1623→    document.getElementById('themePopupMenu').classList.remove('open');
+  1624→    activeName = null;
+  1625→  }
+  1626→
+  1627→  function positionPanel(name, trigger) {
+  1628→    const panel = panels[name];
+  1629→    const tr = trigger.getBoundingClientRect();
+  1630→    const pr = panel.getBoundingClientRect();
+  1631→    let left = tr.left + tr.width / 2 - pr.width / 2;
+  1632→    left = Math.max(10, Math.min(left, window.innerWidth - pr.width - 10));
+  1633→    panel.style.left = left + 'px';
+  1634→    panel.style.bottom = (window.innerHeight - tr.top + 10) + 'px';
+  1635→    panel.style.right = 'auto';
+  1636→    panel.style.top = 'auto';
+  1637→  }
+  1638→
+  1639→  function toggle(name, trigger) {
+  1640→    const wasOpen = panels[name].classList.contains('open');
+  1641→    closeAll();
+  1642→    if (!wasOpen) {
+  1643→      panels[name].classList.add('open');
+  1644→      trigger.classList.add('active');
+  1645→      activeName = name;
+  1646→      requestAnimationFrame(() => positionPanel(name, trigger));
+  1647→    }
+  1648→  }
+  1649→
+  1650→  triggers.launcher.addEventListener('click', e => { e.stopPropagation(); toggle('launcher', triggers.launcher); });
+  1651→  triggers.cal.addEventListener('click',      e => { e.stopPropagation(); toggle('cal', triggers.cal); });
+  1652→  triggers.qs.addEventListener('click',       e => { e.stopPropagation(); toggle('qs', triggers.qs); });
+  1653→
+  1654→  Object.values(panels).forEach(p => p.addEventListener('click', e => e.stopPropagation()));
+  1655→  document.addEventListener('click', () => { if (activeName) closeAll(); });
+  1656→
+  1657→  document.addEventListener('keydown', e => {
+  1658→    if (e.key === 'Escape') {
+  1659→      if (activeName) closeAll();
+  1660→      else if (appWindow.classList.contains('open')) closeWindow();
+  1661→    }
+  1662→  });
+  1663→
+  1664→  window.addEventListener('resize', () => {
+  1665→    if (activeName) {
+  1666→      const trigger = Array.isArray(triggers[activeName]) ? triggers[activeName][0] : triggers[activeName];
+  1667→      positionPanel(activeName, trigger);
+  1668→    }
+  1669→  });
+  1670→
+  1671→  /* ═══ START MENU TABS ═══ */
+  1672→  document.querySelectorAll('.start-tab').forEach(tab => {
+  1673→    tab.addEventListener('click', (e) => {
+  1674→      e.stopPropagation();
+  1675→      document.querySelectorAll('.start-tab').forEach(t => t.classList.remove('active'));
+  1676→      tab.classList.add('active');
+  1677→      
+  1678→      const target = tab.dataset.tab;
+  1679→      document.querySelectorAll('.start-pane').forEach(p => p.classList.remove('active'));
+  1680→      document.getElementById('pane-' + target).classList.add('active');
+  1681→    });
+  1682→  });
+  1683→
+  1684→  /* ═══ SETTINGS TABS ═══ */
+  1685→  document.querySelectorAll('.settings-tab').forEach(tab => {
+  1686→    tab.addEventListener('click', (e) => {
+  1687→      e.stopPropagation();
+  1688→      document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  1689→      tab.classList.add('active');
+  1690→      const target = tab.dataset.settingsTab;
+  1691→      document.querySelectorAll('.settings-pane').forEach(p => p.classList.remove('active'));
+  1692→      document.getElementById('settings-pane-' + target).classList.add('active');
+  1693→    });
+  1694→  });
+  1695→
+  1696→  // Bar Side Tabs
+  1697→  document.querySelectorAll('.bar-side-tab').forEach(tab => {
+  1698→    tab.addEventListener('click', (e) => {
+  1699→        e.stopPropagation();
+  1700→        document.querySelectorAll('.bar-side-tab').forEach(t => t.classList.remove('active'));
+  1701→        tab.classList.add('active');
+  1702→    });
+  1703→  });
+  1704→
+  1705→  // Config Row Checkboxes
+  1706→  document.querySelectorAll('.config-row-check').forEach(row => {
+  1707→    row.addEventListener('click', () => {
+  1708→        row.classList.toggle('active');
+  1709→    });
+  1710→  });
+  1711→
+  1712→  // Settings Toggles
+  1713→  document.querySelectorAll('.settings-toggle').forEach(toggle => {
+  1714→    toggle.addEventListener('click', (e) => {
+  1715→        e.stopPropagation();
+  1716→        toggle.classList.toggle('active');
+  1717→        
+  1718→        const dock = document.getElementById('dock-container');
+  1719→        // Bar Connection Toggle Logic
+  1720→        if (toggle.id === 'toggleBarConnection') {
+  1721→            if (toggle.classList.contains('active')) {
+  1722→                dock.classList.remove('disconnected');
+  1723→            } else {
+  1724→                dock.classList.add('disconnected');
+  1725→            }
+  1726→        }
+  1727→        
+  1728→        // Bar In Box Toggle Logic
+  1729→        if (toggle.id === 'toggleBarInBox') {
+  1730→            if (toggle.classList.contains('active')) {
+  1731→                dock.classList.add('in-box');
+  1732→            } else {
+  1733→                dock.classList.remove('in-box');
+  1734→            }
+  1735→        }
+  1736→    });
+  1737→  });
+  1738→
+  1739→  // Bar Separation Slider
+  1740→  const barSepSlider = makeSlider(
+  1741→    document.getElementById('barSeparationSlider'),
+  1742→    document.getElementById('barSeparationFill'),
+  1743→    document.getElementById('barSeparationThumb'),
+  1744→    document.getElementById('barSeparationVal'),
+  1745→    30,
+  1746→    (v) => {
+  1747→      const px = Math.round(v / 100 * 20); // 0 to 20px
+  1748→      document.getElementById('barSeparationVal').textContent = `${px}px`;
+  1749→      const dock = document.getElementById('dock-container');
+  1750→      dock.style.gap = `${px}px`;
+  1751→    }
+  1752→  );
+  1753→
+  1754→  /* ═══ LAUNCHER SEARCH ═══ */
+  1755→  const searchInput = document.getElementById('searchInput');
+  1756→  searchInput.addEventListener('input', () => {
+  1757→    const q = searchInput.value.toLowerCase();
+  1758→    // Only search in apps pane
+  1759→    document.querySelectorAll('#pane-apps .app-group').forEach(group => {
+  1760→      let visibleCount = 0;
+  1761→      group.querySelectorAll('.app-item').forEach(item => {
+  1762→        const match = item.dataset.name.toLowerCase().includes(q);
+  1763→        item.style.display = match ? '' : 'none';
+  1764→        if (match) visibleCount++;
+  1765→      });
+  1766→      group.style.display = visibleCount > 0 ? '' : 'none';
+  1767→    });
+  1768→  });
+  1769→  searchInput.addEventListener('click', e => e.stopPropagation());
+  1770→  document.querySelectorAll('.app-item[data-app]').forEach(item => {
+  1771→    item.addEventListener('click', () => {
+  1772→      openApp(item.dataset.app);
+  1773→      closeAll();
+  1774→      searchInput.value = '';
+  1775→      document.querySelectorAll('.app-item').forEach(i => i.style.display = '');
+  1776→      document.querySelectorAll('.app-group').forEach(g => g.style.display = '');
+  1777→    });
+  1778→  });
+  1779→
+  1780→  /* ═══ LAYOUT INDICATOR ═══ */
+  1781→  const layoutBox = document.getElementById('layout-indicator');
+  1782→  const miniWinContainer = document.getElementById('miniWinContainer');
+  1783→  let isFloat = true;
+  1784→  
+  1785→  layoutBox.addEventListener('click', (e) => {
+  1786→    e.stopPropagation();
+  1787→    isFloat = !isFloat;
+  1788→    if (isFloat) {
+  1789→      miniWinContainer.className = 'mini-win-container mini-float';
+  1790→      layoutBox.setAttribute('data-tip', 'Layout: Float');
+  1791→    } else {
+  1792→      miniWinContainer.className = 'mini-win-container mini-stack';
+  1793→      layoutBox.setAttribute('data-tip', 'Layout: Stack');
+  1794→    }
+  1795→  });
+  1796→
+  1797→  /* ═══ THEME SELECTOR ═══ */
+  1798→  const themeTrigger = document.getElementById('themeTriggerBtn');
+  1799→  const themePopup = document.getElementById('themePopupMenu');
+  1800→  
+  1801→  themeTrigger.addEventListener('click', (e) => {
+  1802→    e.stopPropagation();
+  1803→    themePopup.classList.toggle('open');
+  1804→  });
+  1805→  
+  1806→  themePopup.addEventListener('click', (e) => e.stopPropagation());
+  1807→
+  1808→  /* ═══ LIGHT/DARK TOGGLE ═══ */
+  1809→  const customToggle = document.getElementById('customToggle');
+  1810→  const toggleIcon = document.getElementById('toggleIcon');
+  1811→  
+  1812→  customToggle.addEventListener('click', (e) => {
+  1813→    e.stopPropagation();
+  1814→    customToggle.classList.toggle('active');
+  1815→    
+  1816→    if (customToggle.classList.contains('active')) {
+  1817→      document.body.classList.add('light');
+  1818→      customToggle.setAttribute('data-tip', 'Light Mode');
+  1819→      toggleIcon.setAttribute('data-lucide', 'sun');
+  1820→    } else {
+  1821→      document.body.classList.remove('light');
+  1822→      customToggle.setAttribute('data-tip', 'Dark Mode');
+  1823→      toggleIcon.setAttribute('data-lucide', 'moon');
+  1824→    }
+  1825→    initIcons();
+  1826→    applyTheme(currentTheme); // Re-apply theme to update colors/wallpaper
+  1827→  });
+  1828→
+  1829→  /* ═══ WORKSPACE DOTS ═══ */
+  1830→  document.querySelectorAll('.ws-dot').forEach(dot => {
+  1831→    dot.addEventListener('click', (e) => {
+  1832→      e.stopPropagation();
+  1833→      document.querySelectorAll('.ws-dot').forEach(d => d.classList.remove('active'));
+  1834→      dot.classList.add('active');
+  1835→    });
+  1836→  });
+  1837→
+  1838→  /* ═══ QS TOGGLES ═══ */
+  1839→  document.querySelectorAll('.qs-tile').forEach(tile => {
+  1840→    tile.addEventListener('click', e => {
+  1841→      e.stopPropagation();
+  1842→      tile.classList.toggle('active');
+  1843→      const sub = tile.querySelector('.qs-tile-sub');
+  1844→      if (sub) {
+  1845→        const key = tile.dataset.toggle;
+  1846→        const isOn = tile.classList.contains('active');
+  1847→        const subs = { wifi: isOn ? 'Aurora-5G' : 'Off', bt: isOn ? 'On' : 'Off', dnd: isOn ? 'On' : 'Off', theme: isOn ? 'On' : 'Off' };
+  1848→        sub.textContent = subs[key] || (isOn ? 'On' : 'Off');
+  1849→      }
+  1850→    });
+  1851→  });
+  1852→
+  1853→  /* ═══ SLIDERS ═══ */
+  1854→  function makeSlider(sliderEl, fillEl, thumbEl, valueEl, initial, onChange) {
+  1855→    let value = initial;
+  1856→    let dragging = false;
+  1857→    function setVal(v, fire = true) {
+  1858→      value = Math.max(0, Math.min(100, Math.round(v)));
+  1859→      fillEl.style.width = value + '%';
+  1860→      if (thumbEl) thumbEl.style.left = value + '%';
+  1861→      if (valueEl) valueEl.textContent = value + '%';
+  1862→      sliderEl.setAttribute('aria-valuenow', value);
+  1863→      if (fire && onChange) onChange(value);
+  1864→    }
+  1865→    function fromEvent(clientX) {
+  1866→      const r = sliderEl.getBoundingClientRect();
+  1867→      const x = Math.max(0, Math.min(r.width, clientX - r.left));
+  1868→      setVal((x / r.width) * 100);
+  1869→    }
+  1870→    setVal(initial, false);
+  1871→    sliderEl.addEventListener('mousedown', e => { dragging = true; fromEvent(e.clientX); e.preventDefault(); });
+  1872→    sliderEl.addEventListener('touchstart', e => { dragging = true; fromEvent(e.touches[0].clientX); }, { passive: true });
+  1873→    document.addEventListener('mousemove', e => { if (dragging) fromEvent(e.clientX); });
+  1874→    document.addEventListener('touchmove', e => { if (dragging) fromEvent(e.touches[0].clientX); }, { passive: true });
+  1875→    document.addEventListener('mouseup', () => { dragging = false; });
+  1876→    document.addEventListener('touchend', () => { dragging = false; });
+  1877→    return { setVal, getVal: () => value };
+  1878→  }
+  1879→
+  1880→  const volSlider = makeSlider(
+  1881→    document.getElementById('volSlider'),
+  1882→    document.getElementById('volFill'),
+  1883→    document.getElementById('volThumb'),
+  1884→    document.getElementById('volValue'),
+  1885→    60,
+  1886→    (v) => {
+  1887→      const stackedBtn = document.getElementById('quickSettingsBtn');
+  1888→      stackedBtn.setAttribute('data-tip', `Volume · ${v}%`);
+  1889→      const muteIcon = document.getElementById('muteBtn').querySelector('i, svg');
+  1890→      const trayIcon = stackedBtn.querySelector('i[data-lucide="volume-2"], i[data-lucide="volume-1"], i[data-lucide="volume-x"]');
+  1891→      const name = v === 0 ? 'volume-x' : (v < 35 ? 'volume-1' : 'volume-2');
+  1892→      if (window.lucide) {
+  1893→        if (muteIcon) { const n = document.createElement('i'); n.setAttribute('data-lucide', name); muteIcon.replaceWith(n); }
+  1894→        if (trayIcon) { const n = document.createElement('i'); n.setAttribute('data-lucide', name); trayIcon.replaceWith(n); }
+  1895→        lucide.createIcons();
+  1896→      }
+  1897→    }
+  1898→  );
+  1899→
+  1900→  const brightSlider = makeSlider(
+  1901→    document.getElementById('brightSlider'),
+  1902→    document.getElementById('brightFill'),
+  1903→    document.getElementById('brightThumb'),
+  1904→    document.getElementById('brightValue'),
+  1905→    82, null
+  1906→  );
+  1907→
+  1908→  let lastVol = 60;
+  1909→  document.getElementById('muteBtn').addEventListener('click', e => {
+  1910→    e.stopPropagation();
+  1911→    const cur = volSlider.getVal();
+  1912→    if (cur > 0) { lastVol = cur; volSlider.setVal(0); }
+  1913→    else { volSlider.setVal(lastVol || 60); }
+  1914→  });
+  1915→
+  1916→  /* ═══ CALENDAR ═══ */
+  1917→  let calDate = new Date();
+  1918→  function renderCalendar() {
+  1919→    const year = calDate.getFullYear();
+  1920→    const month = calDate.getMonth();
+  1921→    const today = new Date();
+  1922→    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+  1923→    document.getElementById('calMonth').textContent = `${monthsLong[month]} ${year}`;
+  1924→    
+  1925→    // Vertical bar text
+  1926→    const vbar = document.getElementById('calVerticalBar');
+  1927→    vbar.innerHTML = '';
+  1928→    const yearStr = String(year);
+  1929→    for (let i = 0; i < yearStr.length; i++) {
+  1930→      const span = document.createElement('span');
+  1931→      span.textContent = yearStr[i];
+  1932→      vbar.appendChild(span);
+  1933→    }
+  1934→    const sep = document.createElement('div');
+  1935→    sep.className = 'vbar-sep';
+  1936→    vbar.appendChild(sep);
+  1937→    const monthInitials = monthsLong[month].substring(0, 3).toUpperCase();
+  1938→    for (let i = 0; i < monthInitials.length; i++) {
+  1939→      const span = document.createElement('span');
+  1940→      span.textContent = monthInitials[i];
+  1941→      vbar.appendChild(span);
+  1942→    }
+  1943→    
+  1944→    const firstDay = new Date(year, month, 1).getDay();
+  1945→    const daysInMonth = new Date(year, month + 1, 0).getDate();
+  1946→    const grid = document.getElementById('calGrid');
+  1947→    grid.innerHTML = '';
+  1948→    ['S','M','T','W','T','F','S'].forEach(d => {
+  1949→      const el = document.createElement('div');
+  1950→      el.className = 'cal-day-head';
+  1951→      el.textContent = d;
+  1952→      grid.appendChild(el);
+  1953→    });
+  1954→    for (let i = 0; i < firstDay; i++) {
+  1955→      const el = document.createElement('div');
+  1956→      el.className = 'cal-day empty';
+  1957→      grid.appendChild(el);
+  1958→    }
+  1959→    for (let d = 1; d <= daysInMonth; d++) {
+  1960→      const el = document.createElement('button');
+  1961→      el.className = 'cal-day';
+  1962→      el.textContent = d;
+  1963→      if (isCurrentMonth && d === today.getDate()) el.classList.add('today');
+  1964→      grid.appendChild(el);
+  1965→    }
+  1966→  }
+  1967→  renderCalendar();
+  1968→  document.getElementById('calPrev').addEventListener('click', e => { e.stopPropagation(); calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); });
+  1969→  document.getElementById('calNext').addEventListener('click', e => { e.stopPropagation(); calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); });
+  1970→
+  1971→  setTimeout(initIcons, 50);
+  1972→});
+  1973→</script>
+  1974→</body>
+  1975→</html>

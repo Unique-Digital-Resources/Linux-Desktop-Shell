@@ -1,0 +1,1360 @@
+     1→# DMGreeter — Analysis
+     2→
+     3→## Overview
+     4→
+     5→`DMGreeter.html` is the login / display-manager (greeter) screen for the "Aether" custom Wayland display manager — the first surface a user sees before any desktop session starts. It is a single self-contained HTML document (1724 lines) loading Google Fonts (Inter + Space Grotesk) and the `lucide` icon library from a CDN, then rendering everything from one inline `<style>` block and one inline IIFE `<script>`.
+     6→
+     7→**Visual concept**
+     8→- Dark, glassmorphic aesthetic. Surfaces use `rgba()` translucent fills layered over a blurred wallpaper (`backdrop-filter: blur(22px) saturate(120%)`).
+     9→- Accent is a mint/teal (`--accent: #6ad1b3`) used for primary actions, focused fields, active tabs, session indicators, and the success overlay; text is near-white `#eef3f7`.
+    10→- A fixed `.wallpaper` gradient sits behind a remote `.wallpaper-img` (Unsplash) that fades in once loaded, with a left-to-right `.veil` gradient darkening the image for legibility.
+    11→- A light theme is fully supported via `[data-theme="light"]` overrides of every design token.
+    12→- Motion is restrained and cubic-bezier-eased (`--ease: cubic-bezier(.22,.61,.36,1)`, `--ease-out: cubic-bezier(.16,1,.3,1)`), with a `prefers-reduced-motion` short-circuit at the bottom.
+    13→
+    14→**Main UI regions (top → bottom)**
+    15→1. **Wallpaper layers** — `.wallpaper` (gradient fallback) + `.wallpaper-img` (remote image, fades in) + `.veil` (legibility scrim).
+    16→2. **Stage** — `.stage` flex container centering the auth area.
+    17→3. **Auth wrapper** — `.auth-wrapper` (column) containing:
+    18→   - `.auth-container` (row): **user-box** (left, expandable drawer of avatars) + **auth-card** (right, 440 px glass card with method tabs, step indicator, and method panels for password / PIN / pattern / fingerprint / security question).
+    19→   - `.statusbar` (pill-shaped, full width below the cards): session picker on the left, system indicators (network, volume, battery, theme, power) on the right.
+    20→4. **Popovers** — `.popover` panels anchored above their trigger buttons for session list, network info, volume slider, and power menu.
+    21→5. **Dialog + scrim** — `.scrim` + `.dialog` confirmation modal for power actions.
+    22→6. **Overlay screens** — full-screen `.overlay-screen` for "Welcome back" success and the power-off "Shutting down" / "Restarting" / "Suspending" / "Locking" / "About" states.
+    23→
+    24→The page sets `<html data-theme="dark">` and provides a `<title>Aether — Display Manager</title>`.
+    25→
+    26→---
+    27→
+    28→## HTML structure
+    29→
+    30→Below is the complete inner HTML of `<body>` reproduced verbatim (every element, class, attribute, and text node), indented for readability. This is the template that will back the greeter web component.
+    31→
+    32→```html
+    33→  <div class="wallpaper"></div>
+    34→  <div class="wallpaper-img" id="wallImg"></div>
+    35→  <div class="veil"></div>
+    36→
+    37→  <main class="stage" id="stage">
+    38→    <div class="auth-wrapper">
+    39→    
+    40→      <div class="auth-container">
+    41→      
+    42→        <!-- ===== USER BOX (left) ===== -->
+    43→        <div class="user-box" id="userBox">
+    44→          <button class="drawer-btn" id="drawerBtn" aria-label="Switch user">
+    45→            <i data-lucide="chevron-right"></i>
+    46→          </button>
+    47→        
+    48→          <div class="drawer-panel" id="drawerPanel">
+    49→            <div class="drawer-label">Switch User</div>
+    50→            <div class="avatar-grid" id="avatarGrid"></div>
+    51→          </div>
+    52→        
+    53→          <div class="user-box-content">
+    54→            <img class="large-avatar" id="avatar" alt="" />
+    55→            <div>
+    56→              <div class="user-name" id="userName">Aria Voss</div>
+    57→              <div class="user-handle" id="userHandle">@aria</div>
+    58→            </div>
+    59→          </div>
+    60→        </div>
+    61→      
+    62→        <!-- ===== AUTH CARD (right) ===== -->
+    63→        <div class="auth-card" id="authCard">
+    64→          <div class="method-tabs" role="tablist" aria-label="Authentication method">
+    65→            <button class="method-tab active" data-method="password" title="Password" role="tab"><i data-lucide="key-round"></i>Password</button>
+    66→            <button class="method-tab" data-method="pin" title="PIN" role="tab"><i data-lucide="grid-2x2"></i>PIN</button>
+    67→            <button class="method-tab" data-method="pattern" title="Pattern" role="tab"><i data-lucide="git-fork"></i>Pattern</button>
+    68→            <button class="method-tab" data-method="fingerprint" title="Fingerprint" role="tab"><i data-lucide="fingerprint"></i>Finger</button>
+    69→            <button class="method-tab" data-method="question" title="Security Question" role="tab"><i data-lucide="help-circle"></i>Question</button>
+    70→          </div>
+    71→
+    72→          <div class="step-indicator" id="stepIndicator">
+    73→            <div class="step-label" id="stepLabel">Step 1 of 2 · Password</div>
+    74→            <div class="step-dots" id="stepDots"></div>
+    75→          </div>
+    76→
+    77→          <div class="method-body">
+    78→            <div class="method-panel active" data-panel="password">
+    79→              <form id="pwForm" autocomplete="off">
+    80→                <div class="field" id="pwField">
+    81→                  <i data-lucide="lock" class="lead"></i>
+    82→                  <input type="text" id="userInput" class="user-input" placeholder="Username" aria-label="Username" autocomplete="off" />
+    83→                  <span class="field-sep" id="fieldSep"></span>
+    84→                  <input type="password" id="pwInput" placeholder="Password" aria-label="Password" autocomplete="off" />
+    85→                  <button type="button" class="eye" id="pwEye" aria-label="Show password" tabindex="-1">
+    86→                    <i data-lucide="eye"></i>
+    87→                  </button>
+    88→                </div>
+    89→                <button type="submit" class="primary-action" id="pwSubmit">
+    90→                  <span class="label">Sign in</span>
+    91→                  <i data-lucide="arrow-right"></i>
+    92→                  <span class="spinner"></span>
+    93→                </button>
+    94→                <div class="field-foot">
+    95→                  <span class="error-msg" id="pwError">Incorrect password. Try again.</span>
+    96→                  <span class="demo-hint" id="pwHint"></span>
+    97→                </div>
+    98→              </form>
+    99→            </div>
+   100→
+   101→            <div class="method-panel" data-panel="pin">
+   102→              <div class="pin-display" id="pinDisplay">
+   103→                <span class="pin-dot"></span><span class="pin-dot"></span>
+   104→                <span class="pin-dot"></span><span class="pin-dot"></span>
+   105→              </div>
+   106→              <div class="pin-pad" id="pinPad">
+   107→                <button class="pin-key" data-k="1">1</button>
+   108→                <button class="pin-key" data-k="2">2</button>
+   109→                <button class="pin-key" data-k="3">3</button>
+   110→                <button class="pin-key" data-k="4">4</button>
+   111→                <button class="pin-key" data-k="5">5</button>
+   112→                <button class="pin-key" data-k="6">6</button>
+   113→                <button class="pin-key" data-k="7">7</button>
+   114→                <button class="pin-key" data-k="8">8</button>
+   115→                <button class="pin-key" data-k="9">9</button>
+   116→                <button class="pin-key fn" data-k="clear" aria-label="Clear"><i data-lucide="delete"></i></button>
+   117→                <button class="pin-key" data-k="0">0</button>
+   118→                <button class="pin-key fn" data-k="enter" aria-label="Submit" id="pinEnter"><i data-lucide="corner-down-left"></i></button>
+   119→              </div>
+   120→              <div class="field-foot">
+   121→                <span class="error-msg" id="pinError">Incorrect PIN.</span>
+   122→                <span class="demo-hint" id="pinHint"></span>
+   123→              </div>
+   124→            </div>
+   125→
+   126→            <div class="method-panel" data-panel="pattern">
+   127→              <div class="pattern-wrap">
+   128→                <div class="pattern-canvas" id="patternCanvas">
+   129→                  <svg class="pattern-svg" id="patternSvg"></svg>
+   130→                </div>
+   131→                <div class="pattern-hint" id="patternHint">Draw a pattern of 4 or more points</div>
+   132→                <div class="field-foot" style="width:100%;justify-content:space-between;margin-top:8px">
+   133→                  <span class="error-msg" id="patternError">Pattern too short.</span>
+   134→                  <span class="demo-hint" id="patternHintDemo"></span>
+   135→                </div>
+   136→              </div>
+   137→            </div>
+   138→
+   139→            <div class="method-panel" data-panel="fingerprint">
+   140→              <div class="fp-wrap">
+   141→                <button class="fp-btn" id="fpBtn" aria-label="Scan fingerprint">
+   142→                  <i data-lucide="fingerprint"></i>
+   143→                </button>
+   144→                <div class="fp-label" id="fpLabel">Touch the sensor to scan</div>
+   145→                <div class="field-foot" style="margin-top:10px">
+   146→                  <span class="error-msg" id="fpError">Scan failed. Try again.</span>
+   147→                  <span class="demo-hint" id="fpHint"></span>
+   148→                </div>
+   149→              </div>
+   150→            </div>
+   151→
+   152→            <div class="method-panel" data-panel="question">
+   153→              <div class="question-box">
+   154→                <i data-lucide="help-circle"></i>
+   155→                <div class="question-text" id="questionText">What is the name of your first pet?</div>
+   156→              </div>
+   157→              <div class="field" id="qField">
+   158→                <i data-lucide="message-circle" class="lead"></i>
+   159→                <input type="text" id="qInput" placeholder="Your answer" aria-label="Security answer" autocomplete="off" />
+   160→              </div>
+   161→              <button type="button" class="primary-action" id="qSubmit">
+   162→                <span class="label">Verify answer</span>
+   163→                <i data-lucide="check"></i>
+   164→                <span class="spinner"></span>
+   165→              </button>
+   166→              <div class="field-foot">
+   167→                <span class="error-msg" id="qError">Incorrect answer.</span>
+   168→                <span class="demo-hint" id="qHint"></span>
+   169→              </div>
+   170→            </div>
+   171→          </div>
+   172→        </div>
+   173→      
+   174→      </div>
+   175→    
+   176→      <!-- ===== STATUS BAR (under boxes, full width) ===== -->
+   177→      <nav class="statusbar" aria-label="System status">
+   178→        <button class="session-indicator" id="sessionBtn" data-pop="session" aria-label="Select session">
+   179→          <i data-lucide="layout-grid"></i>
+   180→          <span class="session-label">Session</span>
+   181→          <span class="session-val" id="sessionVal">Hyprland</span>
+   182→          <i data-lucide="chevron-down" class="chev"></i>
+   183→        </button>
+   184→      
+   185→        <div class="system-indicators">
+   186→          <button class="indicator" id="netBtn" data-pop="network" aria-label="Network">
+   187→            <i data-lucide="wifi"></i>
+   188→            <span class="pill"><span class="lvl-text" id="netText">Aether-5G</span></span>
+   189→            <span class="tip">Connected · Aether-5G</span>
+   190→          </button>
+   191→          <button class="indicator" id="volBtn" data-pop="volume" aria-label="Volume">
+   192→            <i data-lucide="volume-2"></i>
+   193→            <span class="pill"><span class="lvl-text" id="volText">45%</span></span>
+   194→            <span class="tip" id="volTip">Volume 45%</span>
+   195→          </button>
+   196→          <button class="indicator" id="batBtn" aria-label="Battery">
+   197→            <span class="bat-case"><span class="bat-fill" id="batFill" style="width:78%"></span></span>
+   198→            <span class="lvl-text" id="batText">78%</span>
+   199→            <span class="tip" id="batTip">78% remaining</span>
+   200→          </button>
+   201→          <button class="indicator" id="themeBtn" aria-label="Toggle theme">
+   202→            <i data-lucide="sun-moon"></i>
+   203→            <span class="tip">Switch theme</span>
+   204→          </button>
+   205→          <button class="indicator" id="powerBtn" data-pop="power" aria-label="Power and system options">
+   206→            <i data-lucide="power"></i>
+   207→            <span class="tip">Power options</span>
+   208→          </button>
+   209→        </div>
+   210→      </nav>
+   211→    
+   212→    </div>
+   213→  </main>
+   214→
+   215→  <!-- Popovers -->
+   216→  <div class="popover" id="pop-session" role="menu" aria-label="Select session">
+   217→    <div class="pop-label">Desktop Session</div>
+   218→    <div id="sessionList"></div>
+   219→  </div>
+   220→
+   221→  <div class="popover" id="pop-network" role="menu" aria-label="Network status" style="min-width:260px">
+   222→    <div class="pop-section">
+   223→      <div class="pop-label">Connection</div>
+   224→      <div class="net-info-row">
+   225→        <div class="net-info-icon"><i data-lucide="wifi"></i></div>
+   226→        <div class="net-info-text">
+   227→          <div class="net-info-name">Aether-5G</div>
+   228→          <div class="net-info-detail">Connected · Secured · 5 GHz</div>
+   229→        </div>
+   230→      </div>
+   231→    </div>
+   232→    <div class="pop-section">
+   233→      <div class="pop-label">Details</div>
+   234→      <div class="net-stat"><span>Interface</span><span class="net-stat-val">wlan0</span></div>
+   235→      <div class="net-stat"><span>Signal strength</span><span class="net-stat-val">Excellent</span></div>
+   236→      <div class="net-stat"><span>IP address</span><span class="net-stat-val">192.168.1.42</span></div>
+   237→      <div class="net-stat"><span>Gateway</span><span class="net-stat-val">192.168.1.1</span></div>
+   238→    </div>
+   239→  </div>
+   240→
+   241→  <div class="popover" id="pop-volume" role="menu" aria-label="Volume" style="min-width:260px">
+   242→    <div class="pop-section">
+   243→      <div class="pop-label">Output volume</div>
+   244→      <div class="vol-row">
+   245→        <button class="vol-toggle" id="volToggle" aria-label="Toggle mute">
+   246→          <i data-lucide="volume-2"></i>
+   247→        </button>
+   248→        <input type="range" id="volSlider" min="0" max="100" value="45" class="vol-slider" aria-label="Volume level" />
+   249→        <span class="vol-value" id="volValue">45%</span>
+   250→      </div>
+   251→    </div>
+   252→  </div>
+   253→
+   254→  <div class="popover origin-bl" id="pop-power" role="menu" aria-label="Power options">
+   255→    <div class="pop-section">
+   256→      <button class="pop-item" data-power="suspend"><i data-lucide="moon"></i><span>Suspend</span></button>
+   257→      <button class="pop-item" data-power="restart"><i data-lucide="rotate-cw"></i><span>Restart</span></button>
+   258→      <button class="pop-item danger" data-power="shutdown"><i data-lucide="power"></i><span>Shut down</span></button>
+   259→    </div>
+   260→    <div class="pop-section">
+   261→      <button class="pop-item" id="lockBtn"><i data-lucide="lock-keyhole"></i><span>Lock screen</span></button>
+   262→      <button class="pop-item" id="aboutBtn"><i data-lucide="info"></i><span>About this system</span></button>
+   263→    </div>
+   264→  </div>
+   265→
+   266→  <div class="scrim" id="scrim"></div>
+   267→  <div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+   268→    <div class="dialog-icon" id="dlgIcon"><i data-lucide="triangle-alert"></i></div>
+   269→    <h3 id="dlgTitle">Shut down?</h3>
+   270→    <p id="dlgBody">This will close all running sessions and power off the device. Any unsaved work will be lost.</p>
+   271→    <div class="dialog-actions">
+   272→      <button class="btn btn-ghost" id="dlgCancel">Cancel</button>
+   273→      <button class="btn btn-danger" id="dlgConfirm">Shut down</button>
+   274→    </div>
+   275→  </div>
+   276→
+   277→  <div class="overlay-screen" id="successOverlay">
+   278→    <div class="overlay-icon" id="successIcon"><i data-lucide="check"></i></div>
+   279→    <div class="overlay-title" id="successTitle">Welcome back, Aria</div>
+   280→    <div class="overlay-sub" id="successSub">Starting Hyprland session…</div>
+   281→    <button class="overlay-back" id="successBack">Return to greeter</button>
+   282→  </div>
+   283→
+   284→  <div class="overlay-screen power" id="powerOverlay">
+   285→    <div class="overlay-icon" id="powerIcon"><i data-lucide="power"></i></div>
+   286→    <div class="overlay-title" id="powerTitle">Shutting down</div>
+   287→    <div class="overlay-sub" id="powerSub">It is now safe to power off the device.</div>
+   288→    <button class="overlay-back" id="powerBack">Return to greeter</button>
+   289→  </div>
+   290→```
+   291→
+   292→---
+   293→
+   294→## CSS section index
+   295→
+   296→The stylesheet is grouped into eleven numbered sections by banner comments in the source. Below, every selector / group is listed with a one-line description of what it styles, organized by region.
+   297→
+   298→### 1. Design tokens
+   299→- `:root` — All dark-theme CSS custom properties: accent ramp (`--accent`, `--accent-soft`, `--accent-strong`, `--accent-press`), surface tokens (`--surface`, `--surface-strong`, `--surface-hover`, `--surface-input`), text ramp (`--text` … `--text-faint`), hairlines & ring, error/success/warn, radii (`--r-sm/md/lg/pill`), `--pad-input`, `--blur`, durations (`--dur-fast/dur/slow`), eases, panel & float shadows.
+   300→- `[data-theme="light"]` — Light-theme overrides for every color/shadow token above (deep teal accent, white surfaces, dark text, lighter shadows).
+   301→
+   302→### 2. Reset & base
+   303→- `*` — Box-sizing reset, zero margin/padding.
+   304→- `html, body` — Full height.
+   305→- `body` — Inter font stack, text color, fallback background, `overflow:hidden`, antialiasing, optimized text rendering.
+   306→- `button` / `input` — Inherit font/color, strip borders/background, pointer cursor for buttons, no outline on inputs.
+   307→- `::selection` — Accent-soft selection highlight.
+   308→- `button:focus-visible, .method-tab:focus-visible, .indicator:focus-visible, .session-indicator:focus-visible, .pin-key:focus-visible, .vol-toggle:focus-visible, .drawer-btn:focus-visible, .grid-avatar:focus-visible` — Shared keyboard focus ring (2 px accent ring, 6 px radius).
+   309→- `.field input:focus, .field input:focus-visible` — Strip native input outline (field-level focus handled by container).
+   310→
+   311→### 3. Wallpaper & atmosphere
+   312→- `.wallpaper` — Fixed full-viewport gradient fallback (radial accent glow top-left + cool blue glow bottom-right + linear gradient between `--bg-fallback-1/2`).
+   313→- `.wallpaper-img` — Fixed full-viewport remote image layer; opacity 0 → 1 with `.loaded` (slow ease transition).
+   314→- `.wallpaper-img.loaded` — Faded-in state.
+   315→- `.veil` — Fixed legibility scrim over the wallpaper (two linear gradients: horizontal darkening + bottom-up darkening).
+   316→- `[data-theme="light"] .veil` — Lighter veil gradients for the light theme.
+   317→
+   318→### 4. Stage layout
+   319→- `.stage` — Relative layer above the wallpaper (`z-index:2`), full size, flex center, fluid padding via `clamp()`.
+   320→- `.auth-wrapper` — Column flex, 16 px gap, `width:max-content`, capped at viewport.
+   321→- `.auth-container` — Row flex holding the user-box and auth-card, 16 px gap.
+   322→
+   323→### 5. User box (left) — drawer inside, expands
+   324→- `.user-box` — Glass panel (`--surface`, blur, hairline border, large radius, panel shadow) housing the avatar + (optional) drawer; width animates on drawer open.
+   325→- `.user-box::before` — Inset 1 px top-highlight gradient overlay (glass sheen).
+   326→- `.drawer-panel` — Hidden by default; inset dark panel with column layout, shown when `.drawer-open` is on the user-box.
+   327→- `.user-box.drawer-open .drawer-panel` — Reveals the drawer (display:flex).
+   328→- `.drawer-label` — Uppercase, letter-spaced, faint "Switch User" caption.
+   329→- `.avatar-grid` — 3-row CSS grid with column auto-flow for the avatar buttons.
+   330→- `.grid-avatar` — 44 px circular avatar button, transparent border, hover scale + accent border, `.selected` accent ring.
+   331→- `.grid-avatar img` — Full-cover image fill.
+   332→- `.grid-avatar:hover` — Accent border + 1.08 scale.
+   333→- `.grid-avatar.selected` — Accent border + 3 px accent-soft ring.
+   334→- `.user-box-content` — Fixed 220 px column, centered avatar + name + handle.
+   335→- `.large-avatar` — 128 px circular cover image with hairline-strong border, drop shadow, surface-input background, bottom margin.
+   336→- `.user-name` — Space Grotesk 22 px / weight 500, negative letter-spacing, centered.
+   337→- `.user-handle` — 13 px muted Space Grotesk handle.
+   338→- `.drawer-btn` — Absolutely-positioned 32 px circular toggle left of the box (`-16 px`), surface-strong fill, hairline-strong border, float shadow, accent-on-hover.
+   339→- `.drawer-btn:hover` — Accent fill, dark text, accent border.
+   340→- `[data-theme="light"] .drawer-btn:hover` — White text on accent.
+   341→- `.drawer-btn svg` — 16 px, rotation transitions.
+   342→- `.user-box.drawer-open .drawer-btn svg` — Rotates the chevron 180° when drawer is open.
+   343→
+   344→### 6. Auth card (right)
+   345→- `.auth-card` — Fixed 440 px glass column with fluid padding, surface fill, blur, hairline border, large radius, panel shadow.
+   346→- `.auth-card::before` — Inset top-highlight gradient (glass sheen).
+   347→- `.method-tabs` — Pill-shaped segmented control holding the five method tabs.
+   348→- `.method-tab` — Inline-flex tab with icon + label, 11.5 px medium, muted; hover brightens; `.active` gets accent fill + dark text.
+   349→- `.method-tab svg` — 14 px icon.
+   350→- `.method-tab:hover` — Brighter text.
+   351→- `.method-tab.active` — Accent background, dark text.
+   352→- `[data-theme="light"] .method-tab.active` — White text.
+   353→- `.step-indicator` — Hidden column (label + dots) shown only for multi-step auth via `.show`.
+   354→- `.step-indicator.show` — Reveals the indicator.
+   355→- `.step-label` — 12 px muted Space Grotesk label like "Step 1 of 2 · Password".
+   356→- `.step-dots` — 6 px-gap row of step dots.
+   357→- `.step-dot` — 7 px circle, hairline-strong, transitions.
+   358→- `.step-dot.active` — Accent fill, 1.3 scale, accent-soft glow.
+   359→- `.step-dot.completed` — Success-green fill.
+   360→- `.method-body` — Relative container for the five method panels; 12 px top margin.
+   361→- `.method-panel` — Hidden by default.
+   362→- `.method-panel.active` — Visible, with `fadeUp` keyframe entrance.
+   363→- `@keyframes fadeUp` — Opacity 0 → 1 + 6 px upward translate.
+   364→- `.field` — Shared input container: surface-input fill, hairline border, medium radius; focus-within adds accent border + accent-soft ring; `.error` adds error border + ring + `shake` animation.
+   365→- `@keyframes shake` — Quick horizontal jitter for invalid fields.
+   366→- `.field > svg.lead` — 17 px leading icon inside a field, 15 px left margin.
+   367→- `.field input` — Flex:1, padded, 15 px font, slight letter-spacing, min-width 0.
+   368→- `.field input::placeholder` — Faint placeholder text.
+   369→- `.field .user-input` — Hidden username sub-input.
+   370→- `.field .user-input.show` — Shown as 35 % flex column when the user requires a username.
+   371→- `.field .field-sep` — Hidden vertical divider.
+   372→- `.field .field-sep.show` — 1 px vertical hairline between username and password inputs.
+   373→- `.field .eye` — 38 px square password-reveal toggle area, muted → bright on hover.
+   374→- `.field .eye:hover` — Brighter icon.
+   375→- `.field .eye svg` — 17 px eye icon.
+   376→- `.primary-action` — Full-width accent submit button: 13 px padding, medium radius, accent fill, dark text, 14.5 px / weight 600; hover → accent-strong; active → slight scale-down; disabled dimmed.
+   377→- `[data-theme="light"] .primary-action` — White text.
+   378→- `.primary-action:hover` — Accent-strong background.
+   379→- `.primary-action:active` — 0.985 scale press.
+   380→- `.primary-action[disabled]` — 0.55 opacity, not-allowed cursor.
+   381→- `.primary-action svg` — 17 px trailing icon.
+   382→- `.primary-action.loading .label, .primary-action.loading svg` — Hide label + icon while loading.
+   383→- `.primary-action.loading .spinner` — Show spinner while loading.
+   384→- `.spinner` — 22 px spinning ring border, hidden by default, `spin` keyframe.
+   385→- `[data-theme="light"] .spinner` — White ring border for light theme.
+   386→- `@keyframes spin` — 360° rotation, 0.8 s linear.
+   387→- `.field-foot` — 10 px-top row between button and footer; space-between alignment, 18 px min height.
+   388→- `.error-msg` — 12.5 px error-red, weight 500; hidden via opacity/translate; `.show` reveals it.
+   389→- `.error-msg.show` — Visible.
+   390→- `.demo-hint` — 11.5 px faint Space Grotesk hint on the right; `<b>` child uses mute color.
+   391→- `.demo-hint b` — Mute-colored bold segment.
+   392→
+   393→**PIN sub-panel**
+   394→- `.pin-display` — Centered row of 4 dots with 14 px gap.
+   395→- `.pin-dot` — 12 px circle, 1.5 px hairline-strong border.
+   396→- `.pin-dot.filled` — Accent fill + border, 1.08 scale.
+   397→- `.pin-dot.error` — Error-red border + error-soft fill.
+   398→- `.pin-pad` — 3-column grid of number keys with 8 px gap.
+   399→- `.pin-key` — 50 px tall key, surface-input fill, hairline border, Space Grotesk 19 px digit; hover lightens; active scales down + accent-soft fill; `.fn` variant is muted with smaller icon; `.loading` dims.
+   400→- `.pin-key:hover` — Lighter surface + stronger hairline.
+   401→- `.pin-key:active` — 0.95 scale + accent-soft fill.
+   402→- `.pin-key.fn` — Muted, 14 px font (for clear / enter icons).
+   403→- `.pin-key.fn svg` — 18 px icon.
+   404→- `.pin-key.loading` — 0.5 opacity, no pointer events.
+   405→
+   406→**Pattern sub-panel**
+   407→- `.pattern-wrap` — Centered column wrapper.
+   408→- `.pattern-canvas` — 220 × 220 relative pattern area with `touch-action:none`.
+   409→- `.pattern-svg` — Absolutely-filled SVG layer for the connecting polyline (no pointer events).
+   410→- `.pattern-dot` — 14 px absolutely-positioned circle (translated -50 %,-50 %), hairline-strong border, surface-input fill.
+   411→- `.pattern-dot.active` — Accent fill + border + 6 px accent-soft ring.
+   412→- `.pattern-dot.error` — Error fill + border + 6 px error-soft ring.
+   413→- `.pattern-hint` — 12.5 px muted Space Grotesk status text, 18 px min height.
+   414→
+   415→**Fingerprint sub-panel**
+   416→- `.fp-wrap` — Centered column wrapper.
+   417→- `.fp-btn` — 92 px circular sensor button, hairline-strong border, surface-input fill; hover → accent; `.scanning` adds accent border + `pulse` animation + ripple `::after`; `.success` turns success-green.
+   418→- `.fp-btn svg` — 46 px fingerprint icon, color transitions.
+   419→- `.fp-btn:hover` — Accent color + border.
+   420→- `.fp-btn.scanning` — Accent border/color + infinite pulse.
+   421→- `.fp-btn.scanning::after` — Expanding ripple ring around the sensor.
+   422→- `@keyframes pulse` — Box-shadow pulse on the sensor.
+   423→- `@keyframes ripple` — Outward scale + fade ripple.
+   424→- `.fp-btn.success` — Success-green icon + border.
+   425→- `.fp-label` — 16 px-top muted Space Grotesk status label, 18 px min height.
+   426→
+   427→**Security-question sub-panel**
+   428→- `.question-box` — Accent-soft tinted box with hairline border holding the prompt.
+   429→- `.question-box svg` — 18 px accent help icon, flex-shrink 0.
+   430→- `.question-text` — 13.5 px Space Grotesk weight-500 prompt text, 1.45 line-height.
+   431→
+   432→### 7. Status bar
+   433→- `.statusbar` — Pill-shaped full-width glass bar (`z-index:5`), surface fill, blur, hairline border, float shadow, 46 px min height; space-between layout.
+   434→- `.session-indicator` — Inline-flex pill button on the left with icon + label + value + chevron; surface-input fill; hover lightens; `.active` flips the chevron.
+   435→- `.session-indicator:hover` — Lighter surface + brighter text.
+   436→- `.session-indicator svg` — 16 px muted icon.
+   437→- `.session-indicator .session-label` — Muted 12.5 px label.
+   438→- `.session-indicator .session-val` — Bright 12.5 px value.
+   439→- `.session-indicator .chev` — 14 px faint chevron, rotation transition.
+   440→- `.session-indicator.active .chev` — 180°-rotated chevron.
+   441→- `.system-indicators` — Right-side row of indicator buttons with 4 px gap.
+   442→- `.indicator` — Pill-shaped icon/lvl button, 34 px tall, surface-hover on hover.
+   443→- `.indicator:hover` — Lighter surface + brighter text.
+   444→- `.indicator svg` — 17 px icon.
+   445→- `.indicator .lvl-text` — 12 px tabular-nums level text.
+   446→- `.indicator .pill` — Inner pill wrapper (border + gap + padding) for level text.
+   447→- `.bat-case` — 23 × 13 px battery outline drawn with `currentColor` + a `::after` nub.
+   448→- `.bat-case::after` — Right-side battery nub.
+   449→- `.bat-fill` — Absolutely-positioned inner fill bar (width set inline by JS).
+   450→- `.tip` — Tooltip above an indicator (surface-strong, hairline border, 11.5 px text); hidden by default; revealed by `.indicator:hover .tip`.
+   451→- `.indicator:hover .tip` — Revealed + translated tooltip.
+   452→
+   453→### 8. Popover panels
+   454→- `.popover` — Fixed `z-index:30` glass panel, surface-strong fill, blur, hairline-strong border, medium radius, panel shadow; hidden via opacity + downward/scale transform; `.open` reveals; transform-origin variations for top-left / bottom-left.
+   455→- `.popover.open` — Visible + reset transform.
+   456→- `.popover.origin-tl` — Top-left transform origin.
+   457→- `.popover.origin-bl` — Bottom-left transform origin (used by the power popover).
+   458→- `.pop-section` — 6 px-padded section with top hairline divider between siblings.
+   459→- `.pop-section + .pop-section` — Top hairline divider.
+   460→- `.pop-label` — Uppercase letter-spaced faint 10.5 px section caption.
+   461→- `.pop-item` — Full-width row button: 9 px padding, 13.5 px text, surface-hover on hover; `.danger` variant is error-red; `.selected` is bright with an accent check; carries a `.meta` slot on the right.
+   462→- `.pop-item:hover` — Lighter surface + brighter text.
+   463→- `.pop-item svg` — 17 px muted icon.
+   464→- `.pop-item .meta` — Right-aligned 12 px faint tabular meta slot.
+   465→- `.pop-item.danger` — Error-red text + icon + error-soft hover.
+   466→- `.pop-item.danger svg` — Error-red icon.
+   467→- `.pop-item.danger:hover` — Error-soft background.
+   468→- `.pop-item.selected` — Bright text.
+   469→- `.pop-item.selected .pop-check` — Accent-colored check.
+   470→- `.pop-check` — Right-aligned 16 px accent check icon.
+   471→- `.session-logo` — 18 × 18 px logo slot.
+   472→- `.session-logo svg` — 18 px session logo.
+   473→- `.session-desc` — 11.5 px faint description line under the session name.
+   474→- `.net-info-row` — Network connection row with icon + text.
+   475→- `.net-info-icon` — 36 px circular accent-soft icon well.
+   476→- `.net-info-icon svg` — 18 px wifi icon.
+   477→- `.net-info-text` — Flex:1 text column.
+   478→- `.net-info-name` — 14 px weight-500 network name.
+   479→- `.net-info-detail` — 12 px muted detail line.
+   480→- `.net-stat` — Space-between row of network stat pairs.
+   481→- `.net-stat-val` — Right-aligned Space Grotesk tabular value.
+   482→- `.vol-row` — Volume row with toggle + slider + value.
+   483→- `.vol-toggle` — 36 px circular mute toggle; hover lightens; `.muted` is error-red.
+   484→- `.vol-toggle:hover` — Lighter surface + brighter text.
+   485→- `.vol-toggle.muted` — Error-red icon.
+   486→- `.vol-toggle svg` — 18 px speaker icon.
+   487→- `.vol-slider` — Flex:1 range input with `accent-color:var(--accent)`.
+   488→- `.vol-value` — Right-aligned 12 px Space Grotesk tabular percent.
+   489→
+   490→### 9. Dialog / overlay
+   491→- `.scrim` — Fixed `z-index:40` full-viewport dim + 4 px blur; hidden by default; `.open` reveals.
+   492→- `.scrim.open` — Visible + interactive.
+   493→- `.dialog` — Fixed centered (`z-index:41`) glass modal, ≤ 380 px wide, surface-strong fill, blur, hairline-strong border, large radius, panel shadow; hidden via opacity + scale; `.open` scales to 1.
+   494→- `.dialog.open` — Visible + centered scale-1.
+   495→- `.dialog-icon` — 44 px rounded-square icon well (error-soft fill + error color by default).
+   496→- `.dialog-icon svg` — 23 px alert icon.
+   497→- `.dialog h3` — Space Grotesk 18 px weight-500 title.
+   498→- `.dialog p` — 13.5 px soft body text, 6 px top margin, 1.5 line-height.
+   499→- `.dialog-actions` — Right-aligned 8 px-gap row of action buttons.
+   500→- `.btn` — Base 9 × 16 px button, small radius, 13.5 px / weight 500, fast transition.
+   501→- `.btn-ghost` — Soft ghost button; hover lightens.
+   502→- `.btn-ghost:hover` — Lighter surface + brighter text.
+   503→- `.btn-danger` — Error-fill button with dark text; hover brightens.
+   504→- `.btn-danger:hover` — Slight brightness boost.
+   505→- `.btn-primary` — Accent-fill primary button with dark text.
+   506→- `[data-theme="light"] .btn-primary` — White text.
+   507→- `.btn-primary:hover` — Accent-strong background.
+   508→- `.overlay-screen` — Full-viewport `z-index:60` flex column overlay, transparent by default; `.show` fades in a dim background; `.power` is near-opaque for power-off.
+   509→- `.overlay-screen.show` — Visible + dim background.
+   510→- `.overlay-screen.power` — Near-opaque dark background.
+   511→- `.overlay-icon` — 64 px circular accent well with dark icon; scales from 0.6 → 1 on `.show`.
+   512→- `[data-theme="light"] .overlay-icon` — White icon.
+   513→- `.overlay-screen.show .overlay-icon` — Scaled + visible.
+   514→- `.overlay-icon svg` — 30 px icon.
+   515→- `.overlay-title` — 30 px Space Grotesk weight-400 welcome/shutdown title; translated + faded until `.show`.
+   516→- `.overlay-screen.show .overlay-title` — Revealed + translated up.
+   517→- `.overlay-sub` — 13.5 px translucent subtitle; staged 0.08 s after the title.
+   518→- `.overlay-screen.show .overlay-sub` — Revealed.
+   519→- `.overlay-back` — Pill-bordered "Return to greeter" button; staged 0.24 s.
+   520→- `.overlay-screen.show .overlay-back` — Revealed.
+   521→- `.overlay-back:hover` — Lighter surface + bright text.
+   522→
+   523→### 10. Responsive
+   524→- `@media (max-width:980px)` — Stacks auth-container vertically, makes user-box-content row with smaller avatar, repositions drawer-btn to the bottom (90°-rotated chevron), widens avatar-grid to 2 rows, full-width auth-card, wraps the status bar.
+   525→- `@media (max-width:620px)` — Shrinks method-tab and session-indicator padding/font, tightens indicator pills.
+   526→
+   527→### 11. Reduced motion
+   528→- `@media (prefers-reduced-motion:reduce)` — Collapses all animation/transition durations to 0.001 ms and forces animation-iteration-count to 1 (effectively instant) for every element + its `::before` / `::after`.
+   529→
+   530→The full verbatim CSS is reproduced in **`greeter.css`** (732 lines).
+   531→
+   532→---
+   533→
+   534→## JS logic
+   535→
+   536→Below is the complete verbatim content of the `<script>` block (an IIFE with `"use strict"`), followed by a bullet summary of state, functions, event listeners, interactions, and data.
+   537→
+   538→### Script source (verbatim)
+   539→
+   540→```js
+   541→(function(){
+   542→  "use strict";
+   543→
+   544→  const WALLPAPER_URL = "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=2400&q=80";
+   545→  const DEMO = { password:"demo", pin:"1234", patternMinLen:4 };
+   546→
+   547→  const SESSIONS = [
+   548→    { id:"hyprland", name:"Hyprland", desc:"Dynamic tiling Wayland compositor",
+   549→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18M7 3v18M14 3v18"/></svg>` },
+   550→    { id:"kde", name:"KDE Plasma", desc:"Flexible desktop by KDE",
+   551→      logo:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.6 3.2c0 .9.7 1.6 1.6 1.6.9 0 1.6-.7 1.6-1.6 0-.9-.7-1.6-1.6-1.6-.9 0-1.6.7-1.6 1.6zM8.8 6.4c.5 0 1 .1 1.4.4.4.2.7.2 1.1.1.7-.2 1.4-.2 2.1 0 .4.1.7.1 1.1-.1.4-.3.9-.4 1.4-.4 1.2 0 2.1.9 2.1 2.1 0 .8-.4 1.5-.9 2.2-.4.5-.5 1.1-.4 1.7.1.5.2 1 .2 1.5 0 1.5-1.2 2.7-2.7 2.7-.5 0-1-.1-1.4-.4-.4-.2-.9-.3-1.4-.3-.5 0-1 .1-1.4.3-.4.3-.9.4-1.4.4-1.5 0-2.7-1.2-2.7-2.7 0-.5.1-1 .2-1.5.1-.6 0-1.2-.4-1.7-.5-.7-.9-1.4-.9-2.2 0-1.2.9-2.1 2.1-2.1z"/></svg>` },
+   552→    { id:"gnome", name:"GNOME", desc:"Clean, focused Wayland desktop",
+   553→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3.2"/><path d="M12 5.5v-2M12 20.5v-2M5.5 12h-2M20.5 12h-2M7 7 5.5 5.5M18.5 18.5 17 17M17 7l1.5-1.5M5.5 18.5 7 17"/></svg>` },
+   554→    { id:"sway", name:"Sway", desc:"i3-compatible Wayland tiler",
+   555→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h7v12H4zM13 6h7v6h-7zM13 14h7v4h-7z"/></svg>` },
+   556→    { id:"xfce", name:"Xfce", desc:"Lightweight, stable desktop",
+   557→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 14 4-9 3 5 2-3 7 11"/><path d="M4 14h16"/></svg>` },
+   558→    { id:"custom", name:"Custom Wayland", desc:"User-defined session script",
+   559→      logo:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M17.7 6.3l-2.1 2.1M8.4 15.6l-2.1 2.1"/><circle cx="12" cy="12" r="3"/></svg>` }
+   560→  ];
+   561→
+   562→  const USERS = [
+   563→    { name:"Aria Voss",   handle:"aria",   img:"https://i.pravatar.cc/160?img=5",  auth:"password", pw:"demo",
+   564→      question:"What city were you born in?", answer:"cairo" },
+   565→    { name:"Kenji Sato",  handle:"kenji",   img:"https://i.pravatar.cc/160?img=11", auth:"password", pw:"demo", requiresUsername:true,
+   566→      question:"What is your favorite book?", answer:"dune" },
+   567→    { name:"Mira Sol",   handle:"mira",    img:"https://i.pravatar.cc/160?img=47", auth:"pin",
+   568→      question:"What is your mother's maiden name?", answer:"rivera" },
+   569→    { name:"Devon Hart", handle:"devon",   img:"https://i.pravatar.cc/160?img=33", auth:"pattern",
+   570→      question:"What was the name of your first school?", answer:"maplewood" },
+   571→    { name:"Yuki Tanaka",handle:"yuki",    img:"https://i.pravatar.cc/160?img=20", auth:"question",
+   572→      question:"What is the name of your first pet?", answer:"mochi" },
+   573→    { name:"Sage Lin",   handle:"sage",    img:"https://i.pravatar.cc/160?img=16", auth:"multi-step",
+   574→      steps:[ { type:"password", pw:"demo" }, { type:"pattern" } ],
+   575→      question:"What is your favorite color?", answer:"teal" }
+   576→  ];
+   577→
+   578→  const state = {
+   579→    userIndex: 0,
+   580→    method: "password",
+   581→    authStatus: "idle",
+   582→    multiStep: { active:false, current:0, total:0 },
+   583→    session: "hyprland",
+   584→    theme: "dark",
+   585→    openPop: null,
+   586→    drawerOpen: false,
+   587→    powerAction: null,
+   588→    net: { name:"Aether-5G", online:true },
+   589→    battery: { level:78, charging:false },
+   590→    volume: { level:45, muted:false },
+   591→    pin: "",
+   592→    pattern: [],
+   593→    patternDrawing: false
+   594→  };
+   595→
+   596→  const $  = (s, r=document) => r.querySelector(s);
+   597→  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+   598→  const user = () => USERS[state.userIndex];
+   599→  const session = () => SESSIONS.find(s => s.id === state.session);
+   600→
+   601→  function refreshIcons(){ if (window.lucide && lucide.createIcons) lucide.createIcons(); }
+   602→
+   603→  function swapIcon(el, iconName) {
+   604→    if (typeof el === "string") el = $(el);
+   605→    if (!el) return;
+   606→    const old = el.querySelector("svg, [data-lucide]") || el;
+   607→    const newI = document.createElement("i");
+   608→    newI.setAttribute("data-lucide", iconName);
+   609→    let cls = old.className;
+   610→    if (typeof cls === "object" && cls.baseVal !== undefined) cls = cls.baseVal;
+   611→    const keep = cls.split(/\s+/).filter(c => c && !c.startsWith("lucide"));
+   612→    newI.className = keep.join(" ");
+   613→    old.replaceWith(newI);
+   614→    refreshIcons();
+   615→  }
+   616→
+   617→  function renderIdentity(){
+   618→    const u = user();
+   619→    const av = $("#avatar");
+   620→    av.src = u.img;
+   621→    av.onerror = () => { av.style.background = "linear-gradient(135deg,var(--accent),var(--accent-press))"; av.removeAttribute("src"); };
+   622→    $("#userName").textContent = u.name;
+   623→    $("#userHandle").textContent = "@" + u.handle;
+   624→  }
+   625→
+   626→  function renderSession(){
+   627→    const s = session();
+   628→    $("#sessionVal").textContent = s.name;
+   629→    $$("#sessionList .pop-item").forEach(b => {
+   630→      const on = b.dataset.session === state.session;
+   631→      b.classList.toggle("selected", on);
+   632→      const chk = b.querySelector(".pop-check");
+   633→      if (chk) chk.style.opacity = on ? "1" : "0";
+   634→    });
+   635→  }
+   636→
+   637→  function renderVolume(){
+   638→    const muted = state.volume.muted || state.volume.level === 0;
+   639→    const volIcon = muted ? "volume-x" : state.volume.level < 35 ? "volume-1" : "volume-2";
+   640→    $("#volText").textContent = muted ? "Muted" : state.volume.level + "%";
+   641→    $("#volTip").textContent = muted ? "Muted" : `Volume ${state.volume.level}%`;
+   642→    swapIcon("#volBtn", volIcon);
+   643→    const volToggle = $("#volToggle");
+   644→    if (volToggle){
+   645→      swapIcon("#volToggle", volIcon);
+   646→      volToggle.classList.toggle("muted", muted);
+   647→    }
+   648→    if ($("#volSlider")) $("#volSlider").value = state.volume.level;
+   649→    if ($("#volValue")) $("#volValue").textContent = muted ? "Muted" : state.volume.level + "%";
+   650→  }
+   651→
+   652→  function renderBattery(){
+   653→    const lvl = state.battery.level;
+   654→    $("#batFill").style.width = Math.max(0, Math.min(100, lvl)) + "%";
+   655→    $("#batText").textContent = lvl + "%";
+   656→    $("#batTip").textContent = state.battery.charging ? `Charging · ${lvl}%` : `${lvl}% remaining`;
+   657→  }
+   658→
+   659→  function renderNetwork(){ $("#netText").textContent = state.net.name; }
+   660→
+   661→  function renderAll(){
+   662→    renderIdentity();
+   663→    renderSession();
+   664→    renderVolume();
+   665→    renderBattery();
+   666→    renderNetwork();
+   667→  }
+   668→
+   669→  function updateAuthChrome(){
+   670→    const u = user();
+   671→    const isMulti = u.auth === "multi-step";
+   672→    state.multiStep.active = isMulti;
+   673→    state.multiStep.current = 0;
+   674→    state.multiStep.total = isMulti ? u.steps.length : 0;
+   675→    $(".method-tabs").style.display = isMulti ? "none" : "flex";
+   676→    $("#stepIndicator").classList.toggle("show", isMulti);
+   677→    const showUser = !!u.requiresUsername && !isMulti;
+   678→    $("#userInput").classList.toggle("show", showUser);
+   679→    $("#fieldSep").classList.toggle("show", showUser);
+   680→    swapIcon("#pwField .lead", showUser ? "user-round" : "lock");
+   681→    if (isMulti) renderStep();
+   682→    else setMethod(u.auth);
+   683→    updateDemoHints();
+   684→  }
+   685→
+   686→  function setMethod(m){
+   687→    state.method = m;
+   688→    $$(".method-tab").forEach(t => t.classList.toggle("active", t.dataset.method === m));
+   689→    $$(".method-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === m));
+   690→    clearErrors();
+   691→    if (m === "pattern") setTimeout(buildPattern, 50);
+   692→  }
+   693→
+   694→  function clearErrors(){
+   695→    $("#pwField").classList.remove("error");
+   696→    $("#pwError").classList.remove("show");
+   697→    $("#pinError").classList.remove("show");
+   698→    $("#patternError").classList.remove("show");
+   699→    $("#qField").classList.remove("error");
+   700→    $("#qError").classList.remove("show");
+   701→    $("#fpError").classList.remove("show");
+   702→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.remove("error"));
+   703→  }
+   704→
+   705→  function stepLabel(type){
+   706→    return { password:"Password", pin:"PIN", pattern:"Pattern", fingerprint:"Fingerprint", question:"Security Question" }[type] || type;
+   707→  }
+   708→  function renderStep(){
+   709→    if (!state.multiStep.active) return;
+   710→    const u = user();
+   711→    const step = u.steps[state.multiStep.current];
+   712→    $("#stepLabel").textContent = `Step ${state.multiStep.current+1} of ${state.multiStep.total} · ${stepLabel(step.type)}`;
+   713→    const dotsEl = $("#stepDots");
+   714→    dotsEl.innerHTML = "";
+   715→    u.steps.forEach((_, i) => {
+   716→      const dot = document.createElement("span");
+   717→      dot.className = "step-dot";
+   718→      if (i === state.multiStep.current) dot.classList.add("active");
+   719→      if (i < state.multiStep.current) dot.classList.add("completed");
+   720→      dotsEl.appendChild(dot);
+   721→    });
+   722→    setMethod(step.type);
+   723→    updateDemoHints();
+   724→  }
+   725→  function advanceStep(){
+   726→    const u = user();
+   727→    const stepType = u.steps[state.multiStep.current].type;
+   728→    if (stepType === "password") $("#pwInput").value = "";
+   729→    if (stepType === "pin") { state.pin = ""; renderPin(); }
+   730→    if (stepType === "pattern") clearPattern();
+   731→    if (stepType === "question") $("#qInput").value = "";
+   732→    state.multiStep.current++;
+   733→    renderStep();
+   734→  }
+   735→  function onAuthSuccess(){
+   736→    if (state.multiStep.active && state.multiStep.current < state.multiStep.total - 1){
+   737→      state.authStatus = "idle";
+   738→      setTimeout(advanceStep, 450);
+   739→    } else {
+   740→      showSuccess();
+   741→    }
+   742→  }
+   743→
+   744→  function updateDemoHints(){
+   745→    const u = user();
+   746→    if (u.requiresUsername && !state.multiStep.active){
+   747→      $("#pwHint").innerHTML = `<b>demo:</b> any user · pass = <b>demo</b>`;
+   748→    } else {
+   749→      $("#pwHint").innerHTML = `<b>demo:</b> password = <b>demo</b>`;
+   750→    }
+   751→    $("#pinHint").innerHTML = `<b>demo:</b> PIN = <b>1234</b>`;
+   752→    $("#patternHintDemo").innerHTML = `<b>demo:</b> any 4+ dots`;
+   753→    $("#fpHint").innerHTML = `<b>demo:</b> tap to scan`;
+   754→    if (u.question){
+   755→      $("#qHint").innerHTML = `<b>demo:</b> answer = <b>${u.answer}</b>`;
+   756→      $("#questionText").textContent = u.question;
+   757→    } else {
+   758→      $("#qHint").innerHTML = `<b>demo:</b> no question set`;
+   759→      $("#questionText").textContent = "No security question configured for this user.";
+   760→    }
+   761→  }
+   762→
+   763→  function setBtnLoading(btn, on){
+   764→    btn.classList.toggle("loading", on);
+   765→    btn.disabled = on;
+   766→    state.authStatus = on ? "loading" : "idle";
+   767→  }
+   768→  function showSuccess(){
+   769→    const u = user();
+   770→    $("#successTitle").textContent = `Welcome back, ${u.name.split(" ")[0]}`;
+   771→    $("#successSub").textContent = `Starting ${session().name} session…`;
+   772→    $("#successIcon").innerHTML = `<i data-lucide="check"></i>`;
+   773→    refreshIcons();
+   774→    $("#successOverlay").classList.add("show");
+   775→    state.authStatus = "success";
+   776→  }
+   777→  function returnToGreeter(){
+   778→    $("#successOverlay").classList.remove("show");
+   779→    $("#powerOverlay").classList.remove("show");
+   780→    state.authStatus = "idle";
+   781→    state.multiStep.current = 0;
+   782→    if (state.multiStep.active) renderStep();
+   783→    $("#pwInput").value = "";
+   784→    $("#userInput").value = "";
+   785→    $("#qInput").value = "";
+   786→    state.pin = ""; renderPin();
+   787→    clearPattern();
+   788→    clearErrors();
+   789→  }
+   790→  function flashError(fieldEl, msgEl, msg){
+   791→    fieldEl && fieldEl.classList.add("error");
+   792→    if (msg){ msgEl.textContent = msg; msgEl.classList.add("show"); }
+   793→    setTimeout(()=>{ fieldEl && fieldEl.classList.remove("error"); }, 420);
+   794→  }
+   795→
+   796→  function submitPassword(e){
+   797→    e.preventDefault();
+   798→    if (state.authStatus === "loading") return;
+   799→    const u = user();
+   800→    const pwVal = $("#pwInput").value;
+   801→    const userVal = u.requiresUsername ? $("#userInput").value.trim() : "";
+   802→    if (u.requiresUsername && !userVal){
+   803→      flashError($("#pwField"), $("#pwError"), "Enter username.");
+   804→      $("#userInput").focus(); return;
+   805→    }
+   806→    if (!pwVal){
+   807→      flashError($("#pwField"), $("#pwError"), "Enter password.");
+   808→      $("#pwInput").focus(); return;
+   809→    }
+   810→    setBtnLoading($("#pwSubmit"), true);
+   811→    setTimeout(()=>{
+   812→      setBtnLoading($("#pwSubmit"), false);
+   813→      const expectedPw = state.multiStep.active
+   814→        ? (u.steps[state.multiStep.current].pw || DEMO.password)
+   815→        : (u.pw || DEMO.password);
+   816→      if (pwVal === expectedPw) onAuthSuccess();
+   817→      else flashError($("#pwField"), $("#pwError"), "Incorrect credentials. Try again.");
+   818→    }, 850);
+   819→  }
+   820→
+   821→  function renderPin(){
+   822→    const dots = $$("#pinDisplay .pin-dot");
+   823→    dots.forEach((d,i)=>{ d.classList.toggle("filled", i < state.pin.length); d.classList.remove("error"); });
+   824→  }
+   825→  function pinError(msg){
+   826→    $("#pinDisplay").querySelectorAll(".pin-dot").forEach(d=>d.classList.add("error"));
+   827→    $("#pinError").textContent = msg || "Incorrect PIN.";
+   828→    $("#pinError").classList.add("show");
+   829→    setTimeout(()=>{ $("#pinError").classList.remove("show"); renderPin(); }, 700);
+   830→  }
+   831→  function pinPress(k){
+   832→    if (state.authStatus === "loading") return;
+   833→    if (k === "clear"){ state.pin = ""; renderPin(); $("#pinError").classList.remove("show"); return; }
+   834→    if (k === "enter"){ submitPin(); return; }
+   835→    if (state.pin.length >= 4) return;
+   836→    state.pin += k; renderPin();
+   837→    $("#pinError").classList.remove("show");
+   838→    if (state.pin.length === 4) setTimeout(submitPin, 160);
+   839→  }
+   840→  function submitPin(){
+   841→    if (state.authStatus === "loading") return;
+   842→    const enterBtn = $("#pinEnter");
+   843→    enterBtn.classList.add("loading"); enterBtn.disabled = true; state.authStatus = "loading";
+   844→    setTimeout(()=>{
+   845→      enterBtn.classList.remove("loading"); enterBtn.disabled = false; state.authStatus = "idle";
+   846→      if (state.pin === DEMO.pin){ state.pin = ""; renderPin(); onAuthSuccess(); }
+   847→      else pinError("Incorrect PIN.");
+   848→    }, 700);
+   849→  }
+   850→
+   851→  const PAT_SIZE = 3;
+   852→  const patCanvas = $("#patternCanvas");
+   853→  const patSvg = $("#patternSvg");
+   854→  let patDots = [];
+   855→  function buildPattern(){
+   856→    patCanvas.querySelectorAll(".pattern-dot").forEach(d=>d.remove());
+   857→    patSvg.innerHTML = ""; patDots = [];
+   858→    const cs = patCanvas.getBoundingClientRect();
+   859→    if (cs.width === 0) return;
+   860→    const n = PAT_SIZE, pad = 24;
+   861→    for (let r=0;r<n;r++){
+   862→      for (let c=0;c<n;c++){
+   863→        const x = pad + (cs.width-2*pad) * (c/(n-1));
+   864→        const y = pad + (cs.height-2*pad) * (r/(n-1));
+   865→        const el = document.createElement("div");
+   866→        el.className = "pattern-dot";
+   867→        el.style.left = x+"px"; el.style.top = y+"px";
+   868→        el.dataset.idx = r*n+c;
+   869→        patCanvas.appendChild(el); patDots.push(el);
+   870→      }
+   871→    }
+   872→  }
+   873→  function clearPattern(){
+   874→    state.pattern = []; state.patternDrawing=false;
+   875→    patDots.forEach(d=>d.classList.remove("active","error"));
+   876→    patSvg.innerHTML = "";
+   877→    $("#patternError").classList.remove("show");
+   878→    $("#patternHint").textContent = "Draw a pattern of 4 or more points";
+   879→  }
+   880→  function addPatternDot(idx){
+   881→    if (state.pattern.includes(idx)) return;
+   882→    state.pattern.push(idx);
+   883→    patDots[idx].classList.add("active");
+   884→    drawPatternLines();
+   885→    $("#patternHint").textContent = `${state.pattern.length} point${state.pattern.length>1?"s":""} selected`;
+   886→  }
+   887→  function drawPatternLines(){
+   888→    if (state.pattern.length < 2) return;
+   889→    const cs = patCanvas.getBoundingClientRect();
+   890→    patSvg.setAttribute("viewBox", `0 0 ${cs.width} ${cs.height}`);
+   891→    let d = "";
+   892→    state.pattern.forEach((idx,i)=>{
+   893→      const dot = patDots[idx];
+   894→      const x = parseFloat(dot.style.left), y = parseFloat(dot.style.top);
+   895→      d += (i===0?"M":"L") + x + " " + y + " ";
+   896→    });
+   897→    patSvg.innerHTML = `<path d="${d}" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.85"/>`;
+   898→  }
+   899→  function dotAt(x,y){
+   900→    for (let i=0;i<patDots.length;i++){
+   901→      const r = patDots[i].getBoundingClientRect();
+   902→      if (x >= r.left-14 && x <= r.right+14 && y >= r.top-14 && y <= r.bottom+14) return i;
+   903→    }
+   904→    return -1;
+   905→  }
+   906→  function submitPattern(){
+   907→    if (state.pattern.length >= DEMO.patternMinLen){
+   908→      $("#patternHint").textContent = "Verifying…";
+   909→      setTimeout(()=>{
+   910→        if (state.pattern.length >= DEMO.patternMinLen) onAuthSuccess();
+   911→        else patternFail();
+   912→      }, 500);
+   913→    } else patternFail();
+   914→  }
+   915→  function patternFail(){
+   916→    patDots.forEach(d=>d.classList.add("error"));
+   917→    const path = patSvg.querySelector("path");
+   918→    if (path) path.setAttribute("stroke","var(--error)");
+   919→    $("#patternError").classList.add("show");
+   920→    $("#patternHint").textContent = "Pattern too short";
+   921→    setTimeout(clearPattern, 800);
+   922→  }
+   923→
+   924→  function scanFingerprint(){
+   925→    const btn = $("#fpBtn");
+   926→    if (btn.classList.contains("scanning")) return;
+   927→    btn.classList.add("scanning");
+   928→    $("#fpLabel").textContent = "Scanning…";
+   929→    $("#fpError").classList.remove("show");
+   930→    setTimeout(()=>{
+   931→      btn.classList.remove("scanning");
+   932→      btn.classList.add("success");
+   933→      $("#fpLabel").textContent = "Identity verified";
+   934→      setTimeout(()=>{ btn.classList.remove("success"); onAuthSuccess(); }, 480);
+   935→    }, 1200);
+   936→  }
+   937→
+   938→  function submitQuestion(){
+   939→    if (state.authStatus === "loading") return;
+   940→    const u = user();
+   941→    const val = $("#qInput").value.trim().toLowerCase();
+   942→    if (!val){ flashError($("#qField"), $("#qError"), "Enter an answer."); return; }
+   943→    setBtnLoading($("#qSubmit"), true);
+   944→    setTimeout(()=>{
+   945→      setBtnLoading($("#qSubmit"), false);
+   946→      if (val === (u.answer || "").toLowerCase()) onAuthSuccess();
+   947→      else flashError($("#qField"), $("#qError"), "Incorrect answer.");
+   948→    }, 850);
+   949→  }
+   950→
+   951→  function closeAllPops(){
+   952→    $$(".popover.open").forEach(p => p.classList.remove("open"));
+   953→    $("#sessionBtn").classList.remove("active");
+   954→    state.openPop = null;
+   955→  }
+   956→  function openPop(name, anchorEl){
+   957→    closeAllPops();
+   958→    const pop = $("#pop-" + name);
+   959→    if (!pop) return;
+   960→    state.openPop = name;
+   961→    if (name === "session") $("#sessionBtn").classList.add("active");
+   962→    pop.style.visibility = "hidden";
+   963→    pop.classList.add("open");
+   964→    requestAnimationFrame(()=>{
+   965→      const pr = pop.getBoundingClientRect();
+   966→      const ar = anchorEl.getBoundingClientRect();
+   967→      let left, top;
+   968→      if (name === "power"){
+   969→        left = ar.right - pr.width;
+   970→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+   971→        top = ar.top - pr.height - 12;
+   972→        if (top < 12) top = ar.bottom + 12;
+   973→      } else {
+   974→        left = ar.left;
+   975→        left = Math.max(16, Math.min(left, window.innerWidth - pr.width - 16));
+   976→        top = ar.top - pr.height - 12;
+   977→        if (top < 12) top = ar.bottom + 12;
+   978→      }
+   979→      pop.style.left = left + "px";
+   980→      pop.style.top = top + "px";
+   981→      pop.style.visibility = "visible";
+   982→    });
+   983→  }
+   984→  function togglePop(name, anchorEl){
+   985→    if (state.openPop === name) closeAllPops();
+   986→    else openPop(name, anchorEl);
+   987→  }
+   988→
+   989→  function buildAvatarGrid(){
+   990→    const grid = $("#avatarGrid");
+   991→    grid.innerHTML = "";
+   992→    USERS.forEach((u, i) => {
+   993→      const btn = document.createElement("button");
+   994→      btn.className = "grid-avatar" + (i === state.userIndex ? " selected" : "");
+   995→      btn.setAttribute("aria-label", u.name);
+   996→      btn.innerHTML = `<img src="${u.img}" alt="${u.name}" onerror="this.style.background='linear-gradient(135deg,var(--accent),var(--accent-press))';this.removeAttribute('src')"/>`;
+   997→      btn.addEventListener("click", () => {
+   998→        selectUser(i);
+   999→        closeDrawer();
+  1000→      });
+  1001→      grid.appendChild(btn);
+  1002→    });
+  1003→  }
+  1004→  function openDrawer(){
+  1005→    state.drawerOpen = true;
+  1006→    $("#userBox").classList.add("drawer-open");
+  1007→  }
+  1008→  function closeDrawer(){
+  1009→    state.drawerOpen = false;
+  1010→    $("#userBox").classList.remove("drawer-open");
+  1011→  }
+  1012→  function toggleDrawer(){
+  1013→    if (state.drawerOpen) closeDrawer();
+  1014→    else openDrawer();
+  1015→  }
+  1016→
+  1017→  function selectUser(index){
+  1018→    state.userIndex = index;
+  1019→    state.pin = "";
+  1020→    state.pattern = [];
+  1021→    state.authStatus = "idle";
+  1022→    $("#pwInput").value = "";
+  1023→    $("#userInput").value = "";
+  1024→    $("#qInput").value = "";
+  1025→    clearErrors();
+  1026→    renderIdentity();
+  1027→    updateAuthChrome();
+  1028→    buildAvatarGrid();
+  1029→    closeAllPops();
+  1030→    setTimeout(()=>{
+  1031→      if (state.method === "password") $("#pwInput").focus();
+  1032→      else if (state.method === "question") $("#qInput").focus();
+  1033→    }, 200);
+  1034→  }
+  1035→
+  1036→  function buildSessionList(){
+  1037→    const wrap = $("#sessionList");
+  1038→    wrap.innerHTML = "";
+  1039→    SESSIONS.forEach(s=>{
+  1040→      const b = document.createElement("button");
+  1041→      b.className = "pop-item" + (s.id === state.session ? " selected" : "");
+  1042→      b.dataset.session = s.id;
+  1043→      b.innerHTML = `
+  1044→        <span class="session-logo">${s.logo}</span>
+  1045→        <span><span>${s.name}</span><span class="session-desc">${s.desc}</span></span>
+  1046→        <i data-lucide="check" class="pop-check" style="opacity:${s.id===state.session?1:0}"></i>`;
+  1047→      b.addEventListener("click", ()=>{
+  1048→        state.session = s.id;
+  1049→        renderSession();
+  1050→        closeAllPops();
+  1051→      });
+  1052→      wrap.appendChild(b);
+  1053→    });
+  1054→    refreshIcons();
+  1055→  }
+  1056→
+  1057→  const dialog = $("#dialog"), scrim = $("#scrim");
+  1058→  function openDialog(action){
+  1059→    const titles = {
+  1060→      shutdown:["Shut down?","This will close all running sessions and power off the device. Any unsaved work will be lost.","Shut down","power"],
+  1061→      restart:  ["Restart?","The system will reboot. Any unsaved work will be lost.","Restart","rotate-cw"],
+  1062→      suspend:  ["Suspend?","The system will enter sleep mode and can be resumed with a key press.","Suspend","moon"]
+  1063→    };
+  1064→    const [title,body,confirm,icon] = titles[action] || titles.shutdown;
+  1065→    $("#dlgTitle").textContent = title;
+  1066→    $("#dlgBody").textContent = body;
+  1067→    $("#dlgConfirm").textContent = confirm;
+  1068→    state.powerAction = action;
+  1069→    const di = $("#dlgIcon");
+  1070→    di.innerHTML = `<i data-lucide="${icon}"></i>`;
+  1071→    refreshIcons();
+  1072→    di.style.background = action === "shutdown" ? "var(--error-soft)" : "var(--accent-soft)";
+  1073→    di.style.color = action === "shutdown" ? "var(--error)" : "var(--accent)";
+  1074→    const conf = $("#dlgConfirm");
+  1075→    conf.className = "btn " + (action === "shutdown" ? "btn-danger" : "btn-primary");
+  1076→    closeAllPops();
+  1077→    scrim.classList.add("open");
+  1078→    dialog.classList.add("open");
+  1079→  }
+  1080→  function closeDialog(){
+  1081→    scrim.classList.remove("open");
+  1082→    dialog.classList.remove("open");
+  1083→    state.powerAction = null;
+  1084→  }
+  1085→  function confirmPower(){
+  1086→    const action = state.powerAction || "shutdown";
+  1087→    closeDialog();
+  1088→    const titles = { shutdown:"Shutting down", restart:"Restarting", suspend:"Suspending" };
+  1089→    const subs = {
+  1090→      shutdown:"It is now safe to power off the device.",
+  1091→      restart:"The system is restarting…",
+  1092→      suspend:"System suspended. Press any key to resume."
+  1093→    };
+  1094→    $("#powerTitle").textContent = titles[action];
+  1095→    $("#powerSub").textContent = subs[action];
+  1096→    $("#powerIcon").innerHTML = `<i data-lucide="${action==='suspend'?'moon':action==='restart'?'rotate-cw':'power'}"></i>`;
+  1097→    refreshIcons();
+  1098→    $("#powerOverlay").classList.add("show");
+  1099→  }
+  1100→
+  1101→  function setTheme(t){
+  1102→    state.theme = t;
+  1103→    document.documentElement.setAttribute("data-theme", t);
+  1104→    swapIcon("#themeBtn", t === "dark" ? "sun-moon" : "sun");
+  1105→  }
+  1106→
+  1107→  function wire(){
+  1108→    const img = new Image();
+  1109→    img.onload = ()=>{ $("#wallImg").classList.add("loaded"); };
+  1110→    img.onerror = ()=>{};
+  1111→    img.src = WALLPAPER_URL;
+  1112→
+  1113→    $("#themeBtn").addEventListener("click", ()=> setTheme(state.theme === "dark" ? "light" : "dark"));
+  1114→
+  1115→    $("#drawerBtn").addEventListener("click", e=>{
+  1116→      e.stopPropagation();
+  1117→      toggleDrawer();
+  1118→    });
+  1119→
+  1120→    $$(".method-tab").forEach(t => t.addEventListener("click", ()=> {
+  1121→      if (!state.multiStep.active) setMethod(t.dataset.method);
+  1122→    }));
+  1123→
+  1124→    $("#pwForm").addEventListener("submit", submitPassword);
+  1125→    let pwShown = false;
+  1126→    $("#pwEye").addEventListener("click", ()=>{
+  1127→      pwShown = !pwShown;
+  1128→      $("#pwInput").type = pwShown ? "text" : "password";
+  1129→      swapIcon("#pwEye", pwShown ? "eye-off" : "eye");
+  1130→    });
+  1131→    $("#pwInput").addEventListener("input", ()=>{
+  1132→      $("#pwField").classList.remove("error");
+  1133→      $("#pwError").classList.remove("show");
+  1134→    });
+  1135→    $("#userInput").addEventListener("input", ()=>{
+  1136→      $("#pwField").classList.remove("error");
+  1137→      $("#pwError").classList.remove("show");
+  1138→    });
+  1139→    $("#userInput").addEventListener("keydown", e=>{
+  1140→      if (e.key === "Enter"){ e.preventDefault(); $("#pwInput").focus(); }
+  1141→    });
+  1142→
+  1143→    $$("#pinPad .pin-key").forEach(k => k.addEventListener("click", ()=> pinPress(k.dataset.k)));
+  1144→
+  1145→    patCanvas.addEventListener("pointerdown", e=>{
+  1146→      if (state.authStatus==="loading") return;
+  1147→      clearPattern();
+  1148→      state.patternDrawing = true;
+  1149→      patCanvas.setPointerCapture(e.pointerId);
+  1150→      const i = dotAt(e.clientX, e.clientY);
+  1151→      if (i>=0) addPatternDot(i);
+  1152→    });
+  1153→    patCanvas.addEventListener("pointermove", e=>{
+  1154→      if (!state.patternDrawing) return;
+  1155→      const i = dotAt(e.clientX, e.clientY);
+  1156→      if (i>=0) addPatternDot(i);
+  1157→    });
+  1158→    function endPattern(){
+  1159→      if (!state.patternDrawing) return;
+  1160→      state.patternDrawing = false;
+  1161→      submitPattern();
+  1162→    }
+  1163→    patCanvas.addEventListener("pointerup", endPattern);
+  1164→    patCanvas.addEventListener("pointercancel", endPattern);
+  1165→
+  1166→    $("#fpBtn").addEventListener("click", scanFingerprint);
+  1167→
+  1168→    $("#qSubmit").addEventListener("click", submitQuestion);
+  1169→    $("#qInput").addEventListener("keydown", e=>{
+  1170→      if (e.key === "Enter"){ e.preventDefault(); submitQuestion(); }
+  1171→    });
+  1172→    $("#qInput").addEventListener("input", ()=>{
+  1173→      $("#qField").classList.remove("error");
+  1174→      $("#qError").classList.remove("show");
+  1175→    });
+  1176→
+  1177→    $("#sessionBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("session", $("#sessionBtn")); });
+  1178→    $("#netBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("network", $("#netBtn")); });
+  1179→    $("#volBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("volume", $("#volBtn")); });
+  1180→    $("#powerBtn").addEventListener("click", e=>{ e.stopPropagation(); togglePop("power", $("#powerBtn")); });
+  1181→
+  1182→    $("#volToggle").addEventListener("click", ()=>{
+  1183→      state.volume.muted = !state.volume.muted;
+  1184→      renderVolume();
+  1185→    });
+  1186→    $("#volSlider").addEventListener("input", e=>{
+  1187→      state.volume.level = parseInt(e.target.value, 10);
+  1188→      if (state.volume.level > 0) state.volume.muted = false;
+  1189→      renderVolume();
+  1190→    });
+  1191→
+  1192→    $$("#pop-power [data-power]").forEach(b => b.addEventListener("click", ()=> openDialog(b.dataset.power)));
+  1193→    $("#lockBtn").addEventListener("click", ()=>{
+  1194→      closeAllPops();
+  1195→      $("#powerTitle").textContent = "Locking";
+  1196→      $("#powerSub").textContent = "Screen locked.";
+  1197→      $("#powerIcon").innerHTML = `<i data-lucide="lock-keyhole"></i>`;
+  1198→      refreshIcons();
+  1199→      $("#powerOverlay").classList.add("show");
+  1200→    });
+  1201→    $("#aboutBtn").addEventListener("click", ()=>{
+  1202→      closeAllPops();
+  1203→      $("#successTitle").textContent = "Aether Greeter";
+  1204→      $("#successSub").textContent = "Custom Wayland display manager · v1.7 · mock environment";
+  1205→      $("#successIcon").innerHTML = `<i data-lucide="info"></i>`;
+  1206→      refreshIcons();
+  1207→      $("#successOverlay").classList.add("show");
+  1208→    });
+  1209→
+  1210→    $("#dlgCancel").addEventListener("click", closeDialog);
+  1211→    $("#dlgConfirm").addEventListener("click", confirmPower);
+  1212→    scrim.addEventListener("click", closeDialog);
+  1213→
+  1214→    $("#successBack").addEventListener("click", returnToGreeter);
+  1215→    $("#powerBack").addEventListener("click", returnToGreeter);
+  1216→
+  1217→    document.addEventListener("click", e=>{
+  1218→      const t = e.target;
+  1219→      if (state.drawerOpen && !t.closest(".drawer-panel") && !t.closest(".drawer-btn")){
+  1220→        closeDrawer();
+  1221→      }
+  1222→      if (!state.openPop) return;
+  1223→      if (t.closest(".popover") || t.closest("[data-pop]")) return;
+  1224→      closeAllPops();
+  1225→    });
+  1226→
+  1227→    document.addEventListener("keydown", e=>{
+  1228→      if (e.key === "Escape"){
+  1229→        if (dialog.classList.contains("open")){ closeDialog(); return; }
+  1230→        if (state.drawerOpen){ closeDrawer(); return; }
+  1231→        if (state.openPop){ closeAllPops(); return; }
+  1232→      }
+  1233→    });
+  1234→
+  1235→    window.addEventListener("resize", ()=>{
+  1236→      if (state.openPop) closeAllPops();
+  1237→      if (state.drawerOpen) closeDrawer();
+  1238→      if (state.method === "pattern") buildPattern();
+  1239→    });
+  1240→  }
+  1241→
+  1242→  function init(){
+  1243→    refreshIcons();
+  1244→    renderAll();
+  1245→    buildAvatarGrid();
+  1246→    buildSessionList();
+  1247→    updateAuthChrome();
+  1248→    wire();
+  1249→    setTimeout(()=>{ $("#pwInput").focus(); }, 400);
+  1250→  }
+  1251→
+  1252→  document.addEventListener("DOMContentLoaded", init);
+  1253→})();
+  1254→```
+  1255→
+  1256→### Bullet summary
+  1257→
+  1258→**Constants / data**
+  1259→- `WALLPAPER_URL` — Unsplash photo URL (also referenced in the `.wallpaper-img` CSS); preloaded by an `Image()` so the `.loaded` class can fade it in.
+  1260→- `DEMO` — `{ password:"demo", pin:"1234", patternMinLen:4 }` accepted credentials / pattern minimum.
+  1261→- `SESSIONS` — Array of 6 desktop sessions (`hyprland`, `kde`, `gnome`, `sway`, `xfce`, `custom`); each carries `id`, `name`, `desc`, and an inline SVG `logo` used in the session popover.
+  1262→- `USERS` — Array of 6 demo users (`Aria Voss`, `Kenji Sato`, `Mira Sol`, `Devon Hart`, `Yuki Tanaka`, `Sage Lin`) with pravatar.cc avatars and a per-user `auth` strategy (`password`, `pin`, `pattern`, `question`, or `multi-step`), optional `pw`, `requiresUsername`, `question`/`answer`, or a `steps[]` array.
+  1263→
+  1264→**State variables (single `state` object)**
+  1265→- `userIndex`, `method` (current auth method), `authStatus` (`idle|loading|success`).
+  1266→- `multiStep` = `{ active, current, total }` for users with chained steps.
+  1267→- `session`, `theme` (`dark|light`), `openPop` (which popover is open), `drawerOpen`, `powerAction`.
+  1268→- `net` = `{ name, online }`, `battery` = `{ level, charging }`, `volume` = `{ level, muted }`.
+  1269→- `pin` (entered PIN string), `pattern` (selected dot-index array), `patternDrawing` (boolean).
+  1270→
+  1271→**Helpers**
+  1272→- `$` / `$$` — scoped `querySelector` / `Array.from(querySelectorAll)`.
+  1273→- `user()` / `session()` — current user / session object lookups.
+  1274→- `refreshIcons()` — re-runs `lucide.createIcons()` after dynamic `<i data-lucide>` insertions.
+  1275→- `swapIcon(el, name)` — Replaces an existing icon element (svg or `[data-lucide]`) with a new `<i data-lucide="…">`, preserving non-`lucide` classes, then `refreshIcons()`.
+  1276→
+  1277→**Render functions**
+  1278→- `renderIdentity()` — Sets the avatar `src` (with `onerror` fallback gradient), `#userName`, `#userHandle`.
+  1279→- `renderSession()` — Updates `#sessionVal` and toggles `.selected` + check opacity on the session list items.
+  1280→- `renderVolume()` — Picks `volume-x`/`volume-1`/`volume-2` icon, swaps it on both `#volBtn` and `#volToggle`, updates `#volText`/`#volTip`/`#volSlider`/`#volValue`, toggles `.muted` on the toggle.
+  1281→- `renderBattery()` — Sets `#batFill` width, `#batText`, and `#batTip` (charging vs remaining).
+  1282→- `renderNetwork()` — Sets `#netText` to the SSID.
+  1283→- `renderAll()` — Calls all five renderers in order.
+  1284→
+  1285→**Auth flow control**
+  1286→- `updateAuthChrome()` — Detects `multi-step` users, hides/shows method tabs vs step indicator, toggles the username sub-input (`requiresUsername`), swaps the password field's lead icon (`user-round` vs `lock`), then `renderStep()` or `setMethod(u.auth)`, then `updateDemoHints()`.
+  1287→- `setMethod(m)` — Sets `state.method`, toggles `.active` on the matching tab and panel, calls `clearErrors()`, and (for pattern) schedules `buildPattern()` after 50 ms.
+  1288→- `clearErrors()` — Strips `.error`/`.show` from every field, error message, and pin dots.
+  1289→- `stepLabel(type)` — Maps a step type to a display label.
+  1290→- `renderStep()` — Updates `#stepLabel` ("Step X of Y · Type") and rebuilds `#stepDots` (active + completed dots), then `setMethod(step.type)` + `updateDemoHints()`.
+  1291→- `advanceStep()` — Resets the just-completed step's input (password/PIN/pattern/question), increments `multiStep.current`, and `renderStep()`.
+  1292→- `onAuthSuccess()` — Either `advanceStep()` (after a 450 ms delay) when more steps remain, or `showSuccess()` for the final success.
+  1293→- `updateDemoHints()` — Writes the demo hint for every method (`demo: …`), and either shows the user's `question`/`answer` in `#questionText`/`#qHint` or a "no question set" fallback.
+  1294→- `setBtnLoading(btn, on)` — Toggles `.loading` + `disabled` on a primary button and sets `state.authStatus` accordingly.
+  1295→- `showSuccess()` — Fills `#successTitle`/`#successSub`/`#successIcon` and adds `.show` to the success overlay.
+  1296→- `returnToGreeter()` — Removes `.show` from both overlays, resets `authStatus`/`multiStep.current`, re-renders the current step if multi-step, clears every input + pin + pattern + errors.
+  1297→- `flashError(fieldEl, msgEl, msg)` — Adds `.error` to the field, sets the message text + `.show`, then strips `.error` after 420 ms.
+  1298→
+  1299→**Per-method handlers**
+  1300→- `submitPassword(e)` — Validates username (if required) and password presence, sets the submit button loading, then after 850 ms compares against the user's `pw` (or the step's `pw` if multi-step) and either calls `onAuthSuccess()` or `flashError()`.
+  1301→- `renderPin()` — Toggles `.filled` on the four pin dots based on `state.pin.length`.
+  1302→- `pinError(msg)` — Adds `.error` to all dots + shows the message, then auto-clears after 700 ms.
+  1303→- `pinPress(k)` — Handles `clear` (reset), `enter` (submit), or appends a digit (max 4, auto-submits at length 4 after 160 ms).
+  1304→- `submitPin()` — Marks the enter button loading, then after 700 ms either succeeds (PIN = "1234") or `pinError()`.
+  1305→- Pattern: `buildPattern()` lays out a 3×3 grid of `.pattern-dot` elements positioned by canvas size; `clearPattern()` resets state + visuals + hint; `addPatternDot(idx)` pushes a unique index, marks `.active`, redraws lines, updates the count hint; `drawPatternLines()` renders an SVG `<path>` through the selected dots; `dotAt(x,y)` hit-tests pointer coords against dots (with 14 px slack); `submitPattern()` accepts ≥ 4 dots (waits 500 ms then `onAuthSuccess()`) or `patternFail()` (errors all dots + path, resets after 800 ms).
+  1306→- `scanFingerprint()` — Adds `.scanning` + "Scanning…" label for 1200 ms, then `.success` + "Identity verified" for 480 ms, then `onAuthSuccess()`.
+  1307→- `submitQuestion()` — Validates presence, sets the submit button loading, then after 850 ms compares the lowercased answer against `u.answer` and either `onAuthSuccess()` or `flashError()`.
+  1308→
+  1309→**Popover management**
+  1310→- `closeAllPops()` — Removes `.open` from every popover, removes `.active` from the session button, clears `state.openPop`.
+  1311→- `openPop(name, anchor)` — Closes others, marks `state.openPop`, anchors the popover above (or below if too close to top) the trigger using `requestAnimationFrame` measurements, with special bottom-right anchoring for the power popover.
+  1312→- `togglePop(name, anchor)` — Closes if already open, otherwise opens.
+  1313→
+  1314→**Drawer / user switching**
+  1315→- `buildAvatarGrid()` — Renders one `.grid-avatar` button per user (with `onerror` gradient fallback), `.selected` on the current user, click → `selectUser(i)` + `closeDrawer()`.
+  1316→- `openDrawer()` / `closeDrawer()` / `toggleDrawer()` — Toggles `.drawer-open` on `#userBox`.
+  1317→- `selectUser(index)` — Resets `userIndex` + all inputs + pin + pattern + errors, re-renders identity + auth chrome + avatar grid, closes popovers, and focuses the appropriate input after 200 ms.
+  1318→
+  1319→**Session list**
+  1320→- `buildSessionList()` — Builds one `.pop-item` per session with logo + name + desc + check icon, click → updates `state.session`, `renderSession()`, `closeAllPops()`.
+  1321→
+  1322→**Dialog / power**
+  1323→- `openDialog(action)` — Looks up title/body/confirm-label/icon for `shutdown`/`restart`/`suspend`, sets `state.powerAction`, recolors `#dlgIcon`/`#dlgConfirm` (danger vs primary), closes popovers, opens scrim + dialog.
+  1324→- `closeDialog()` — Removes `.open` from scrim + dialog, clears `state.powerAction`.
+  1325→- `confirmPower()` — Closes the dialog, sets `#powerTitle`/`#powerSub`/`#powerIcon` for the chosen action, and shows the power overlay.
+  1326→
+  1327→**Theme**
+  1328→- `setTheme(t)` — Sets `state.theme`, toggles `data-theme` on `<html>`, swaps the theme button icon (`sun-moon` for dark, `sun` for light).
+  1329→
+  1330→**Event wiring (`wire()`)**
+  1331→- Wallpaper: creates an `Image()`, on load adds `.loaded` to `#wallImg`.
+  1332→- `#themeBtn` click → toggle theme.
+  1333→- `#drawerBtn` click (stopPropagation) → `toggleDrawer()`.
+  1334→- Each `.method-tab` click → `setMethod(t.dataset.method)` unless multi-step is active.
+  1335→- `#pwForm` submit → `submitPassword`; `#pwEye` click toggles password visibility + swaps eye/eye-off icon; `#pwInput` + `#userInput` `input` clears field error; `#userInput` `Enter` focuses the password input.
+  1336→- Each `.pin-key` click → `pinPress(k.dataset.k)`.
+  1337→- `#patternCanvas` `pointerdown` → clears pattern, starts drawing, captures pointer, adds first dot; `pointermove` → adds dots as the pointer hits them; `pointerup`/`pointercancel` → `endPattern()` → `submitPattern()`.
+  1338→- `#fpBtn` click → `scanFingerprint()`.
+  1339→- `#qSubmit` click → `submitQuestion()`; `#qInput` `Enter` → submit; `#qInput` `input` → clear field error.
+  1340→- `#sessionBtn` / `#netBtn` / `#volBtn` / `#powerBtn` click (stopPropagation) → `togglePop(…, anchor)`.
+  1341→- `#volToggle` click → mute toggle + re-render; `#volSlider` `input` → set level, auto-unmute at > 0, re-render.
+  1342→- Each `#pop-power [data-power]` click → `openDialog(action)`; `#lockBtn` click → closes popovers and shows the power overlay in a "Locking" state; `#aboutBtn` click → shows the success overlay repurposed as an "About" panel ("Aether Greeter · v1.7 · mock environment").
+  1343→- `#dlgCancel` / `#dlgConfirm` / scrim click → `closeDialog()` / `confirmPower()` / `closeDialog()`.
+  1344→- `#successBack` / `#powerBack` click → `returnToGreeter()`.
+  1345→- Document `click` → closes drawer if the click is outside the drawer panel/btn; closes popovers if the click is outside any popover/`[data-pop]`.
+  1346→- Document `keydown` Escape → close dialog (if open), else drawer (if open), else popovers (if any).
+  1347→- Window `resize` → closes any open popover + drawer, and rebuilds the pattern grid if pattern is the active method.
+  1348→
+  1349→**Init**
+  1350→- `init()` (run on `DOMContentLoaded`) → `refreshIcons()`, `renderAll()`, `buildAvatarGrid()`, `buildSessionList()`, `updateAuthChrome()`, `wire()`, then focuses `#pwInput` after 400 ms.
+  1351→
+  1352→**Interactions / animations recap**
+  1353→- Wallpaper cross-fade on `Image` load; `fadeUp` panel entrance on method switch; `shake` on field errors; `spin` spinner on primary buttons; pin dot fill transitions + `.error` flash; pattern dot `.active`/`.error` transitions + live SVG polyline; fingerprint `pulse` + `ripple` during scanning and `.success` color flip; step dot `.active`/`.completed` transitions; drawer chevron 180° rotation; popover opacity + transform open; dialog scale-in; staggered overlay icon → title → sub → back reveal (0 / 0.08 s / 0.16 s / 0.24 s); avatar hover scale + accent ring; tooltip hover reveal; theme token swap via `data-theme`.
+  1354→
+  1355→**Data recap**
+  1356→- 6 sessions (Hyprland, KDE Plasma, GNOME, Sway, Xfce, Custom Wayland) with inline SVG logos.
+  1357→- 6 demo users with pravatar.cc avatars and varied auth strategies (one multi-step user with a password + pattern sequence).
+  1358→- Demo credentials surfaced through the `.demo-hint` lines: password = `demo`, PIN = `1234`, any 4+ pattern dots, tap-to-scan fingerprint, and per-user `answer` shown verbatim in the question hint.
+  1359→- No live clock — this greeter screen does not display a clock.
+  1360→
