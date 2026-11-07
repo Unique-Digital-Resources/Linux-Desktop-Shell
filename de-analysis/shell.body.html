@@ -1,0 +1,1169 @@
+
+<div class="desktop">
+  <div class="wallpaper">
+    <img id="wallpaperImg" src="" alt="" onerror="this.style.opacity='0'">
+  </div>
+
+  <aside class="music-widget">
+    <div class="album-art">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    </div>
+    <div class="music-info">
+      <div class="track-name">Outro</div>
+      <div class="artist-name">M83 — Hurry Up, We're Dreaming</div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+  </aside>
+
+  <div class="window" id="appWindow" role="dialog" aria-modal="true">
+    <div class="titlebar">
+      <div class="title">
+        <img id="winIcon" src="" alt="" style="display:none">
+        <span id="winTitle">Application</span>
+      </div>
+      <div class="win-controls">
+        <button class="win-ctrl min" aria-label="Minimize"></button>
+        <button class="win-ctrl max" aria-label="Maximize"></button>
+        <button class="win-ctrl close" id="closeWindow" aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-content">
+      <div class="placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+        <span>empty workspace</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ START MENU ═══ -->
+  <div class="popover start-menu" id="launcherPop">
+    <div class="start-header">
+      <div class="start-tabs">
+        <button class="start-tab active" data-tab="apps"><i data-lucide="grid"></i> Apps</button>
+        <button class="start-tab" data-tab="widgets"><i data-lucide="layout-dashboard"></i> Widgets</button>
+        <button class="start-tab" data-tab="settings"><i data-lucide="settings"></i> Settings</button>
+      </div>
+      <div class="search-box">
+        <i data-lucide="search"></i>
+        <input type="text" id="searchInput" placeholder="Search..." autocomplete="off">
+      </div>
+    </div>
+    <div class="start-body">
+      <div class="start-pane active" id="pane-apps">
+        <div class="app-groups-container">
+          <!-- Row 1: Three 2x2 Squares -->
+          <div class="app-group span-2">
+            <div class="app-group-title">Internet</div>
+            <div class="app-group-items layout-sq2">
+              <button class="app-item" data-app="firefox" data-name="Firefox"><img src="https://cdn.simpleicons.org/firefox" alt=""><span>Firefox</span></button>
+              <button class="app-item" data-app="discord" data-name="Discord"><img src="https://cdn.simpleicons.org/discord" alt=""><span>Discord</span></button>
+              <button class="app-item" data-app="telegram" data-name="Telegram"><img src="https://cdn.simpleicons.org/telegram" alt=""><span>Telegram</span></button>
+              <button class="app-item" data-app="slack" data-name="Slack"><img src="https://cdn.simpleicons.org/slack" alt=""><span>Slack</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Development</div>
+            <div class="app-group-items layout-sq2">
+              <button class="app-item" data-app="code" data-name="VS Code"><img src="https://cdn.simpleicons.org/vscode" alt=""><span>VS Code</span></button>
+              <button class="app-item" data-app="terminal" data-name="Terminal"><i data-lucide="terminal-square"></i><span>Terminal</span></button>
+              <button class="app-item" data-app="docker" data-name="Docker"><img src="https://cdn.simpleicons.org/docker" alt=""><span>Docker</span></button>
+              <button class="app-item" data-app="github" data-name="GitHub"><img src="https://cdn.simpleicons.org/github" alt=""><span>GitHub</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Graphics</div>
+            <div class="app-group-items layout-sq2">
+              <button class="app-item" data-app="gimp" data-name="GIMP"><img src="https://cdn.simpleicons.org/gimp" alt=""><span>GIMP</span></button>
+              <button class="app-item" data-app="inkscape" data-name="Inkscape"><img src="https://cdn.simpleicons.org/inkscape" alt=""><span>Inkscape</span></button>
+              <button class="app-item" data-app="blender" data-name="Blender"><img src="https://cdn.simpleicons.org/blender" alt=""><span>Blender</span></button>
+              <button class="app-item" data-app="figma" data-name="Figma"><img src="https://cdn.simpleicons.org/figma" alt=""><span>Figma</span></button>
+            </div>
+          </div>
+
+          <!-- Row 2: Two 1x3 Horizontals -->
+          <div class="app-group span-3">
+            <div class="app-group-title">Office</div>
+            <div class="app-group-items layout-h3">
+              <button class="app-item" data-app="writer" data-name="Writer"><img src="https://cdn.simpleicons.org/libreofficewriter" alt=""><span>Writer</span></button>
+              <button class="app-item" data-app="calc" data-name="Calc"><img src="https://cdn.simpleicons.org/libreofficecalc" alt=""><span>Calc</span></button>
+              <button class="app-item" data-app="impress" data-name="Impress"><img src="https://cdn.simpleicons.org/libreofficeimpress" alt=""><span>Impress</span></button>
+            </div>
+          </div>
+          <div class="app-group span-3">
+            <div class="app-group-title">Media</div>
+            <div class="app-group-items layout-h3">
+              <button class="app-item" data-app="spotify" data-name="Spotify"><img src="https://cdn.simpleicons.org/spotify" alt=""><span>Spotify</span></button>
+              <button class="app-item" data-app="obs" data-name="OBS"><img src="https://cdn.simpleicons.org/obsstudio" alt=""><span>OBS</span></button>
+              <button class="app-item" data-app="vlc" data-name="VLC"><img src="https://cdn.simpleicons.org/vlc" alt=""><span>VLC</span></button>
+            </div>
+          </div>
+
+          <!-- Row 3: Three 2x1 Verticals -->
+          <div class="app-group span-2">
+            <div class="app-group-title">System</div>
+            <div class="app-group-items layout-v2">
+              <button class="app-item app-item-list" data-app="settings" data-name="Settings"><i data-lucide="settings"></i><span>Settings</span></button>
+              <button class="app-item app-item-list" data-app="files" data-name="Files"><i data-lucide="folder"></i><span>Files</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Utilities</div>
+            <div class="app-group-items layout-v2">
+              <button class="app-item app-item-list" data-app="calc_app" data-name="Calculator"><i data-lucide="calculator"></i><span>Calculator</span></button>
+              <button class="app-item app-item-list" data-app="text_editor" data-name="Text Editor"><i data-lucide="file-text"></i><span>Text Editor</span></button>
+            </div>
+          </div>
+          <div class="app-group span-2">
+            <div class="app-group-title">Notes</div>
+            <div class="app-group-items layout-v2">
+              <button class="app-item app-item-list" data-app="obsidian" data-name="Obsidian"><img src="https://cdn.simpleicons.org/obsidian" alt=""><span>Obsidian</span></button>
+              <button class="app-item app-item-list" data-app="notion" data-name="Notion"><img src="https://cdn.simpleicons.org/notion" alt=""><span>Notion</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="start-pane" id="pane-widgets">
+        <div class="widgets-grid">
+          <div class="widget widget-time">
+            <div class="widget-head">Local Time</div>
+            <div class="time-big" id="widgetTime">14:32</div>
+            <div class="date-big" id="widgetDate">Thursday, 24 October</div>
+          </div>
+          <div class="widget widget-weather">
+            <div class="widget-head">Weather</div>
+            <div class="weather-body">
+              <div class="weather-icon"><i data-lucide="cloud-sun"></i></div>
+              <div class="weather-info">
+                <div class="weather-temp">18°</div>
+                <div class="weather-cond">Partly Cloudy</div>
+                <div class="weather-loc">Reykjavík</div>
+              </div>
+            </div>
+          </div>
+          <div class="widget widget-stats">
+            <div class="widget-head">System</div>
+            <div class="stat-row"><span class="stat-label">CPU</span><div class="stat-bar"><div class="stat-fill" style="width: 24%"></div></div><span class="stat-val">24%</span></div>
+            <div class="stat-row"><span class="stat-label">RAM</span><div class="stat-bar"><div class="stat-fill" style="width: 62%"></div></div><span class="stat-val">9.8G</span></div>
+            <div class="stat-row"><span class="stat-label">DISK</span><div class="stat-bar"><div class="stat-fill" style="width: 41%"></div></div><span class="stat-val">205G</span></div>
+          </div>
+          <div class="widget widget-proc">
+            <div class="widget-head">TopProcesses</div>
+            <div class="proc-row"><span>firefox</span><span>12.4%</span></div>
+            <div class="proc-row"><span>code</span><span>8.1%</span></div>
+            <div class="proc-row"><span>node</span><span>4.2%</span></div>
+            <div class="proc-row"><span>wayfire</span><span>2.1%</span></div>
+          </div>
+          <div class="widget widget-music">
+            <div class="wm-art"></div>
+            <div class="wm-info">
+              <div class="wm-title">Outro</div>
+              <div class="wm-artist">M83 — Hurry Up, We're Dreaming</div>
+            </div>
+            <div class="wm-controls">
+              <button class="wm-btn"><i data-lucide="skip-back"></i></button>
+              <button class="wm-btn play"><i data-lucide="play"></i></button>
+              <button class="wm-btn"><i data-lucide="skip-forward"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="start-pane" id="pane-settings">
+        <div class="settings-layout">
+          <div class="settings-nav">
+            <button class="settings-tab active" data-settings-tab="looks"><i data-lucide="palette"></i> Looks & Feel</button>
+            <button class="settings-tab" data-settings-tab="system"><i data-lucide="cpu"></i> System</button>
+            <button class="settings-tab" data-settings-tab="network"><i data-lucide="wifi"></i> Network</button>
+            <button class="settings-tab" data-settings-tab="accounts"><i data-lucide="user"></i> Accounts</button>
+          </div>
+          <div class="settings-content">
+            <div class="settings-pane active" id="settings-pane-looks">
+              <div class="settings-box">
+                <div class="settings-box-title">Appearance & Themes</div>
+                <div class="theme-settings-layout">
+                  <div class="installed-themes-list" id="settingsThemeList">
+                    <!-- Populated by JS -->
+                  </div>
+                  <div class="theme-config" id="themeConfigArea">
+                     <!-- Populated by JS -->
+                  </div>
+                </div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title">Shell Bar Configuration</div>
+                <div class="bar-side-tabs">
+                  <button class="bar-side-tab" data-side="top">Top</button>
+                  <button class="bar-side-tab active" data-side="bottom">Bottom</button>
+                  <button class="bar-side-tab" data-side="left">Left</button>
+                  <button class="bar-side-tab" data-side="right">Right</button>
+                </div>
+                <div class="bar-config-grid">
+                  <div class="config-group">
+                    <div class="config-group-title">Overriding</div>
+                    <div class="config-row">
+                      <span class="config-label">Layer Mode</span>
+                      <span class="config-value">Bounding <i data-lucide="chevron-right"></i></span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Auto Hide</span>
+                      <div class="settings-toggle"><div class="settings-toggle-thumb"></div></div>
+                    </div>
+                  </div>
+                  
+                  <div class="config-group">
+                    <div class="config-group-title">Dimensions</div>
+                    <div class="config-row">
+                      <span class="config-label">Height</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 20%"></div><div class="mini-slider-thumb" style="left: 20%"></div></div>
+                      <span class="mini-val">48px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Width</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 80%"></div><div class="mini-slider-thumb" style="left: 80%"></div></div>
+                      <span class="mini-val">80%</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Margin Left</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 10%"></div><div class="mini-slider-thumb" style="left: 10%"></div></div>
+                      <span class="mini-val">16px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Margin Right</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 10%"></div><div class="mini-slider-thumb" style="left: 10%"></div></div>
+                      <span class="mini-val">16px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Edge Distance</span>
+                      <div class="mini-slider"><div class="mini-slider-fill" style="width: 5%"></div><div class="mini-slider-thumb" style="left: 5%"></div></div>
+                      <span class="mini-val">16px</span>
+                    </div>
+                  </div>
+                  
+                  <div class="config-group">
+                    <div class="config-group-title">Parenting & Layout</div>
+                    <div class="config-row">
+                      <span class="config-label">Items Connected</span>
+                      <div class="settings-toggle active" id="toggleBarConnection"><div class="settings-toggle-thumb"></div></div>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Items In Box</span>
+                      <div class="settings-toggle active" id="toggleBarInBox"><div class="settings-toggle-thumb"></div></div>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Separation</span>
+                      <div class="mini-slider" id="barSeparationSlider"><div class="mini-slider-fill" id="barSeparationFill" style="width: 30%"></div><div class="mini-slider-thumb" id="barSeparationThumb" style="left: 30%"></div></div>
+                      <span class="mini-val" id="barSeparationVal">6px</span>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">Alignment</span>
+                      <span class="config-value">Center <i data-lucide="chevron-right"></i></span>
+                    </div>
+                  </div>
+                  
+                  <div class="config-group">
+                    <div class="config-group-title">Bar Items</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Start Menu & AI</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Pinned Apps & Groups</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Workspace Widget</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Device States</div>
+                    <div class="config-row-check active"><i data-lucide="check"></i> Globe State (Clock)</div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title">Window Behavior</div>
+                <div class="config-row">
+                  <span class="config-label">Focus Mode</span>
+                  <span class="config-value">Click to focus <i data-lucide="chevron-right"></i></span>
+                </div>
+                <div class="config-row">
+                  <span class="config-label">Titlebar Actions</span>
+                  <span class="config-value">Double click to maximize <i data-lucide="chevron-right"></i></span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-pane" id="settings-pane-system">
+              <div class="settings-box">
+                <div class="settings-box-title">Hardware Info</div>
+                <div class="config-row"><span class="config-label">CPU</span><span class="config-value">AMD Ryzen 7 5800X</span></div>
+                <div class="config-row"><span class="config-label">Memory</span><span class="config-value">16 GB DDR4</span></div>
+                <div class="config-row"><span class="config-label">Graphics</span><span class="config-value">NVIDIA RTX 3070</span></div>
+              </div>
+              <div class="settings-box">
+                <div class="settings-box-title">Power Management</div>
+                <div class="config-row"><span class="config-label">Power Mode</span><span class="config-value">Balanced <i data-lucide="chevron-right"></i></span></div>
+                <div class="config-row"><span class="config-label">Screen Timeout</span><span class="config-value">15 minutes <i data-lucide="chevron-right"></i></span></div>
+              </div>
+            </div>
+            <div class="settings-pane" id="settings-pane-network">
+              <div class="settings-box">
+                <div class="settings-box-title">Wi-Fi</div>
+                <div class="config-row"><span class="config-label">Status</span><span class="config-value">Connected to Aurora-5G</span></div>
+                <div class="config-row"><span class="config-label">IP Address</span><span class="config-value">192.168.1.42</span></div>
+                <div class="config-row"><span class="config-label">MAC Address</span><span class="config-value">3C:52:82:1F:9A:2B</span></div>
+              </div>
+            </div>
+            <div class="settings-pane" id="settings-pane-accounts">
+              <div class="settings-box">
+                <div class="settings-box-title">User Info</div>
+                <div class="config-row"><span class="config-label">Name</span><span class="config-value">kai</span></div>
+                <div class="config-row"><span class="config-label">Account Type</span><span class="config-value">Administrator</span></div>
+                <div class="config-row"><span class="config-label">Login Shell</span><span class="config-value">/bin/zsh</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="start-footer">
+      <button class="start-user-btn">
+        <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Felix" alt="">
+        <div class="start-user-info">
+          <span class="start-user-name">kai</span>
+          <span class="start-user-sub">Administrator</span>
+        </div>
+      </button>
+      <button class="start-power" data-tip="Power"><i data-lucide="power"></i></button>
+    </div>
+  </div>
+
+  <!-- ═══ QUICK SETTINGS ═══ -->
+  <div class="popover qs-panel" id="qsPanel">
+    <div class="qs-header">
+      <span class="qs-date" id="qsDate">—</span>
+      <button class="qs-settings-btn" data-tip="Settings"><i data-lucide="settings"></i></button>
+    </div>
+    <div class="qs-tiles">
+      <button class="qs-tile active" data-toggle="wifi">
+        <div class="qs-tile-icon"><i data-lucide="wifi"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Wi-Fi</div><div class="qs-tile-sub">Aurora-5G</div></div>
+      </button>
+      <button class="qs-tile" data-toggle="bt">
+        <div class="qs-tile-icon"><i data-lucide="bluetooth"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Bluetooth</div><div class="qs-tile-sub">Off</div></div>
+      </button>
+      <button class="qs-tile" data-toggle="dnd">
+        <div class="qs-tile-icon"><i data-lucide="moon-star"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Do Not Disturb</div><div class="qs-tile-sub">Off</div></div>
+      </button>
+      <button class="qs-tile active" data-toggle="theme">
+        <div class="qs-tile-icon"><i data-lucide="palette"></i></div>
+        <div class="qs-tile-body"><div class="qs-tile-label">Dark Theme</div><div class="qs-tile-sub">On</div></div>
+      </button>
+    </div>
+    <div class="qs-sliders">
+      <div class="slider-row">
+        <button class="slider-icon" id="muteBtn" aria-label="Mute"><i data-lucide="volume-2"></i></button>
+        <div class="slider" id="volSlider" role="slider" aria-label="Volume" tabindex="0">
+          <div class="slider-fill" id="volFill"></div><div class="slider-thumb" id="volThumb"></div>
+        </div>
+        <span class="slider-value" id="volValue">60%</span>
+      </div>
+      <div class="slider-row">
+        <div class="slider-icon"><i data-lucide="sun"></i></div>
+        <div class="slider" id="brightSlider" role="slider" aria-label="Brightness" tabindex="0">
+          <div class="slider-fill" id="brightFill"></div><div class="slider-thumb" id="brightThumb"></div>
+        </div>
+        <span class="slider-value" id="brightValue">82%</span>
+      </div>
+    </div>
+    <div class="qs-footer">
+      <div class="qs-battery">
+        <i data-lucide="battery-medium"></i><span>78%</span><span class="qs-battery-time">4h 22m</span>
+      </div>
+      <button class="qs-settings-btn" data-tip="Power"><i data-lucide="power"></i></button>
+    </div>
+  </div>
+
+  <!-- ═══ CALENDAR & WEATHER POPOVER ═══ -->
+  <div class="popover cal-pop" id="calPop">
+    <div class="cal-split-layout">
+      <div class="cal-weather-side">
+        <div class="weather-icon-lg"><i data-lucide="cloud-sun"></i></div>
+        <div class="cw-temp">18°</div>
+        <div class="cw-cond">Partly Cloudy</div>
+        <div class="cw-loc">Reykjavík</div>
+      </div>
+      <div class="cal-vertical-bar" id="calVerticalBar">
+        <!-- Populated by JS -->
+      </div>
+      <div class="cal-cal-side">
+        <div class="cal-header">
+          <span class="cal-month" id="calMonth">—</span>
+          <div class="cal-nav">
+            <button class="cal-nav-btn" id="calPrev" aria-label="Previous"><i data-lucide="chevron-left"></i></button>
+            <button class="cal-nav-btn" id="calNext" aria-label="Next"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CUSTOM TASKBAR (DOCK CONTAINER) ═══ -->
+  <nav id="dock-container" aria-label="Shell bar">
+    <div class="bar-group">
+      <button class="app-icon" id="launcherBtn" data-tip="Start Menu"><i data-lucide="layout-grid"></i></button>
+      <div class="capsule-input-wrapper">
+        <i data-lucide="bot"></i>
+        <input type="text" placeholder="Ask AI...">
+      </div>
+      <button class="app-icon" data-app="files" data-tip="Files"><i data-lucide="folder"></i></button>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <button class="app-icon" data-app="firefox" data-tip="Firefox">
+        <svg class="app-indicator" viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#ff5f56" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="0"></circle>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-21.991148575128552"></circle>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#27c93f" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-43.982297150257104"></circle>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="#2196f3" stroke-width="2" stroke-linecap="butt" stroke-dasharray="17.991148575128552 69.97344572538566" stroke-dashoffset="-65.97344572538566"></circle>
+        </svg>
+        <img src="https://cdn.simpleicons.org/firefox" alt="">
+      </button>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <div class="office-group" data-tip="Office Suite">
+        <button class="app-icon" data-app="writer"><img src="https://cdn.simpleicons.org/libreofficewriter" alt=""></button>
+        <button class="app-icon" data-app="calc"><img src="https://cdn.simpleicons.org/libreofficecalc" alt=""></button>
+        <button class="app-icon" data-app="impress"><img src="https://cdn.simpleicons.org/libreofficeimpress" alt=""></button>
+      </div>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <button class="app-icon" data-app="obsidian" data-tip="Obsidian"><img src="https://cdn.simpleicons.org/obsidian" alt=""></button>
+      <button class="app-icon" data-app="inkscape" data-tip="Inkscape"><img src="https://cdn.simpleicons.org/inkscape" alt=""></button>
+    </div>
+    
+    <div class="separator"></div>
+    
+    <div class="bar-group">
+      <div class="workspace-widget">
+        <div class="layout-box" id="layout-indicator" data-tip="Layout: Float">
+          <div class="mini-win-container mini-float" id="miniWinContainer">
+            <div class="m-win m-1"></div>
+            <div class="m-win m-2 solid"></div>
+          </div>
+        </div>
+        <div class="theme-widget">
+          <div class="theme-dock-controls">
+            <div class="theme-trigger-btn" id="themeTriggerBtn" data-tip="Theme Selector"></div>
+            <div class="custom-toggle" id="customToggle" data-tip="Dark Mode">
+              <div class="custom-toggle-thumb">
+                <i data-lucide="moon" id="toggleIcon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="theme-popup-menu" id="themePopupMenu"></div>
+        </div>
+        <div class="ws-dots" id="wsGridContainer">
+          <div class="ws-dot active" data-ws="1"></div>
+          <div class="ws-dot" data-ws="2"></div>
+          <div class="ws-dot" data-ws="3"></div>
+          <div class="ws-dot" data-ws="4"></div>
+          <div class="ws-dot" data-ws="5"></div>
+          <div class="ws-dot" data-ws="6"></div>
+          <div class="ws-dot" data-ws="7"></div>
+          <div class="ws-dot" data-ws="8"></div>
+          <div class="ws-dot" data-ws="9"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="bar-group">
+      <button class="sys-tray-stacked" id="quickSettingsBtn" data-tip="Quick Settings">
+        <i data-lucide="wifi"></i>
+        <i data-lucide="volume-2"></i>
+        <i data-lucide="bluetooth"></i>
+        <i data-lucide="battery-medium"></i>
+      </button>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="bar-group">
+      <button class="status-section" id="globeBtn" data-tip="Calendar & Weather">
+        <i data-lucide="cloud-sun" class="weather-icon-only"></i>
+        <div class="vertical-separator"></div>
+        <div class="date-time">
+          <div class="time" id="time">--:--</div>
+          <div class="day" id="day">---</div>
+          <div class="date" id="date">---</div>
+        </div>
+      </button>
+    </div>
+  </nav>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const initIcons = () => { if (window.lucide) lucide.createIcons(); };
+  initIcons();
+
+  // Theme Data Model
+  const themes = {
+    Midnight: {
+      dark: { url: 'https://images.pexels.com/photos/31622977/pexels-photo-31622977.jpeg', bg: '#24283b', text: '#f0ecff', dots: ['#7aa2f7', '#bb9af7', '#c0caf5', '#8b6fff'] },
+      light: { url: 'https://images.pexels.com/photos/31622978/pexels-photo-31622978.jpeg', bg: '#e6e6fa', text: '#1a1530', dots: ['#7aa2f7', '#bb9af7', '#8b6fff', '#c0caf5'] },
+      accent: '#8b6fff'
+    },
+    Cyberpunk: {
+      dark: { url: 'https://images.pexels.com/photos/38184044/pexels-photo-38184044.jpeg', bg: '#1a0b1a', text: '#ffffff', dots: ['#ff0055', '#00e5ff', '#ffffff', '#ff007a'] },
+      light: { url: 'https://images.pexels.com/photos/38184045/pexels-photo-38184045.jpeg', bg: '#ffe6f0', text: '#1a0b1a', dots: ['#ff0055', '#00e5ff', '#ff007a', '#ffffff'] },
+      accent: '#ff007a'
+    },
+    Sunny: {
+      dark: { url: '', bg: '#333333', text: '#fdfcdc', dots: ['#ffb703', '#fb8500', '#fdfcdc', '#ffb703'] },
+      light: { url: '', bg: '#fdfcdc', text: '#333333', dots: ['#ffb703', '#fb8500', '#333333', '#ffb703'] },
+      accent: '#ffb703'
+    }
+  };
+  let currentTheme = 'Midnight';
+
+  function updateWallpaper() {
+    const isLight = document.body.classList.contains('light');
+    const theme = themes[currentTheme];
+    const url = theme ? (isLight ? theme.light.url : theme.dark.url) : null;
+    const img = document.getElementById('wallpaperImg');
+    
+    if (url) {
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        img.src = url;
+        img.style.opacity = '0.85';
+      };
+      tempImg.src = url;
+    } else {
+      img.style.opacity = '0';
+    }
+  }
+
+  function applyTheme(themeName) {
+    const theme = themes[themeName];
+    if (!theme) return;
+    currentTheme = themeName;
+    
+    const isLight = document.body.classList.contains('light');
+    const modeData = isLight ? theme.light : theme.dark;
+
+    // Update Accent
+    document.documentElement.style.setProperty('--accent-strong', theme.accent);
+    const rgb = hexToRgb(theme.accent);
+    if (rgb) {
+      document.documentElement.style.setProperty('--accent', `rgba(${rgb.r},${rgb.g},${rgb.b},0.8)`);
+      document.documentElement.style.setProperty('--accent-light', `rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
+      document.documentElement.style.setProperty('--accent-glow', `rgba(${rgb.r},${rgb.g},${rgb.b},0.35)`);
+    }
+
+    // Update Taskbar Trigger
+    const trigger = document.getElementById('themeTriggerBtn');
+    trigger.innerHTML = '';
+    trigger.style.backgroundColor = modeData.bg;
+    modeData.dots.forEach(c => {
+      const dot = document.createElement('div');
+      dot.className = 'color-dot';
+      dot.style.backgroundColor = c;
+      trigger.appendChild(dot);
+    });
+
+    // Update Taskbar Popup
+    const popup = document.getElementById('themePopupMenu');
+    popup.innerHTML = '';
+    Object.keys(themes).forEach(name => {
+      const t = themes[name];
+      const tMode = isLight ? t.light : t.dark;
+      const item = document.createElement('div');
+      item.className = 'theme-item' + (name === themeName ? ' active' : '');
+      item.dataset.name = name;
+      item.dataset.color = t.accent;
+      item.innerHTML = `
+        <div class="color-plate-preview" style="background-color: ${tMode.bg};">
+          <div class="dots-grid">
+            ${tMode.dots.map(d => `<div class="color-dot" style="background-color: ${d};"></div>`).join('')}
+          </div>
+        </div>
+        <div class="font-info-text">SE 14</div>
+        <div class="theme-separator"></div>
+        <div class="theme-short-name">${name}</div>
+      `;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        applyTheme(name);
+        popup.classList.remove('open');
+      });
+      popup.appendChild(item);
+    });
+
+    // Update Settings List
+    const settingsList = document.getElementById('settingsThemeList');
+    if (settingsList) {
+      settingsList.innerHTML = '';
+      Object.keys(themes).forEach(name => {
+        const t = themes[name];
+        const tMode = isLight ? t.light : t.dark;
+        const item = document.createElement('div');
+        item.className = 'settings-theme-item' + (name === themeName ? ' active' : '');
+        item.dataset.theme = name;
+        item.innerHTML = `
+          <div class="color-plate-preview" style="background-color: ${tMode.bg};">
+            <div class="dots-grid">
+              ${tMode.dots.map(d => `<div class="color-dot" style="background-color: ${d};"></div>`).join('')}
+            </div>
+          </div>
+          <span class="theme-short-name">${name}</span>
+        `;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Selecting a theme in settings should NOT change the actual active theme
+          document.querySelectorAll('.settings-theme-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          updateThemeConfigValues(name);
+        });
+        settingsList.appendChild(item);
+      });
+    }
+
+    updateThemeConfigValues(themeName);
+    updateWallpaper();
+  }
+
+  function updateThemeConfigValues(themeName) {
+    const configArea = document.getElementById('themeConfigArea');
+    if (!configArea) return;
+    const theme = themes[themeName];
+    const isLight = document.body.classList.contains('light');
+    
+    configArea.innerHTML = `
+      <div class="mode-tabs">
+        <button class="mode-tab ${!isLight ? 'active' : ''}" data-mode="dark"><i data-lucide="moon"></i> Dark</button>
+        <button class="mode-tab ${isLight ? 'active' : ''}" data-mode="light"><i data-lucide="sun"></i> Light</button>
+      </div>
+      <div class="mode-content ${!isLight ? 'active' : ''}" id="mode-content-dark">
+        ${generateModeContent(theme.dark)}
+      </div>
+      <div class="mode-content ${isLight ? 'active' : ''}" id="mode-content-light">
+        ${generateModeContent(theme.light)}
+      </div>
+    `;
+    
+    configArea.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        configArea.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const mode = tab.dataset.mode;
+        configArea.querySelectorAll('.mode-content').forEach(c => c.classList.remove('active'));
+        configArea.querySelector('#mode-content-' + mode).classList.add('active');
+      });
+    });
+    
+    initIcons();
+  }
+  
+  function generateModeContent(modeData) {
+    return `
+      <img src="${modeData.url || ''}" alt="Wallpaper" class="theme-wallpaper" onerror="this.style.opacity='0'">
+      <div class="config-row">
+        <span class="config-label">Font Family</span>
+        <span class="config-value"><i data-lucide="type"></i> Inter</span>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Font Size</span>
+        <span class="config-value">14px</span>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Base Color</span>
+        <span class="config-value">
+          <div class="palette-display">
+            <div class="palette-color" style="background-color: ${modeData.bg};"></div>
+            <div class="palette-color" style="background-color: ${modeData.text};"></div>
+          </div>
+        </span>
+      </div>
+      <div class="config-row">
+        <span class="config-label">Accent Palette</span>
+        <span class="config-value">
+          <div class="palette-display">
+            ${modeData.dots.map(d => `<div class="palette-color" style="background-color: ${d};"></div>`).join('')}
+          </div>
+        </span>
+      </div>
+    `;
+  }
+
+  function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  // Initialize Theme
+  applyTheme('Midnight');
+
+  /* ═══ CLOCK & DATES ═══ */
+  const timeEl = document.getElementById('time');
+  const dayEl = document.getElementById('day');
+  const dateEl = document.getElementById('date');
+  const qsDateEl = document.getElementById('qsDate');
+  const wTime = document.getElementById('widgetTime');
+  const wDate = document.getElementById('widgetDate');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const daysLong = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthsLong = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    if (timeEl) timeEl.textContent = `${h}:${m}`;
+    if (dayEl) dayEl.textContent = days[now.getDay()];
+    if (dateEl) dateEl.textContent = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+    if (qsDateEl) qsDateEl.textContent = `${daysLong[now.getDay()]}, ${now.getDate()} ${monthsLong[now.getMonth()]}`;
+    if (wTime) wTime.textContent = `${h}:${m}`;
+    if (wDate) wDate.textContent = `${daysLong[now.getDay()]}, ${now.getDate()} ${monthsLong[now.getMonth()]}`;
+  }
+  updateClock();
+  setInterval(updateClock, 5000);
+
+  /* ═══ APP WINDOW ═══ */
+  const appInfo = {
+    firefox:  { name: 'Firefox — New Window',           icon: 'https://cdn.simpleicons.org/firefox' },
+    code:     { name: 'Visual Studio Code',             icon: 'https://cdn.simpleicons.org/vscode' },
+    terminal: { name: 'Terminal — zsh',                 icon: null },
+    files:    { name: 'Files — Home',                   icon: null },
+    discord:  { name: 'Discord',                        icon: 'https://cdn.simpleicons.org/discord' },
+    spotify:  { name: 'Spotify',                        icon: 'https://cdn.simpleicons.org/spotify' },
+    gimp:     { name: 'GNU Image Manipulation Program', icon: 'https://cdn.simpleicons.org/gimp' },
+    writer:   { name: 'LibreOffice Writer',             icon: 'https://cdn.simpleicons.org/libreofficewriter' },
+    calc:     { name: 'LibreOffice Calc',               icon: 'https://cdn.simpleicons.org/libreofficecalc' },
+    impress:  { name: 'LibreOffice Impress',            icon: 'https://cdn.simpleicons.org/libreofficeimpress' },
+    obsidian: { name: 'Obsidian Vault',                 icon: 'https://cdn.simpleicons.org/obsidian' },
+    inkscape: { name: 'Inkscape',                       icon: 'https://cdn.simpleicons.org/inkscape' },
+    settings: { name: 'Settings',                       icon: null },
+    slack:    { name: 'Slack',                          icon: 'https://cdn.simpleicons.org/slack' },
+    telegram: { name: 'Telegram',                       icon: 'https://cdn.simpleicons.org/telegram' },
+    docker:   { name: 'Docker Desktop',                 icon: 'https://cdn.simpleicons.org/docker' },
+    github:   { name: 'GitHub Desktop',                 icon: 'https://cdn.simpleicons.org/github' },
+    blender:  { name: 'Blender',                        icon: 'https://cdn.simpleicons.org/blender' },
+    figma:    { name: 'Figma',                          icon: 'https://cdn.simpleicons.org/figma' },
+    obs:      { name: 'OBS Studio',                     icon: 'https://cdn.simpleicons.org/obsstudio' },
+    vlc:      { name: 'VLC Media Player',               icon: 'https://cdn.simpleicons.org/vlc' },
+    notion:   { name: 'Notion',                         icon: 'https://cdn.simpleicons.org/notion' },
+    calc_app: { name: 'Calculator',                     icon: null },
+    text_editor: { name: 'Text Editor',                 icon: null }
+  };
+
+  const appWindow = document.getElementById('appWindow');
+  const winTitle = document.getElementById('winTitle');
+  const winIcon = document.getElementById('winIcon');
+
+  function openApp(appId) {
+    const info = appInfo[appId] || { name: appId.charAt(0).toUpperCase() + appId.slice(1), icon: null };
+    winTitle.textContent = info.name;
+    if (info.icon) {
+      winIcon.src = info.icon;
+      winIcon.style.display = '';
+      winIcon.onerror = () => { winIcon.style.display = 'none'; };
+    } else {
+      winIcon.style.display = 'none';
+    }
+    appWindow.classList.add('open');
+    document.querySelectorAll('.app-icon').forEach(btn => {
+      if (btn.dataset.app) {
+        btn.classList.remove('active');
+        if (btn.dataset.app === appId) btn.classList.add('active');
+      }
+    });
+  }
+  function closeWindow() {
+    appWindow.classList.remove('open');
+    document.querySelectorAll('.app-icon').forEach(btn => btn.classList.remove('active'));
+  }
+  document.getElementById('closeWindow').addEventListener('click', closeWindow);
+  document.querySelectorAll('.app-icon[data-app]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (btn.classList.contains('active')) closeWindow();
+      else openApp(btn.dataset.app);
+    });
+  });
+
+  /* ═══ POPOVER SYSTEM ═══ */
+  const triggers = {
+    launcher: document.getElementById('launcherBtn'),
+    qs:       document.getElementById('quickSettingsBtn'),
+    cal:      document.getElementById('globeBtn')
+  };
+  const panels = {
+    launcher: document.getElementById('launcherPop'),
+    qs:       document.getElementById('qsPanel'),
+    cal:      document.getElementById('calPop')
+  };
+  let activeName = null;
+
+  function closeAll() {
+    Object.values(panels).forEach(p => p.classList.remove('open'));
+    Object.values(triggers).flat().forEach(t => t.classList.remove('active'));
+    document.getElementById('themePopupMenu').classList.remove('open');
+    activeName = null;
+  }
+
+  function positionPanel(name, trigger) {
+    const panel = panels[name];
+    const tr = trigger.getBoundingClientRect();
+    const pr = panel.getBoundingClientRect();
+    let left = tr.left + tr.width / 2 - pr.width / 2;
+    left = Math.max(10, Math.min(left, window.innerWidth - pr.width - 10));
+    panel.style.left = left + 'px';
+    panel.style.bottom = (window.innerHeight - tr.top + 10) + 'px';
+    panel.style.right = 'auto';
+    panel.style.top = 'auto';
+  }
+
+  function toggle(name, trigger) {
+    const wasOpen = panels[name].classList.contains('open');
+    closeAll();
+    if (!wasOpen) {
+      panels[name].classList.add('open');
+      trigger.classList.add('active');
+      activeName = name;
+      requestAnimationFrame(() => positionPanel(name, trigger));
+    }
+  }
+
+  triggers.launcher.addEventListener('click', e => { e.stopPropagation(); toggle('launcher', triggers.launcher); });
+  triggers.cal.addEventListener('click',      e => { e.stopPropagation(); toggle('cal', triggers.cal); });
+  triggers.qs.addEventListener('click',       e => { e.stopPropagation(); toggle('qs', triggers.qs); });
+
+  Object.values(panels).forEach(p => p.addEventListener('click', e => e.stopPropagation()));
+  document.addEventListener('click', () => { if (activeName) closeAll(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (activeName) closeAll();
+      else if (appWindow.classList.contains('open')) closeWindow();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (activeName) {
+      const trigger = Array.isArray(triggers[activeName]) ? triggers[activeName][0] : triggers[activeName];
+      positionPanel(activeName, trigger);
+    }
+  });
+
+  /* ═══ START MENU TABS ═══ */
+  document.querySelectorAll('.start-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.start-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      const target = tab.dataset.tab;
+      document.querySelectorAll('.start-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('pane-' + target).classList.add('active');
+    });
+  });
+
+  /* ═══ SETTINGS TABS ═══ */
+  document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.settingsTab;
+      document.querySelectorAll('.settings-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('settings-pane-' + target).classList.add('active');
+    });
+  });
+
+  // Bar Side Tabs
+  document.querySelectorAll('.bar-side-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.bar-side-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+    });
+  });
+
+  // Config Row Checkboxes
+  document.querySelectorAll('.config-row-check').forEach(row => {
+    row.addEventListener('click', () => {
+        row.classList.toggle('active');
+    });
+  });
+
+  // Settings Toggles
+  document.querySelectorAll('.settings-toggle').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggle.classList.toggle('active');
+        
+        const dock = document.getElementById('dock-container');
+        // Bar Connection Toggle Logic
+        if (toggle.id === 'toggleBarConnection') {
+            if (toggle.classList.contains('active')) {
+                dock.classList.remove('disconnected');
+            } else {
+                dock.classList.add('disconnected');
+            }
+        }
+        
+        // Bar In Box Toggle Logic
+        if (toggle.id === 'toggleBarInBox') {
+            if (toggle.classList.contains('active')) {
+                dock.classList.add('in-box');
+            } else {
+                dock.classList.remove('in-box');
+            }
+        }
+    });
+  });
+
+  // Bar Separation Slider
+  const barSepSlider = makeSlider(
+    document.getElementById('barSeparationSlider'),
+    document.getElementById('barSeparationFill'),
+    document.getElementById('barSeparationThumb'),
+    document.getElementById('barSeparationVal'),
+    30,
+    (v) => {
+      const px = Math.round(v / 100 * 20); // 0 to 20px
+      document.getElementById('barSeparationVal').textContent = `${px}px`;
+      const dock = document.getElementById('dock-container');
+      dock.style.gap = `${px}px`;
+    }
+  );
+
+  /* ═══ LAUNCHER SEARCH ═══ */
+  const searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase();
+    // Only search in apps pane
+    document.querySelectorAll('#pane-apps .app-group').forEach(group => {
+      let visibleCount = 0;
+      group.querySelectorAll('.app-item').forEach(item => {
+        const match = item.dataset.name.toLowerCase().includes(q);
+        item.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+      });
+      group.style.display = visibleCount > 0 ? '' : 'none';
+    });
+  });
+  searchInput.addEventListener('click', e => e.stopPropagation());
+  document.querySelectorAll('.app-item[data-app]').forEach(item => {
+    item.addEventListener('click', () => {
+      openApp(item.dataset.app);
+      closeAll();
+      searchInput.value = '';
+      document.querySelectorAll('.app-item').forEach(i => i.style.display = '');
+      document.querySelectorAll('.app-group').forEach(g => g.style.display = '');
+    });
+  });
+
+  /* ═══ LAYOUT INDICATOR ═══ */
+  const layoutBox = document.getElementById('layout-indicator');
+  const miniWinContainer = document.getElementById('miniWinContainer');
+  let isFloat = true;
+  
+  layoutBox.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isFloat = !isFloat;
+    if (isFloat) {
+      miniWinContainer.className = 'mini-win-container mini-float';
+      layoutBox.setAttribute('data-tip', 'Layout: Float');
+    } else {
+      miniWinContainer.className = 'mini-win-container mini-stack';
+      layoutBox.setAttribute('data-tip', 'Layout: Stack');
+    }
+  });
+
+  /* ═══ THEME SELECTOR ═══ */
+  const themeTrigger = document.getElementById('themeTriggerBtn');
+  const themePopup = document.getElementById('themePopupMenu');
+  
+  themeTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    themePopup.classList.toggle('open');
+  });
+  
+  themePopup.addEventListener('click', (e) => e.stopPropagation());
+
+  /* ═══ LIGHT/DARK TOGGLE ═══ */
+  const customToggle = document.getElementById('customToggle');
+  const toggleIcon = document.getElementById('toggleIcon');
+  
+  customToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    customToggle.classList.toggle('active');
+    
+    if (customToggle.classList.contains('active')) {
+      document.body.classList.add('light');
+      customToggle.setAttribute('data-tip', 'Light Mode');
+      toggleIcon.setAttribute('data-lucide', 'sun');
+    } else {
+      document.body.classList.remove('light');
+      customToggle.setAttribute('data-tip', 'Dark Mode');
+      toggleIcon.setAttribute('data-lucide', 'moon');
+    }
+    initIcons();
+    applyTheme(currentTheme); // Re-apply theme to update colors/wallpaper
+  });
+
+  /* ═══ WORKSPACE DOTS ═══ */
+  document.querySelectorAll('.ws-dot').forEach(dot => {
+    dot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.ws-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    });
+  });
+
+  /* ═══ QS TOGGLES ═══ */
+  document.querySelectorAll('.qs-tile').forEach(tile => {
+    tile.addEventListener('click', e => {
+      e.stopPropagation();
+      tile.classList.toggle('active');
+      const sub = tile.querySelector('.qs-tile-sub');
+      if (sub) {
+        const key = tile.dataset.toggle;
+        const isOn = tile.classList.contains('active');
+        const subs = { wifi: isOn ? 'Aurora-5G' : 'Off', bt: isOn ? 'On' : 'Off', dnd: isOn ? 'On' : 'Off', theme: isOn ? 'On' : 'Off' };
+        sub.textContent = subs[key] || (isOn ? 'On' : 'Off');
+      }
+    });
+  });
+
+  /* ═══ SLIDERS ═══ */
+  function makeSlider(sliderEl, fillEl, thumbEl, valueEl, initial, onChange) {
+    let value = initial;
+    let dragging = false;
+    function setVal(v, fire = true) {
+      value = Math.max(0, Math.min(100, Math.round(v)));
+      fillEl.style.width = value + '%';
+      if (thumbEl) thumbEl.style.left = value + '%';
+      if (valueEl) valueEl.textContent = value + '%';
+      sliderEl.setAttribute('aria-valuenow', value);
+      if (fire && onChange) onChange(value);
+    }
+    function fromEvent(clientX) {
+      const r = sliderEl.getBoundingClientRect();
+      const x = Math.max(0, Math.min(r.width, clientX - r.left));
+      setVal((x / r.width) * 100);
+    }
+    setVal(initial, false);
+    sliderEl.addEventListener('mousedown', e => { dragging = true; fromEvent(e.clientX); e.preventDefault(); });
+    sliderEl.addEventListener('touchstart', e => { dragging = true; fromEvent(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('mousemove', e => { if (dragging) fromEvent(e.clientX); });
+    document.addEventListener('touchmove', e => { if (dragging) fromEvent(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('mouseup', () => { dragging = false; });
+    document.addEventListener('touchend', () => { dragging = false; });
+    return { setVal, getVal: () => value };
+  }
+
+  const volSlider = makeSlider(
+    document.getElementById('volSlider'),
+    document.getElementById('volFill'),
+    document.getElementById('volThumb'),
+    document.getElementById('volValue'),
+    60,
+    (v) => {
+      const stackedBtn = document.getElementById('quickSettingsBtn');
+      stackedBtn.setAttribute('data-tip', `Volume · ${v}%`);
+      const muteIcon = document.getElementById('muteBtn').querySelector('i, svg');
+      const trayIcon = stackedBtn.querySelector('i[data-lucide="volume-2"], i[data-lucide="volume-1"], i[data-lucide="volume-x"]');
+      const name = v === 0 ? 'volume-x' : (v < 35 ? 'volume-1' : 'volume-2');
+      if (window.lucide) {
+        if (muteIcon) { const n = document.createElement('i'); n.setAttribute('data-lucide', name); muteIcon.replaceWith(n); }
+        if (trayIcon) { const n = document.createElement('i'); n.setAttribute('data-lucide', name); trayIcon.replaceWith(n); }
+        lucide.createIcons();
+      }
+    }
+  );
+
+  const brightSlider = makeSlider(
+    document.getElementById('brightSlider'),
+    document.getElementById('brightFill'),
+    document.getElementById('brightThumb'),
+    document.getElementById('brightValue'),
+    82, null
+  );
+
+  let lastVol = 60;
+  document.getElementById('muteBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    const cur = volSlider.getVal();
+    if (cur > 0) { lastVol = cur; volSlider.setVal(0); }
+    else { volSlider.setVal(lastVol || 60); }
+  });
+
+  /* ═══ CALENDAR ═══ */
+  let calDate = new Date();
+  function renderCalendar() {
+    const year = calDate.getFullYear();
+    const month = calDate.getMonth();
+    const today = new Date();
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+    document.getElementById('calMonth').textContent = `${monthsLong[month]} ${year}`;
+    
+    // Vertical bar text
+    const vbar = document.getElementById('calVerticalBar');
+    vbar.innerHTML = '';
+    const yearStr = String(year);
+    for (let i = 0; i < yearStr.length; i++) {
+      const span = document.createElement('span');
+      span.textContent = yearStr[i];
+      vbar.appendChild(span);
+    }
+    const sep = document.createElement('div');
+    sep.className = 'vbar-sep';
+    vbar.appendChild(sep);
+    const monthInitials = monthsLong[month].substring(0, 3).toUpperCase();
+    for (let i = 0; i < monthInitials.length; i++) {
+      const span = document.createElement('span');
+      span.textContent = monthInitials[i];
+      vbar.appendChild(span);
+    }
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    ['S','M','T','W','T','F','S'].forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'cal-day-head';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+    for (let i = 0; i < firstDay; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      grid.appendChild(el);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const el = document.createElement('button');
+      el.className = 'cal-day';
+      el.textContent = d;
+      if (isCurrentMonth && d === today.getDate()) el.classList.add('today');
+      grid.appendChild(el);
+    }
+  }
+  renderCalendar();
+  document.getElementById('calPrev').addEventListener('click', e => { e.stopPropagation(); calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); });
+  document.getElementById('calNext').addEventListener('click', e => { e.stopPropagation(); calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); });
+
+  setTimeout(initIcons, 50);
+});
+</script>

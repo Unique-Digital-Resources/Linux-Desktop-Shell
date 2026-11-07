@@ -1,0 +1,257 @@
+<div class="wallpaper"></div>
+<div class="wallpaper-img" id="wallImg"></div>
+<div class="veil"></div>
+
+<main class="stage" id="stage">
+  <div class="auth-wrapper">
+    
+    <div class="auth-container">
+      
+      <!-- ===== USER BOX (left) ===== -->
+      <div class="user-box" id="userBox">
+        <button class="drawer-btn" id="drawerBtn" aria-label="Switch user">
+          <i data-lucide="chevron-right"></i>
+        </button>
+        
+        <div class="drawer-panel" id="drawerPanel">
+          <div class="drawer-label">Switch User</div>
+          <div class="avatar-grid" id="avatarGrid"></div>
+        </div>
+        
+        <div class="user-box-content">
+          <img class="large-avatar" id="avatar" alt="" />
+          <div>
+            <div class="user-name" id="userName">Aria Voss</div>
+            <div class="user-handle" id="userHandle">@aria</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ===== AUTH CARD (right) ===== -->
+      <div class="auth-card" id="authCard">
+        <div class="method-tabs" role="tablist" aria-label="Authentication method">
+          <button class="method-tab active" data-method="password" title="Password" role="tab"><i data-lucide="key-round"></i>Password</button>
+          <button class="method-tab" data-method="pin" title="PIN" role="tab"><i data-lucide="grid-2x2"></i>PIN</button>
+          <button class="method-tab" data-method="pattern" title="Pattern" role="tab"><i data-lucide="git-fork"></i>Pattern</button>
+          <button class="method-tab" data-method="fingerprint" title="Fingerprint" role="tab"><i data-lucide="fingerprint"></i>Finger</button>
+          <button class="method-tab" data-method="question" title="Security Question" role="tab"><i data-lucide="help-circle"></i>Question</button>
+        </div>
+
+        <div class="step-indicator" id="stepIndicator">
+          <div class="step-label" id="stepLabel">Step 1 of 2 · Password</div>
+          <div class="step-dots" id="stepDots"></div>
+        </div>
+
+        <div class="method-body">
+          <div class="method-panel active" data-panel="password">
+            <form id="pwForm" autocomplete="off">
+              <div class="field" id="pwField">
+                <i data-lucide="lock" class="lead"></i>
+                <input type="text" id="userInput" class="user-input" placeholder="Username" aria-label="Username" autocomplete="off" />
+                <span class="field-sep" id="fieldSep"></span>
+                <input type="password" id="pwInput" placeholder="Password" aria-label="Password" autocomplete="off" />
+                <button type="button" class="eye" id="pwEye" aria-label="Show password" tabindex="-1">
+                  <i data-lucide="eye"></i>
+                </button>
+              </div>
+              <button type="submit" class="primary-action" id="pwSubmit">
+                <span class="label">Sign in</span>
+                <i data-lucide="arrow-right"></i>
+                <span class="spinner"></span>
+              </button>
+              <div class="field-foot">
+                <span class="error-msg" id="pwError">Incorrect password. Try again.</span>
+                <span class="demo-hint" id="pwHint"></span>
+              </div>
+            </form>
+          </div>
+
+          <div class="method-panel" data-panel="pin">
+            <div class="pin-display" id="pinDisplay">
+              <span class="pin-dot"></span><span class="pin-dot"></span>
+              <span class="pin-dot"></span><span class="pin-dot"></span>
+            </div>
+            <div class="pin-pad" id="pinPad">
+              <button class="pin-key" data-k="1">1</button>
+              <button class="pin-key" data-k="2">2</button>
+              <button class="pin-key" data-k="3">3</button>
+              <button class="pin-key" data-k="4">4</button>
+              <button class="pin-key" data-k="5">5</button>
+              <button class="pin-key" data-k="6">6</button>
+              <button class="pin-key" data-k="7">7</button>
+              <button class="pin-key" data-k="8">8</button>
+              <button class="pin-key" data-k="9">9</button>
+              <button class="pin-key fn" data-k="clear" aria-label="Clear"><i data-lucide="delete"></i></button>
+              <button class="pin-key" data-k="0">0</button>
+              <button class="pin-key fn" data-k="enter" aria-label="Submit" id="pinEnter"><i data-lucide="corner-down-left"></i></button>
+            </div>
+            <div class="field-foot">
+              <span class="error-msg" id="pinError">Incorrect PIN.</span>
+              <span class="demo-hint" id="pinHint"></span>
+            </div>
+          </div>
+
+          <div class="method-panel" data-panel="pattern">
+            <div class="pattern-wrap">
+              <div class="pattern-canvas" id="patternCanvas">
+                <svg class="pattern-svg" id="patternSvg"></svg>
+              </div>
+              <div class="pattern-hint" id="patternHint">Draw a pattern of 4 or more points</div>
+              <div class="field-foot" style="width:100%;justify-content:space-between;margin-top:8px">
+                <span class="error-msg" id="patternError">Pattern too short.</span>
+                <span class="demo-hint" id="patternHintDemo"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="method-panel" data-panel="fingerprint">
+            <div class="fp-wrap">
+              <button class="fp-btn" id="fpBtn" aria-label="Scan fingerprint">
+                <i data-lucide="fingerprint"></i>
+              </button>
+              <div class="fp-label" id="fpLabel">Touch the sensor to scan</div>
+              <div class="field-foot" style="margin-top:10px">
+                <span class="error-msg" id="fpError">Scan failed. Try again.</span>
+                <span class="demo-hint" id="fpHint"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="method-panel" data-panel="question">
+            <div class="question-box">
+              <i data-lucide="help-circle"></i>
+              <div class="question-text" id="questionText">What is the name of your first pet?</div>
+            </div>
+            <div class="field" id="qField">
+              <i data-lucide="message-circle" class="lead"></i>
+              <input type="text" id="qInput" placeholder="Your answer" aria-label="Security answer" autocomplete="off" />
+            </div>
+            <button type="button" class="primary-action" id="qSubmit">
+              <span class="label">Verify answer</span>
+              <i data-lucide="check"></i>
+              <span class="spinner"></span>
+            </button>
+            <div class="field-foot">
+              <span class="error-msg" id="qError">Incorrect answer.</span>
+              <span class="demo-hint" id="qHint"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- ===== STATUS BAR (under boxes, full width) ===== -->
+    <nav class="statusbar" aria-label="System status">
+      <button class="session-indicator" id="sessionBtn" data-pop="session" aria-label="Select session">
+        <i data-lucide="layout-grid"></i>
+        <span class="session-label">Session</span>
+        <span class="session-val" id="sessionVal">Hyprland</span>
+        <i data-lucide="chevron-down" class="chev"></i>
+      </button>
+      
+      <div class="system-indicators">
+        <button class="indicator" id="netBtn" data-pop="network" aria-label="Network">
+          <i data-lucide="wifi"></i>
+          <span class="pill"><span class="lvl-text" id="netText">Aether-5G</span></span>
+          <span class="tip">Connected · Aether-5G</span>
+        </button>
+        <button class="indicator" id="volBtn" data-pop="volume" aria-label="Volume">
+          <i data-lucide="volume-2"></i>
+          <span class="pill"><span class="lvl-text" id="volText">45%</span></span>
+          <span class="tip" id="volTip">Volume 45%</span>
+        </button>
+        <button class="indicator" id="batBtn" aria-label="Battery">
+          <span class="bat-case"><span class="bat-fill" id="batFill" style="width:78%"></span></span>
+          <span class="lvl-text" id="batText">78%</span>
+          <span class="tip" id="batTip">78% remaining</span>
+        </button>
+        <button class="indicator" id="themeBtn" aria-label="Toggle theme">
+          <i data-lucide="sun-moon"></i>
+          <span class="tip">Switch theme</span>
+        </button>
+        <button class="indicator" id="powerBtn" data-pop="power" aria-label="Power and system options">
+          <i data-lucide="power"></i>
+          <span class="tip">Power options</span>
+        </button>
+      </div>
+    </nav>
+    
+  </div>
+</main>
+
+<!-- Popovers -->
+<div class="popover" id="pop-session" role="menu" aria-label="Select session">
+  <div class="pop-label">Desktop Session</div>
+  <div id="sessionList"></div>
+</div>
+
+<div class="popover" id="pop-network" role="menu" aria-label="Network status" style="min-width:260px">
+  <div class="pop-section">
+    <div class="pop-label">Connection</div>
+    <div class="net-info-row">
+      <div class="net-info-icon"><i data-lucide="wifi"></i></div>
+      <div class="net-info-text">
+        <div class="net-info-name">Aether-5G</div>
+        <div class="net-info-detail">Connected · Secured · 5 GHz</div>
+      </div>
+    </div>
+  </div>
+  <div class="pop-section">
+    <div class="pop-label">Details</div>
+    <div class="net-stat"><span>Interface</span><span class="net-stat-val">wlan0</span></div>
+    <div class="net-stat"><span>Signal strength</span><span class="net-stat-val">Excellent</span></div>
+    <div class="net-stat"><span>IP address</span><span class="net-stat-val">192.168.1.42</span></div>
+    <div class="net-stat"><span>Gateway</span><span class="net-stat-val">192.168.1.1</span></div>
+  </div>
+</div>
+
+<div class="popover" id="pop-volume" role="menu" aria-label="Volume" style="min-width:260px">
+  <div class="pop-section">
+    <div class="pop-label">Output volume</div>
+    <div class="vol-row">
+      <button class="vol-toggle" id="volToggle" aria-label="Toggle mute">
+        <i data-lucide="volume-2"></i>
+      </button>
+      <input type="range" id="volSlider" min="0" max="100" value="45" class="vol-slider" aria-label="Volume level" />
+      <span class="vol-value" id="volValue">45%</span>
+    </div>
+  </div>
+</div>
+
+<div class="popover origin-bl" id="pop-power" role="menu" aria-label="Power options">
+  <div class="pop-section">
+    <button class="pop-item" data-power="suspend"><i data-lucide="moon"></i><span>Suspend</span></button>
+    <button class="pop-item" data-power="restart"><i data-lucide="rotate-cw"></i><span>Restart</span></button>
+    <button class="pop-item danger" data-power="shutdown"><i data-lucide="power"></i><span>Shut down</span></button>
+  </div>
+  <div class="pop-section">
+    <button class="pop-item" id="lockBtn"><i data-lucide="lock-keyhole"></i><span>Lock screen</span></button>
+    <button class="pop-item" id="aboutBtn"><i data-lucide="info"></i><span>About this system</span></button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dialog-icon" id="dlgIcon"><i data-lucide="triangle-alert"></i></div>
+  <h3 id="dlgTitle">Shut down?</h3>
+  <p id="dlgBody">This will close all running sessions and power off the device. Any unsaved work will be lost.</p>
+  <div class="dialog-actions">
+    <button class="btn btn-ghost" id="dlgCancel">Cancel</button>
+    <button class="btn btn-danger" id="dlgConfirm">Shut down</button>
+  </div>
+</div>
+
+<div class="overlay-screen" id="successOverlay">
+  <div class="overlay-icon" id="successIcon"><i data-lucide="check"></i></div>
+  <div class="overlay-title" id="successTitle">Welcome back, Aria</div>
+  <div class="overlay-sub" id="successSub">Starting Hyprland session…</div>
+  <button class="overlay-back" id="successBack">Return to greeter</button>
+</div>
+
+<div class="overlay-screen power" id="powerOverlay">
+  <div class="overlay-icon" id="powerIcon"><i data-lucide="power"></i></div>
+  <div class="overlay-title" id="powerTitle">Shutting down</div>
+  <div class="overlay-sub" id="powerSub">It is now safe to power off the device.</div>
+  <button class="overlay-back" id="powerBack">Return to greeter</button>
+</div>
